@@ -2,6 +2,9 @@
 
 # TCC UNIALFA 2025-02 [EQUIPE 02]
 
-Repositório Antigo
+# Repositório Antigo
 # Organização [https://github.com/TCC-UNIALFA]
-# Repositórios [https://github.com/TCC-UNIALFA/BackEnd] | [https://github.com/TCC-UNIALFA/PetAffinityPage] | [https://github.com/TCC-UNIALFA/Dashboard]
+# Repositórios
+[https://github.com/TCC-UNIALFA/BackEnd] <br>
+[https://github.com/TCC-UNIALFA/PetAffinityPage] <br>
+[https://github.com/TCC-UNIALFA/Dashboard] <br>
