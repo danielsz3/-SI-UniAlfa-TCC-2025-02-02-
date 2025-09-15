@@ -1,0 +1,82 @@
+services:
+  # Laravel PHP-FPM
+  laravel:
+    build:
+      context: ../back-end   # pasta do seu Laravel
+      dockerfile: Dockerfile
+    container_name: back-end
+    volumes:
+      - ../back-end:/var/www
+    networks:
+      - app-network
+    depends_on:
+      - mysql
+
+  # Nginx para Laravel
+  nginx_laravel:
+    image: nginx:alpine
+    container_name: nginx_laravel
+    ports:
+      - "8080:80"
+    volumes:
+      - ../back-end:/var/www
+      - ../nginx:/etc/nginx/conf.d:ro
+    networks:
+      - app-network
+    depends_on:
+      - laravel
+
+  # React Vite (dev server)
+  react:
+    build:
+      context: ../dashboard  # pasta do seu React
+      dockerfile: Dockerfile
+    container_name: dashboard
+    volumes:
+      - ../dashboard:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"    # volta para porta 3000
+    networks:
+      - app-network
+
+  # MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+    ports:
+      - "3307:3306"   # porta do host alterada para evitar conflito
+
+  # phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    ports:
+      - "8081:80"
+    networks:
+      - app-network
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:
+
+networks:
+  app-network:
+    driver: bridge
