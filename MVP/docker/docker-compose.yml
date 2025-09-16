@@ -1,82 +1,111 @@
+
+version: '3.8'
+
 services:
-  # Laravel PHP-FPM
-  laravel:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: laravel_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: laravel_db
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_USER: laravel_user
+      MYSQL_PASSWORD: laravel_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - laravel_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Laravel Application (PHP-FPM)
+  laravel-app:
     build:
       context: ../back-end   # pasta do seu Laravel
       dockerfile: Dockerfile
-    container_name: back-end
+    container_name: laravel_app
+    restart: unless-stopped
+    working_dir: /var/www/html
     volumes:
-      - ../back-end:/var/www
-    networks:
-      - app-network
+      - ./laravel:/var/www/html
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: laravel_db
+      DB_USERNAME: laravel_user
+      DB_PASSWORD: laravel_password
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    networks:
+      - laravel_network
 
-  # Nginx para Laravel
-  nginx_laravel:
+  # Nginx Web Server
+  nginx:
     image: nginx:alpine
-    container_name: nginx_laravel
+    container_name: laravel_nginx
+    restart: unless-stopped
     ports:
-      - "8080:80"
+      - "80:80"
+      - "443:443"
     volumes:
-      - ../back-end:/var/www
-      - ../nginx:/etc/nginx/conf.d:ro
-    networks:
-      - app-network
+      - ./laravel:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - laravel
+      - laravel-app
+    networks:
+      - laravel_network
 
-  # React Vite (dev server)
-  react:
+  # React Application (Vite)
+  vite:
     build:
       context: ../dashboard  # pasta do seu React
       dockerfile: Dockerfile
-    container_name: dashboard
-    volumes:
-      - ../dashboard:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"    # volta para porta 3000
-    networks:
-      - app-network
-
-  # MySQL
-  mysql:
-    image: mysql:8.0
-    container_name: mysql_db
+    container_name: react_vite
     restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: laravel
-      MYSQL_USER: laravel
-      MYSQL_PASSWORD: laravel
-    volumes:
-      - mysql_data:/var/lib/mysql
-    networks:
-      - app-network
     ports:
-      - "3307:3306"   # porta do host alterada para evitar conflito
+      - "5173:5173"
+    volumes:
+      - ./react:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=http://laravel-app:8000/api
+    networks:
+      - laravel_network
+    stdin_open: true
+    tty: true
 
   # phpMyAdmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin
+    container_name: laravel_phpmyadmin
     restart: unless-stopped
+    ports:
+      - "8080:80"
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
       PMA_USER: root
-      PMA_PASSWORD: root
-    ports:
-      - "8081:80"
-    networks:
-      - app-network
+      PMA_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: root_password
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    networks:
+      - laravel_network
 
 volumes:
   mysql_data:
+    driver: local
 
 networks:
-  app-network:
+  laravel_network:
     driver: bridge
