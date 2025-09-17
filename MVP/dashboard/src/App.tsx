@@ -1,34 +1,47 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import './App.css';
+import { Admin, CustomRoutes, EditGuesser, ListGuesser, Resource, ShowGuesser, type TranslationMessages } from 'react-admin';
+import { Route } from 'react-router-dom';
+
+import dataProvider from './dataProvider/dataProvider';
+import Layout from './layout/Layout';
+import { authProvider } from './authProvider/authProvider';
+import ConfiguracaoUsuario from './components/users/Configuracao';
+import { LoginPage } from './components/LoginPage';
+
+import { i18nProvider, myTheme } from './theme';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <Admin
+      layout={Layout}
+      theme={myTheme}
+      dataProvider={dataProvider}
+      i18nProvider={i18nProvider}
+      authProvider={authProvider}
+      loginPage={LoginPage}
+
+    >
+      <CustomRoutes>
+        <Route
+          path="/configuracoes"
+          element={<ConfiguracaoUsuario />}
+        />
+      </CustomRoutes>
+      <Resource
+        options={{ label: "Usuários" }}
+        name="usuarios" list={ListGuesser}
+        edit={EditGuesser}
+        show={ShowGuesser}
+      />
+      <Resource
+        name="carts"
+        options={{ label: "Carrinhos" }}
+      />
+      <Resource
+        name="users"
+        options={{ label: "Usuários" }}
+        show={ShowGuesser} />
+    </Admin>
   )
 }
 
