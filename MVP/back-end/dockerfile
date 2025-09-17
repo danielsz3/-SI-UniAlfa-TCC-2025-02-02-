@@ -1,32 +1,26 @@
-
 FROM php:8.2-fpm
 
-# Instalar dependências do sistema
+# Instala pacotes necessários para Laravel
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    nodejs \
-    npm \
+    git unzip libpng-dev libonig-dev libxml2-dev curl \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Instala Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Criar usuário para aplicação Laravel
-RUN groupadd -g 1000 www
-RUN useradd -u 1000 -ms /bin/bash -g www www
+WORKDIR /var/www
 
-# Copiar código da aplicação existente
-COPY --chown=www:www . /var/www/html
+COPY . .
 
-# Mudar para usuário atual
-USER www
+# Copia .env.example -> .env se não existir
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
 
-# Expor porta 9000 e iniciar servidor php-fpm
+# Instala dependências do PHP
+RUN composer install --no-dev --optimize-autoloader \
+    && php artisan key:generate --force
+
+# Permissões
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
 EXPOSE 9000
 CMD ["php-fpm"]

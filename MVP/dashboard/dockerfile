@@ -1,20 +1,20 @@
-
-FROM node:18-alpine
-
-# Definir diretório de trabalho
+# Etapa 1 - Build
+FROM node:18-alpine AS build
 WORKDIR /app
 
-# Copiar package.json e package-lock.json (se disponível)
 COPY package*.json ./
-
-# Instalar dependências
 RUN npm install
 
-# Copiar código fonte
 COPY . .
 
-# Expor porta do Vite
-EXPOSE 5173
+# Copia .env.example -> .env se não existir
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
 
-# Comando para iniciar o servidor de desenvolvimento
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+RUN npm run build
+
+# Etapa 2 - Produção
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
+COPY --from=build /app/dist ./
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
