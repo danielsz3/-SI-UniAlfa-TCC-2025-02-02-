@@ -123,6 +123,7 @@ class EnderecoController extends Controller
     /**
      * Exclui permanentemente um endereço.
      */
+    /*
     public function forceDelete($id)
     {
         $endereco = Endereco::withTrashed()->find($id);
@@ -134,5 +135,5 @@ class EnderecoController extends Controller
         $endereco->forceDelete();
 
         return response()->json(['message' => 'Endereço excluído permanentemente!'], 200);
-    }
+    }*/
 }
