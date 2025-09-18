@@ -1,26 +1,41 @@
-FROM php:8.2-fpm
+# --- Estágio 1: Builder ---
+FROM php:8.2-fpm AS builder
 
-# Instala pacotes necessários para Laravel
+# ... (seu estágio de build continua o mesmo) ...
 RUN apt-get update && apt-get install -y \
-    git unzip libpng-dev libonig-dev libxml2-dev curl \
+    git unzip curl libpng-dev libonig-dev libxml2-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Instala Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
 WORKDIR /var/www
-
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --optimize-autoloader
 COPY . .
 
-# Copia .env.example -> .env se não existir
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
+# --- Estágio 2: Imagem Final ---
+FROM php:8.2-fpm
 
-# Instala dependências do PHP
-RUN composer install --no-dev --optimize-autoloader \
-    && php artisan key:generate --force
+# Instala dependências, INCLUINDO o netcat para o entrypoint funcionar
+RUN apt-get update && apt-get install -y \
+      libpng-dev libonig-dev libxml2-dev netcat-openbsd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Permissões
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+WORKDIR /var/www
+COPY --from=builder /var/www /var/www
 
+# ----------------- ALTERAÇÕES PARA O ENTRYPOINT -----------------
+# Copia o script para uma pasta de executáveis dentro da imagem
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# Dá permissão de execução para o script
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Define o script como o ponto de entrada do contêiner
+ENTRYPOINT ["entrypoint.sh"]
+# -----------------------------------------------------------------
+
+# O comando padrão que o entrypoint vai executar no final (o "$@")
 EXPOSE 9000
 CMD ["php-fpm"]

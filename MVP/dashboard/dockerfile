@@ -1,20 +1,20 @@
-# Etapa 1 - Build
-FROM node:18-alpine AS build
+# --- Build Stage ---
+FROM node:18-alpine AS builder
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci
 COPY . .
-
-# Copia .env.example -> .env se não existir
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
-
 RUN npm run build
 
-# Etapa 2 - Produção
-FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
-COPY --from=build /app/dist ./
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# --- Production Stage ---
+FROM node:18-alpine
+WORKDIR /app
+RUN npm install -g serve
+COPY --from=builder /app/dist ./dist
+EXPOSE 5173
+
+# Para desenvolvimento (com HMR)
+# CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# Para produção (servindo build)
+CMD ["serve", "-s", "dist", "-l", "5173"]

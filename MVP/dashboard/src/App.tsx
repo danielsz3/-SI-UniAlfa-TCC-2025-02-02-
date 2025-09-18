@@ -1,5 +1,5 @@
 import './App.css';
-import { Admin, CustomRoutes, EditGuesser, ListGuesser, Resource, ShowGuesser, type TranslationMessages } from 'react-admin';
+import { Admin, CustomRoutes, EditGuesser, ListGuesser, Resource, ShowGuesser } from 'react-admin';
 import { Route } from 'react-router-dom';
 
 import dataProvider from './dataProvider/dataProvider';
