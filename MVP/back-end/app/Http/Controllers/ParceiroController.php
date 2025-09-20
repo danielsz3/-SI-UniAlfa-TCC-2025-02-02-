@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Validator;
 
 class ParceiroController extends Controller
 {
-   
+
     public function index(Request $request): JsonResponse
     {
         $perPage = $request->input('_limit', 10);
@@ -20,7 +20,7 @@ class ParceiroController extends Controller
 
         $query = Parceiro::query();
 
-    
+
         if (!empty($filter)) {
             foreach ($filter as $field => $value) {
                 if ($value) {
@@ -63,8 +63,8 @@ class ParceiroController extends Controller
         }
 
         $parceiro = Parceiro::create($request->all());
-
-        return response()->json(['data' => $parceiro], 201);
+        dd($parceiro);
+        return response()->json($parceiro, 201);
     }
 
 
@@ -79,7 +79,7 @@ class ParceiroController extends Controller
         return response()->json(['data' => $parceiro]);
     }
 
- 
+
     public function update(Request $request, $id): JsonResponse
     {
         $parceiro = Parceiro::find($id);

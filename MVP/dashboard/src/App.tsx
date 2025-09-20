@@ -11,6 +11,8 @@ import { LoginPage } from './components/LoginPage';
 import { i18nProvider, myTheme } from './theme';
 import UserCreate from './components/users/UsuarioCreate';
 import { UsuarioList } from './components/users/UsuarioList';
+import { ParceiroList } from './components/parceiros/ParceiroList';
+import ParceiroCreate from './components/parceiros/ParceiroCreate';
 
 function App() {
   return (
@@ -40,10 +42,10 @@ function App() {
       <Resource
         options={{ label: "Parceiros" }}
         name="parceiros" 
-        list={ListGuesser}
+        list={ParceiroList}
         edit={EditGuesser}
         show={ShowGuesser}
-        create={UserCreate}
+        create={ParceiroCreate}
       />
   
     </Admin>

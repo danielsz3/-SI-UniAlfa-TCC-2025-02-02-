@@ -1,5 +1,5 @@
 <?php
- 
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContatoOngController;
@@ -30,7 +30,7 @@ Route::prefix('enderecos')->group(function () {
     Route::delete('/{id}/force', [EnderecoController::class, 'forceDelete']); // Delete definitivo
 });
 
-Route::apiResource('ongs', OngController::class);   
+Route::apiResource('ongs', OngController::class);
 
 Route::apiResource('parceiros', ParceiroController::class);
 
