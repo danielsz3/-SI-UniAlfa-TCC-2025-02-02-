@@ -8,6 +8,7 @@ use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\EnderecoController;
 use App\Http\Controllers\OngController;
 use App\Http\Controllers\ParceiroController;
+use App\Http\Controllers\TransacaoController;
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -38,7 +39,7 @@ Route::apiResource ('contato-ongs',ContatoOngController::class);
 
 Route::apiResource('documentos', DocumentoController::class);
 
-
+Route::apiResource('transacoes', TransacaoController::class);
 
 
 
