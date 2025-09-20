@@ -6,6 +6,7 @@ use App\Http\Controllers\ContatoOngController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\EnderecoController;
+use App\Http\Controllers\LaresTemporarioController;
 use App\Http\Controllers\OngController;
 use App\Http\Controllers\ParceiroController;
 use App\Http\Controllers\TransacaoController;
@@ -41,5 +42,5 @@ Route::apiResource('documentos', DocumentoController::class);
 
 Route::apiResource('transacoes', TransacaoController::class);
 
-
+Route::apiResource('lares-temporarios', LaresTemporarioController::class);
 
