@@ -18,6 +18,5 @@ class Documento extends Model
         'titulo',
         'categoria',
         'descricao',
-        'url_arquivo',
     ];
 }

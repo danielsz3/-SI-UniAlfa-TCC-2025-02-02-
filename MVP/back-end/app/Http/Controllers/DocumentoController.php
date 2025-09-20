@@ -6,13 +6,60 @@ use App\Models\Documento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 
 class DocumentoController extends Controller
 {
-    // Listar todos
-    public function index()
+    // Listar documentos com paginação, ordenação e filtros
+    public function index(Request $request): JsonResponse
     {
-        return response()->json(Documento::all(), 200);
+        // Detecta paginação (jsonServer ou simpleRest)
+        $start = (int) $request->query('_start', 0);
+        $end   = (int) $request->query('_end', 0);
+        $perPage = (int) $request->input('_limit', ($end > 0 ? ($end - $start) : 10));
+        $page    = (int) $request->input('_page', ($perPage > 0 ? intval($start / $perPage) + 1 : 1));
+
+        // Ordenação
+        $sort  = $request->query('_sort', 'id');
+        $order = $request->query('_order', 'ASC');
+
+        $query = Documento::query();
+
+        // 🚀 aplica todos os filtros vindos como query params
+        foreach ($request->query() as $field => $value) {
+            if (in_array($field, ['_start','_end','_sort','_order','_page','_limit'])) {
+                continue;
+            }
+
+            if ($value === null || $value === '') continue;
+
+            // Range automático: campo_from / campo_to
+            if (preg_match('/(.+)_from$/', $field, $matches)) {
+                $query->where($matches[1], '>=', $value);
+                continue;
+            }
+            if (preg_match('/(.+)_to$/', $field, $matches)) {
+                $query->where($matches[1], '<=', $value);
+                continue;
+            }
+
+            // LIKE nos campos textuais
+            if (in_array($field, ['titulo','categoria','descricao'])) {
+                $query->where($field, 'like', '%' . $value . '%');
+            } else {
+                $query->where($field, $value);
+            }
+        }
+
+        // Ordenação
+        $query->orderBy($sort, $order);
+
+        $documentos = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()
+            ->json($documentos->items())
+            ->header('X-Total-Count', $documentos->total())
+            ->header('Access-Control-Expose-Headers', 'X-Total-Count');
     }
 
     // Criar novo documento com upload
@@ -22,7 +69,7 @@ class DocumentoController extends Controller
             'titulo' => 'required|string|max:255',
             'categoria' => 'nullable|string|max:255',
             'descricao' => 'nullable|string',
-            'documento' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:2048', // ajuste os mimes/tamanho
+            'documento' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -30,12 +77,9 @@ class DocumentoController extends Controller
         }
 
         // Upload do arquivo
-        if ($request->hasFile('documento')) {
-            // salva em storage/app/public/documentos
-            $path = $request->file('documento')->store('documentos', 'public');
-        } else {
-            $path = null;
-        }
+        $path = $request->hasFile('documento') 
+            ? $request->file('documento')->store('documentos', 'public')
+            : null;
 
         $documento = Documento::create([
             'titulo' => $request->titulo,
@@ -50,8 +94,7 @@ class DocumentoController extends Controller
     // Mostrar um documento
     public function show($id)
     {
-        $documento = Documento::findOrFail($id);
-        return response()->json($documento, 200);
+        return response()->json(Documento::findOrFail($id), 200);
     }
 
     // Atualizar documento e arquivo
@@ -70,15 +113,12 @@ class DocumentoController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        // Se vier um novo arquivo, apaga o antigo e salva o novo
+        // Se vier novo arquivo, troca
         if ($request->hasFile('documento')) {
-            // apaga antigo se existir
             if ($documento->documento && Storage::disk('public')->exists($documento->documento)) {
                 Storage::disk('public')->delete($documento->documento);
             }
-
-            $path = $request->file('documento')->store('documentos', 'public');
-            $documento->documento = $path;
+            $documento->documento = $request->file('documento')->store('documentos', 'public');
         }
 
         $documento->titulo = $request->titulo ?? $documento->titulo;
@@ -94,7 +134,6 @@ class DocumentoController extends Controller
     {
         $documento = Documento::findOrFail($id);
 
-        // Deletar arquivo do storage
         if ($documento->documento && Storage::disk('public')->exists($documento->documento)) {
             Storage::disk('public')->delete($documento->documento);
         }
