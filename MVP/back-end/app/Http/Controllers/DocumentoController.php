@@ -4,103 +4,191 @@ namespace App\Http\Controllers;
 
 use App\Models\Documento;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class DocumentoController extends Controller
 {
-    // Listar todos
-    public function index()
+    /**
+     * Listar documentos com paginação
+     */
+    public function index(Request $request): JsonResponse
     {
-        return response()->json(Documento::all(), 200);
+        $perPage = $request->input('_limit', 10);
+        $page    = $request->input('_page', 1);
+
+        $documentos = Documento::paginate($perPage, ['*'], 'page', $page);
+
+        $data = $documentos->getCollection()->map(fn($doc) => $this->formatDocumento($doc));
+
+        return response()->json($data)
+            ->header('X-Total-Count', $documentos->total())
+            ->header('Access-Control-Expose-Headers', 'X-Total-Count');
     }
 
-    // Criar novo documento com upload
-    public function store(Request $request)
+    /**
+     * Criar novo documento com upload
+     */
+    public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'titulo' => 'required|string|max:255',
+            'titulo'    => 'required|string|max:255',
             'categoria' => 'nullable|string|max:255',
             'descricao' => 'nullable|string',
-            'documento' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:2048', // ajuste os mimes/tamanho
+            'documento' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Upload do arquivo
+        $data = $request->only(['titulo', 'categoria', 'descricao']);
+
         if ($request->hasFile('documento')) {
-            // salva em storage/app/public/documentos
-            $path = $request->file('documento')->store('documentos', 'public');
-        } else {
-            $path = null;
+            $file     = $request->file('documento');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path     = $file->storeAs('documentos', $filename, 'public');
+
+            $data['documento']       = $path;
+            $data['nome_arquivo']    = $file->getClientOriginalName();
+            $data['tamanho_arquivo'] = $file->getSize();
+            $data['tipo_arquivo']    = $file->getClientMimeType();
         }
 
-        $documento = Documento::create([
-            'titulo' => $request->titulo,
-            'categoria' => $request->categoria,
-            'descricao' => $request->descricao,
-            'documento' => $path,
-        ]);
+        $documento = Documento::create($data);
 
-        return response()->json($documento, 201);
+        return response()->json(['data' => $this->formatDocumento($documento)], 201);
     }
 
-    // Mostrar um documento
-    public function show($id)
+    /**
+     * Mostrar documento
+     */
+    public function show($id): JsonResponse
     {
-        $documento = Documento::findOrFail($id);
-        return response()->json($documento, 200);
+        try {
+            $documento = Documento::withTrashed()->findOrFail($id);
+            return response()->json(['data' => $this->formatDocumento($documento)]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Documento não encontrado'], 404);
+        }
     }
 
-    // Atualizar documento e arquivo
-    public function update(Request $request, $id)
+    /**
+     * Atualizar documento
+     */
+    public function update(Request $request, $id): JsonResponse
     {
-        $documento = Documento::findOrFail($id);
+        try {
+            $documento = Documento::withTrashed()->findOrFail($id);
 
-        $validator = Validator::make($request->all(), [
-            'titulo' => 'sometimes|required|string|max:255',
-            'categoria' => 'nullable|string|max:255',
-            'descricao' => 'nullable|string',
-            'documento' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:2048',
-        ]);
+            $validator = Validator::make($request->all(), [
+                'titulo'    => 'sometimes|required|string|max:255',
+                'categoria' => 'nullable|string|max:255',
+                'descricao' => 'nullable|string',
+                'documento' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        // Se vier um novo arquivo, apaga o antigo e salva o novo
-        if ($request->hasFile('documento')) {
-            // apaga antigo se existir
-            if ($documento->documento && Storage::disk('public')->exists($documento->documento)) {
-                Storage::disk('public')->delete($documento->documento);
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            $path = $request->file('documento')->store('documentos', 'public');
-            $documento->documento = $path;
+            $documento->fill($request->only(['titulo', 'categoria', 'descricao']));
+
+            // Substituição de arquivo
+            if ($request->hasFile('documento')) {
+                // Apaga o antigo
+                if ($documento->documento && Storage::disk('public')->exists($documento->documento)) {
+                    Storage::disk('public')->delete($documento->documento);
+                }
+
+                $file     = $request->file('documento');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path     = $file->storeAs('documentos', $filename, 'public');
+
+                $documento->documento       = $path;
+                $documento->nome_arquivo    = $file->getClientOriginalName();
+                $documento->tamanho_arquivo = $file->getSize();
+                $documento->tipo_arquivo    = $file->getClientMimeType();
+            }
+
+            $documento->save();
+
+            return response()->json(['data' => $this->formatDocumento($documento)]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Documento não encontrado'], 404);
         }
-
-        $documento->titulo = $request->titulo ?? $documento->titulo;
-        $documento->categoria = $request->categoria ?? $documento->categoria;
-        $documento->descricao = $request->descricao ?? $documento->descricao;
-        $documento->save();
-
-        return response()->json($documento, 200);
     }
 
-    // Deletar documento
-    public function destroy($id)
+    /**
+     * Inativar (soft delete)
+     */
+    public function destroy($id): JsonResponse
     {
-        $documento = Documento::findOrFail($id);
+        try {
+            $documento = Documento::findOrFail($id);
+            $documento->delete();
 
-        // Deletar arquivo do storage
-        if ($documento->documento && Storage::disk('public')->exists($documento->documento)) {
-            Storage::disk('public')->delete($documento->documento);
+            return response()->json(['message' => 'Documento inativado com sucesso']);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Documento não encontrado'], 404);
         }
+    }
 
-        $documento->delete();
+    /**
+     * Restaurar documento
+     */
+    public function restore($id): JsonResponse
+    {
+        try {
+            $documento = Documento::withTrashed()->findOrFail($id);
+            $documento->restore();
 
-        return response()->json(['message' => 'Documento deletado com sucesso'], 200);
+            return response()->json(['message' => 'Documento restaurado com sucesso']);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Documento não encontrado'], 404);
+        }
+    }
+
+    /**
+     * Download do arquivo
+     */
+    public function download($id)
+    {
+        try {
+            $documento = Documento::findOrFail($id);
+
+            if (!$documento->documento || !Storage::disk('public')->exists($documento->documento)) {
+                return response()->json(['error' => 'Arquivo não encontrado'], 404);
+            }
+
+            // retorna o download com o nome original do arquivo
+            return Storage::disk('public')->download($documento->documento, $documento->nome_arquivo);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Documento não encontrado'], 404);
+        }
+    }
+
+    /**
+     * Formatar saída
+     */
+    private function formatDocumento($documento): array
+    {
+        return [
+            'id_documento'    => $documento->id_documento,
+            'titulo'          => $documento->titulo,
+            'categoria'       => $documento->categoria,
+            'descricao'       => $documento->descricao,
+            'documento'       => $documento->documento,
+            'nome_arquivo'    => $documento->nome_arquivo,
+            'tamanho_arquivo' => $documento->tamanho_arquivo,
+            'tipo_arquivo'    => $documento->tipo_arquivo,
+            'url_download'    => $documento->documento ? url('storage/' . $documento->documento) : null,
+            'status'          => $documento->deleted_at ? 'inativo' : 'ativo',
+            'created_at'      => $documento->created_at,
+            'updated_at'      => $documento->updated_at,
+            'deleted_at'      => $documento->deleted_at,
+        ];
     }
 }
