@@ -83,7 +83,7 @@ class UsuarioController extends Controller
             'role' => $request->role ?? 'user',
         ]);
 
-        return response()->json(['data' => $usuario], 201);
+        return response()->json($usuario, 201);
     }
 
     /**
@@ -97,7 +97,7 @@ class UsuarioController extends Controller
             return response()->json(['error' => 'Usuário não encontrado'], 404);
         }
 
-        return response()->json(['data' => $usuario]);
+        return response()->json($usuario);
     }
 
     /**

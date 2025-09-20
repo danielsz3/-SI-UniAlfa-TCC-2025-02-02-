@@ -1,9 +1,20 @@
-FROM node:18-alpine
-
+# --- Build Stage ---
+FROM node:18-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
+RUN npm run build
 
-EXPOSE 3000
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+# --- Production Stage ---
+FROM node:18-alpine
+WORKDIR /app
+RUN npm install -g serve
+COPY --from=builder /app/dist ./dist
+EXPOSE 5173
+
+# Para desenvolvimento (com HMR)
+# CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# Para produção (servindo build)
+CMD ["serve", "-s", "dist", "-l", "5173"]

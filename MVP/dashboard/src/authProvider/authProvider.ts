@@ -1,20 +1,22 @@
 export const authProvider = {
-    login: async ({ username, password }: { username: string; password: string }) => {
-        const request = new Request('https://fakestoreapi.com/auth/login', {
+    login: async ({ email, password }: { email: string; password: string }) => {
+        const request = new Request('http://127.0.0.1:8000/api/login', {
             method: 'POST',
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ email, password }),
             headers: new Headers({ 'Content-Type': 'application/json' }),
         });
 
         const response = await fetch(request);
 
+        console.log(response);
+
         if (!response.ok) {
             throw new Error('Credenciais inválidas');
         }
 
-        const { token } = await response.json();
+        const { access_token } = await response.json();
 
-        localStorage.setItem('authToken', token);
+        localStorage.setItem('authToken', access_token);
         return Promise.resolve();
     },
 

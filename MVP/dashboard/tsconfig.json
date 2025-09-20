@@ -1,7 +1,31 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "compilerOptions": {
+    // --- Configurações Essenciais ---
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+
+    // --- Verificações de Qualidade e Segurança de Tipos ---
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true, // Avisa sobre variáveis locais não usadas
+    "noUnusedParameters": true, // Avisa sobre parâmetros de função não usados
+
+    // --- Interoperabilidade com Módulos ---
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+
+    // --- Build ---
+    "noEmit": true, // ❗️ Essencial: TypeScript só verifica os tipos, Vite faz o resto.
+
+    // --- Caminhos ---
+    "baseUrl": ".", // Permite imports a partir da raiz (opcional)
+  },
+  // Diz ao TypeScript para incluir todos os arquivos na pasta 'src' e o vite.config.ts
+  "include": ["src", "vite.config.ts"],
 }
