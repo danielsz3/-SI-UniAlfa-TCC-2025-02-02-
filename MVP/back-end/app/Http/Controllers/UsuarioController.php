@@ -14,33 +14,59 @@ class UsuarioController extends Controller
      * React Admin espera: { data: [...], total: number }
      */
     public function index(Request $request): JsonResponse
-    {
-        $perPage = $request->input('_limit', 10);
-        $page = $request->input('_page', 1);
-        $sort = $request->input('_sort', 'id');
-        $order = $request->input('_order', 'asc');
-        $filter = json_decode($request->input('filter', '{}'), true);
+{
+    // paginação estilo jsonServer
+    $start = (int) $request->query('_start', 0);
+    $end   = (int) $request->query('_end', 10);
+    $perPage = ($end - $start) > 0 ? ($end - $start) : 10;
+    $page    = intval($start / $perPage) + 1;
 
-        $query = Usuario::query();
+    // ordenação
+    $sort  = $request->query('_sort', 'id');
+    $order = $request->query('_order', 'ASC');
 
-        // Filtros
-        if (!empty($filter)) {
-            foreach ($filter as $field => $value) {
-                if ($value) {
-                    $query->where($field, 'like', "%{$value}%");
-                }
-            }
+    $query = Usuario::query();
+
+    // 🚀 aplica todos os filtros vindos pela URL
+    foreach ($request->query() as $field => $value) {
+        // ignora parametros reservados do React-Admin
+        if (in_array($field, ['_start','_end','_sort','_order','page','perPage'])) {
+            continue;
         }
 
-        // Ordenação
-        $query->orderBy($sort, $order);
+        if ($value === null || $value === '') continue;
 
-        $usuarios = $query->paginate($perPage, ['*'], 'page', $page);
+        // 🔎  suporte a ranges -> campo_from & campo_to
+        if (preg_match('/(.+)_from$/', $field, $matches)) {
+            $column = $matches[1];
+            $query->where($column, '>=', $value);
+            continue;
+        }
+        if (preg_match('/(.+)_to$/', $field, $matches)) {
+            $column = $matches[1];
+            $query->where($column, '<=', $value);
+            continue;
+        }
 
-        return response()->json($usuarios->items())
-            ->header('X-Total-Count', $usuarios->total())
-            ->header('Access-Control-Expose-Headers', 'X-Total-Count');
+        // 🔎 campos textuais usam LIKE
+        if (in_array($field, ['nome','email','telefone'])) {
+            $query->where($field, 'like', '%' . $value . '%');
+        } else {
+            // demais = comparação exata
+            $query->where($field, $value);
+        }
     }
+
+    // ordenação
+    $query->orderBy($sort, $order);
+
+    $usuarios = $query->paginate($perPage, ['*'], 'page', $page);
+
+    return response()
+        ->json($usuarios->items())
+        ->header('X-Total-Count', $usuarios->total())
+        ->header('Access-Control-Expose-Headers', 'X-Total-Count');
+}
     /**
      * Listar usuários incluindo os deletados (admin)
      */

@@ -11,32 +11,59 @@ class ParceiroController extends Controller
 {
    
     public function index(Request $request): JsonResponse
-    {
-        $perPage = $request->input('_limit', 10);
-        $page = $request->input('_page', 1);
-        $sort = $request->input('_sort', 'id_parceiro');
-        $order = $request->input('_order', 'asc');
-        $filter = json_decode($request->input('filter', '{}'), true);
+{
+    // Paginação padrão do SimpleRest (React-Admin)
+    $perPage = (int) $request->input('_limit', 10);
+    $page    = (int) $request->input('_page', 1);
 
-        $query = Parceiro::query();
-
+    // Ordenação
+    $sort  = $request->input('_sort', 'id_parceiro');
+    $order = $request->input('_order', 'ASC');
     
-        if (!empty($filter)) {
-            foreach ($filter as $field => $value) {
-                if ($value) {
-                    $query->where($field, 'like', "%{$value}%");
+    // Se o provider mandar "filter={...}" como JSON na URL
+    $filter = json_decode($request->input('filter', '{}'), true);
+
+    $query = Parceiro::query();
+
+    // 🚀 aplica filtros dinâmicos se vier "filter={}"
+    if (!empty($filter)) {
+        foreach ($filter as $field => $value) {
+            if ($value === null || $value === '') continue;
+
+            // Suporte a ranges: field_from / field_to
+            if (is_array($value) && isset($value['from'])) {
+                $query->where($field, '>=', $value['from']);
+                if (isset($value['to'])) {
+                    $query->where($field, '<=', $value['to']);
                 }
+                continue;
+            }
+
+            // Suporte a lista separada por vírgula
+            if (is_string($value) && str_contains($value, ',')) {
+                $query->whereIn($field, explode(',', $value));
+                continue;
+            }
+
+            // Filtros textuais comuns
+            if (in_array($field, ['nome','email','telefone'])) {
+                $query->where($field, 'like', "%{$value}%");
+            } else {
+                $query->where($field, $value);
             }
         }
-
-        $query->orderBy($sort, $order);
-
-        $parceiros = $query->paginate($perPage, ['*'], 'page', $page);
-
-        return response()->json($parceiros->items())
-            ->header('X-Total-Count', $parceiros->total())
-            ->header('Access-Control-Expose-Headers', 'X-Total-Count');
     }
+
+    // 🔽 ordenação
+    $query->orderBy($sort, $order);
+
+    $parceiros = $query->paginate($perPage, ['*'], 'page', $page);
+
+    return response()
+        ->json($parceiros->items())
+        ->header('X-Total-Count', $parceiros->total()) // ⚠️ obrigatório p/ React-Admin
+        ->header('Access-Control-Expose-Headers', 'X-Total-Count');
+}
 
     public function indexWithTrashed(): JsonResponse
     {
