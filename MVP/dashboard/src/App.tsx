@@ -9,6 +9,8 @@ import ConfiguracaoUsuario from './components/users/Configuracao';
 import { LoginPage } from './components/LoginPage';
 
 import { i18nProvider, myTheme } from './theme';
+import UserCreate from './components/users/UsuarioCreate';
+import { UsuarioList } from './components/users/UsuarioList';
 
 function App() {
   return (
@@ -29,18 +31,21 @@ function App() {
       </CustomRoutes>
       <Resource
         options={{ label: "Usuários" }}
-        name="usuarios" list={ListGuesser}
+        name="usuarios" 
+        list={UsuarioList}
         edit={EditGuesser}
         show={ShowGuesser}
+        create={UserCreate}
       />
       <Resource
-        name="carts"
-        options={{ label: "Carrinhos" }}
+        options={{ label: "Parceiros" }}
+        name="parceiros" 
+        list={ListGuesser}
+        edit={EditGuesser}
+        show={ShowGuesser}
+        create={UserCreate}
       />
-      <Resource
-        name="users"
-        options={{ label: "Usuários" }}
-        show={ShowGuesser} />
+  
     </Admin>
   )
 }
