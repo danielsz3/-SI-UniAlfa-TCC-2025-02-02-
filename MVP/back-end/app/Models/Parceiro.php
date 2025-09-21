@@ -12,11 +12,11 @@ class Parceiro extends Model
 
     protected $table = 'parceiros';
 
-    protected $primaryKey = 'id_parceiro';
+    protected $primaryKey = 'id';
 
     
     protected $fillable = [
-        'nome_parceiro',
+        'nome',
         'url_site',
         'url_logo',
         'descricao',

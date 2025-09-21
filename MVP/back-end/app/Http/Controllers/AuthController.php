@@ -4,102 +4,116 @@ namespace App\Http\Controllers;
 
 use App\Models\Usuario;
 use Illuminate\Http\Request;
-use Validator;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
     /**
-     * Registrar um usuário.
-     *
-     * @return \Illuminate\Http\JsonResponse
+     * Fazer login e gerar JWT
      */
-    public function register(Request $request)
+    public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nome' => 'required|string|max:255',
-            'email' => 'required|email|unique:usuarios,email',
-            'password' => 'required|confirmed|min:8',
+            'email' => 'required|email',
+            'password' => 'required|string|min:1',
+        ], [
+            'email.required' => 'O email é obrigatório',
+            'email.email' => 'Digite um email válido',
+            'password.required' => 'A senha é obrigatória',
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
+            return response()->json([
+                'error' => 'Dados inválidos',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        $usuario = new Usuario();
-        $usuario->nome = $request->nome;
-        $usuario->email = $request->email;
-        $usuario->password = bcrypt($request->password);
-        $usuario->role = 'user';
-        $usuario->cpf = $request->cpf ?? null;
-        $usuario->data_nascimento = $request->data_nascimento ?? null;
-        $usuario->telefone = $request->telefone ?? null;
-        $usuario->save();
+        try {
+            $credentials = $request->only('email', 'password');
 
-        return response()->json($usuario, 201);
+            if (!$token = auth()->attempt($credentials)) {
+                return response()->json([
+                    'error' => 'Credenciais inválidas',
+                    'message' => 'Email ou senha incorretos'
+                ], 401);
+            }
+
+            return $this->respondWithToken($token);
+
+        } catch (JWTException $e) {
+            return response()->json([
+                'error' => 'Erro de autenticação',
+                'message' => 'Não foi possível gerar o token'
+            ], 500);
+        }
     }
 
     /**
-     * Fazer login e gerar JWT.
-     *
-     * @return \Illuminate\Http\JsonResponse
+     * Retorna o usuário autenticado
      */
-    public function login(Request $request)
+    public function me(): JsonResponse
     {
-        $credentials = $request->only('email', 'password');
+        $user = auth()->user();
 
-        if (!$token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Credenciais inválidas'], 401);
+        if (!$user) {
+            return response()->json([
+                'error' => 'Usuário não autenticado',
+                'message' => 'Token inválido ou expirado'
+            ], 401);
         }
 
-        return $this->respondWithToken($token);
+        return response()->json([
+            'message' => 'Usuário autenticado',
+            'user' => $user
+        ]);
     }
 
     /**
-     * Retorna usuário autenticado.
-     *
-     * @return \Illuminate\Http\JsonResponse
+     * Logout e invalida o token
      */
-    public function me()
+    public function logout(): JsonResponse
     {
-        return response()->json(auth()->user());
+        try {
+            auth()->logout();
+            return response()->json(['message' => 'Logout realizado com sucesso']);
+        } catch (JWTException $e) {
+            return response()->json([
+                'error' => 'Token inválido',
+                'message' => 'Não foi possível realizar logout'
+            ], 400);
+        }
     }
 
     /**
-     * Logout e invalida token.
-     *
-     * @return \Illuminate\Http\JsonResponse
+     * Refresh do token JWT
      */
-    public function logout()
+    public function refresh(): JsonResponse
     {
-        auth()->logout();
-
-        return response()->json(['message' => 'Logout realizado com sucesso']);
+        try {
+            return $this->respondWithToken(auth()->refresh());
+        } catch (JWTException $e) {
+            return response()->json([
+                'error' => 'Token inválido',
+                'message' => 'Não foi possível renovar o token'
+            ], 401);
+        }
     }
 
     /**
-     * Refresh do token JWT.
-     *
-     * @return \Illuminate\Http\JsonResponse
+     * Estrutura de resposta do token
      */
-    public function refresh()
-    {
-        return $this->respondWithToken(auth()->refresh());
-    }
-
-    /**
-     * Estrutura de resposta do token.
-     *
-     * @param  string $token
-     * @return \Illuminate\Http\JsonResponse
-     */
-    protected function respondWithToken($token)
+    protected function respondWithToken($token): JsonResponse
     {
         return response()->json([
+            'message' => 'Login realizado com sucesso',
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
+            'expires_in' => auth()->factory()->getTTL() * 60,
+            'user' => auth()->user()
         ]);
     }
 }
