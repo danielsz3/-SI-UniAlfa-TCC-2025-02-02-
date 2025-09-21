@@ -3,81 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\Parceiro;
+use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 
 class ParceiroController extends Controller
 {
+    use SearchIndex;
 
     /**
      * Listar parceiros (com paginação + filtros dinâmicos)
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            $perPage = (int) $request->input('_limit', 10);
-            $page    = (int) $request->input('_page', 1);
-
-            $sort  = $request->input('_sort', 'id');
-            $order = $request->input('_order', 'ASC');
-
-            $filter = json_decode($request->input('filter', '{}'), true);
-
-        $query = Parceiro::query();
-
-
-        if (!empty($filter)) {
-            foreach ($filter as $field => $value) {
-                if ($value) {
-                    $query->where($field, 'like', "%{$value}%");
-                }
-            }
-        }
-            $query = Parceiro::query();
-
-            if (!empty($filter)) {
-                foreach ($filter as $field => $value) {
-                    if ($value === null || $value === '') continue;
-
-                    // Suporte a ranges
-                    if (is_array($value) && isset($value['from'])) {
-                        $query->where($field, '>=', $value['from']);
-                        if (isset($value['to'])) {
-                            $query->where($field, '<=', $value['to']);
-                        }
-                        continue;
-                    }
-
-                    // Suporte a lista separada por vírgula
-                    if (is_string($value) && str_contains($value, ',')) {
-                        $query->whereIn($field, explode(',', $value));
-                        continue;
-                    }
-
-                    // Campos textuais
-                    if (in_array($field, ['nome_parceiro', 'email', 'telefone'])) {
-                        $query->where($field, 'like', "%{$value}%");
-                    } else {
-                        $query->where($field, $value);
-                    }
-                }
-            }
-
-            $query->orderBy($sort, $order);
-
-            $parceiros = $query->paginate($perPage, ['*'], 'page', $page);
-
-            return response()
-                ->json($parceiros->items())
-                ->header('X-Total-Count', $parceiros->total())
-                ->header('Access-Control-Expose-Headers', 'X-Total-Count');
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno',
-                'message' => 'Não foi possível carregar os parceiros'
-            ], 500);
-        }
+        return $this->SearchIndex(
+            $request,
+            Parceiro::query(),
+            'parceiros',
+            ['nome', 'url_site', 'url_logo', 'descricao']
+        );
     }
 
     /**
@@ -100,13 +45,13 @@ class ParceiroController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nome_parceiro' => 'required|string|max:255',
+            'nome' => 'required|string|max:255',
             'url_site'      => 'nullable|url',
             'url_logo'      => 'nullable|url',
             'descricao'     => 'nullable|string|max:500',
         ], [
-            'nome_parceiro.required' => 'O nome do parceiro é obrigatório',
-            'nome_parceiro.max'      => 'O nome do parceiro não pode ter mais de 255 caracteres',
+            'nome.required' => 'O nome do parceiro é obrigatório',
+            'nome.max'      => 'O nome do parceiro não pode ter mais de 255 caracteres',
             'url_site.url'           => 'Digite uma URL válida para o site',
             'url_logo.url'           => 'Digite uma URL válida para a logo',
             'descricao.max'          => 'A descrição não pode ter mais de 500 caracteres',
@@ -121,20 +66,17 @@ class ParceiroController extends Controller
 
         try {
             $parceiro = Parceiro::create($request->only([
-                'nome_parceiro',
+                'nome',
                 'url_site',
                 'url_logo',
                 'descricao'
             ]));
 
-            return response()->json([
-                'message' => 'Parceiro criado com sucesso!',
-                'data' => $parceiro
-            ], 201);
+            return response()->json($parceiro,201);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Erro interno',
-                'message' => 'Não foi possível criar o parceiro'
+                'message' => $e->getMessage()
             ], 500);
         }
     }
@@ -152,10 +94,7 @@ class ParceiroController extends Controller
             ], 404);
         }
 
-        return response()->json([
-            'message' => 'Parceiro encontrado',
-            'data' => $parceiro
-        ]);
+        return response()->json($parceiro,200);
     }
 
 
@@ -189,10 +128,7 @@ class ParceiroController extends Controller
                 'descricao'
             ]));
 
-            return response()->json([
-                'message' => 'Parceiro atualizado com sucesso!',
-                'data' => $parceiro->fresh()
-            ]);
+            return response()->json($parceiro->fresh(), 200);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Erro interno',

@@ -8,73 +8,23 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Traits\SearchIndex;
 
 class UsuarioController extends Controller
 {
+    use SearchIndex;
     /**
      * Lista de usuários (getList)
      * React Admin espera: { data: [...], total: number }
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            // paginação estilo jsonServer
-            $start = (int) $request->query('_start', 0);
-            $end   = (int) $request->query('_end', 10);
-            $perPage = ($end - $start) > 0 ? ($end - $start) : 10;
-            $page    = intval($start / $perPage) + 1;
-
-            // ordenação
-            $sort  = $request->query('_sort', 'id');
-            $order = $request->query('_order', 'ASC');
-
-            $query = Usuario::query();
-
-            // aplica todos os filtros vindos pela URL
-            foreach ($request->query() as $field => $value) {
-                // ignora parametros reservados do React-Admin
-                if (in_array($field, ['_start', '_end', '_sort', '_order', 'page', 'perPage'])) {
-                    continue;
-                }
-
-                if ($value === null || $value === '') continue;
-
-                // 🔎  suporte a ranges -> campo_from & campo_to
-                if (preg_match('/(.+)_from$/', $field, $matches)) {
-                    $column = $matches[1];
-                    $query->where($column, '>=', $value);
-                    continue;
-                }
-                if (preg_match('/(.+)_to$/', $field, $matches)) {
-                    $column = $matches[1];
-                    $query->where($column, '<=', $value);
-                    continue;
-                }
-
-                // campos textuais usam LIKE
-                if (in_array($field, ['nome', 'email', 'telefone'])) {
-                    $query->where($field, 'like', '%' . $value . '%');
-                } else {
-                    // demais = comparação exata
-                    $query->where($field, $value);
-                }
-            }
-
-            // ordenação
-            $query->orderBy($sort, $order);
-
-            $usuarios = $query->paginate($perPage, ['*'], 'page', $page);
-
-            return response()
-                ->json($usuarios->items())
-                ->header('X-Total-Count', $usuarios->total())
-                ->header('Access-Control-Expose-Headers', 'X-Total-Count');
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível carregar a lista de usuários'
-            ], 500);
-        }
+        return $this->SearchIndex(
+            $request,
+            Usuario::query(),
+            'usuarios',
+            ['nome', 'email', 'telefone'] // Campos que usam LIKE
+        );
     }
 
     /**
@@ -140,10 +90,7 @@ class UsuarioController extends Controller
                 'role' => $request->role ?? 'user',
             ]);
 
-            return response()->json([
-                'message' => 'Usuário criado com sucesso!',
-                'data' => $usuario
-            ], 201);
+            return response()->json($usuario, 201);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Erro interno do servidor',
@@ -167,10 +114,7 @@ class UsuarioController extends Controller
                 ], 404);
             }
 
-            return response()->json([
-                'message' => 'Usuário encontrado',
-                'data' => $usuario
-            ]);
+            return response()->json($usuario, 200);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Erro interno do servidor',
@@ -271,10 +215,7 @@ class UsuarioController extends Controller
 
             $usuario->update($data);
 
-            return response()->json([
-                'message' => 'Usuário atualizado com sucesso!',
-                'data' => $usuario->fresh()
-            ]);
+            return response()->json($usuario->fresh(), 200);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Erro interno do servidor',

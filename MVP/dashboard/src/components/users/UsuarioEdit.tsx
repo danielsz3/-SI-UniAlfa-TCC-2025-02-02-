@@ -1,8 +1,8 @@
-import { Create, SimpleForm, TextInput, required, PasswordInput } from 'react-admin';
+import {SimpleForm, TextInput, required, PasswordInput, Edit } from 'react-admin';
 import CustomDatePicker from '../datepicker/customDatePicker';
 
-const UserCreate = () => (
-    <Create title="Criar Novo Usuário" sx={{ width: 600, margin: '0 auto' }}>
+const UserEdit = () => (
+    <Edit title="Editar Usuário" sx={{ width: 600, margin: '0 auto' }}>
         <SimpleForm>
             <TextInput
                 source="nome"
@@ -50,7 +50,7 @@ const UserCreate = () => (
             />
 
         </SimpleForm>
-    </Create>
+    </Edit>
 );
 
-export default UserCreate;
+export default UserEdit;

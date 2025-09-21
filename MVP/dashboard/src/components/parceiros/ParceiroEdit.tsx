@@ -1,7 +1,7 @@
-import { Create, SimpleForm, TextInput, required } from 'react-admin';
+import {Edit, SimpleForm, TextInput, required } from 'react-admin';
 
-const ParceiroCreate = () => (
-    <Create title="Criar Novo Parceiro" sx={{ width: 600, margin: '0 auto' }}>
+const ParceiroEdit = () => (
+    <Edit title="Editar Parceiro" sx={{ width: 600, margin: '0 auto' }}>
         <SimpleForm>
             <TextInput
                 source="nome"
@@ -28,7 +28,7 @@ const ParceiroCreate = () => (
             />
 
         </SimpleForm>
-    </Create>
+    </Edit>
 );
 
-export default ParceiroCreate;
+export default ParceiroEdit;

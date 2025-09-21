@@ -3,72 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transacao;
+use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 
 class TransacaoController extends Controller
 {
+    use SearchIndex;
     /**
      * Listar transações com paginação, ordenação e filtros dinâmicos
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            // Paginação (suporte aos dois formatos: json-server e simple-rest)
-            $start   = (int) $request->query('_start', 0);
-            $end     = (int) $request->query('_end', 0);
-            $perPage = (int) $request->input('_limit', ($end > 0 ? ($end - $start) : 10));
-            $page    = (int) $request->input('_page', ($perPage > 0 ? intval($start / $perPage) + 1 : 1));
-
-            // Ordenação
-            $sort  = $request->query('_sort', 'id');
-            $order = $request->query('_order', 'ASC');
-
-            $query = Transacao::query();
-
-            // 🚀 aplica filtros vindos pela URL
-            foreach ($request->query() as $field => $value) {
-                if (in_array($field, ['_start','_end','_sort','_order','_page','_limit'])) {
-                    continue; // ignora params de paginação e ordenação
-                }
-                if ($value === null || $value === '') continue;
-
-                // Range ex: ?data_transacao_from=2024-01-01&data_transacao_to=2024-12-31
-                if (preg_match('/(.+)_from$/', $field, $matches)) {
-                    $query->where($matches[1], '>=', $value);
-                    continue;
-                }
-                if (preg_match('/(.+)_to$/', $field, $matches)) {
-                    $query->where($matches[1], '<=', $value);
-                    continue;
-                }
-
-                // LIKE em campos textuais
-                if (in_array($field, ['descricao','categoria'])) {
-                    $query->where($field, 'like', "%{$value}%");
-                } else {
-                    $query->where($field, $value);
-                }
-            }
-
-            // ordenação
-            $query->orderBy($sort, $order);
-
-            // paginação
-            $transacoes = $query->paginate($perPage, ['*'], 'page', $page);
-
-            return response()
-                ->json($transacoes->items())
-                ->header('X-Total-Count', $transacoes->total())
-                ->header('Access-Control-Expose-Headers', 'X-Total-Count');
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível carregar as transações'
-            ], 500);
-        }
+        return $this->searchIndex(
+            $request,
+            Transacao::query(),
+            'transacoes',
+            ['descricao', 'categoria']
+        );
     }
 
     /**
@@ -87,18 +40,18 @@ class TransacaoController extends Controller
             'valor.required' => 'O valor é obrigatório',
             'valor.numeric' => 'O valor deve ser um número',
             'valor.min' => 'O valor deve ser maior que zero',
-            
+
             'descricao.required' => 'A descrição é obrigatória',
             'descricao.min' => 'A descrição deve ter pelo menos 3 caracteres',
             'descricao.max' => 'A descrição não pode ter mais de 255 caracteres',
-            
+
             'categoria.required' => 'A categoria é obrigatória',
             'categoria.min' => 'A categoria deve ter pelo menos 2 caracteres',
             'categoria.max' => 'A categoria não pode ter mais de 100 caracteres',
-            
+
             'tipo_transacao.required' => 'O tipo de transação é obrigatório',
             'tipo_transacao.in' => 'O tipo deve ser "entrada" ou "saida"',
-            
+
             'data_transacao.required' => 'A data da transação é obrigatória',
             'data_transacao.date' => 'Digite uma data válida',
             'data_transacao.before_or_equal' => 'A data não pode ser futura',
@@ -117,10 +70,7 @@ class TransacaoController extends Controller
                 'valor', 'descricao', 'categoria', 'tipo_transacao', 'data_transacao'
             ]));
 
-            return response()->json([
-                'message' => 'Transação criada com sucesso!',
-                'data' => $transacao
-            ], 201);
+            return response()->json($transacao, 201);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -145,10 +95,7 @@ class TransacaoController extends Controller
                 ], 404);
             }
 
-            return response()->json([
-                'message' => 'Transação encontrada',
-                'data' => $transacao
-            ]);
+            return response()->json($transacao, 200);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -184,18 +131,18 @@ class TransacaoController extends Controller
                 'valor.required' => 'O valor é obrigatório',
                 'valor.numeric' => 'O valor deve ser um número',
                 'valor.min' => 'O valor deve ser maior que zero',
-                
+
                 'descricao.required' => 'A descrição é obrigatória',
                 'descricao.min' => 'A descrição deve ter pelo menos 3 caracteres',
                 'descricao.max' => 'A descrição não pode ter mais de 255 caracteres',
-                
+
                 'categoria.required' => 'A categoria é obrigatória',
                 'categoria.min' => 'A categoria deve ter pelo menos 2 caracteres',
                 'categoria.max' => 'A categoria não pode ter mais de 100 caracteres',
-                
+
                 'tipo_transacao.required' => 'O tipo de transação é obrigatório',
                 'tipo_transacao.in' => 'O tipo deve ser "entrada" ou "saida"',
-                
+
                 'data_transacao.required' => 'A data da transação é obrigatória',
                 'data_transacao.date' => 'Digite uma data válida',
                 'data_transacao.before_or_equal' => 'A data não pode ser futura',
@@ -213,10 +160,7 @@ class TransacaoController extends Controller
                 'valor', 'descricao', 'categoria', 'tipo_transacao', 'data_transacao'
             ]));
 
-            return response()->json([
-                'message' => 'Transação atualizada com sucesso!',
-                'data' => $transacao->fresh()
-            ]);
+            return response()->json($transacao->fresh(), 200);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -243,10 +187,7 @@ class TransacaoController extends Controller
 
             $transacao->delete();
 
-            return response()->json([
-                'message' => 'Transação excluída com sucesso!',
-                'data' => $transacao
-            ]);
+            return response()->json($transacao, 200);
 
         } catch (\Exception $e) {
             return response()->json([
