@@ -1,8 +1,6 @@
-# landing-page/Dockerfile (produção)
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-# Use install para gerar/atualizar o lock quando houver divergência
 RUN npm install --no-audit --no-fund
 
 FROM node:20-alpine AS builder

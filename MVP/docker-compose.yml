@@ -1,53 +1,6 @@
 version: "3.9"
 
 services:
-  # --- NGINX ---
-  nginx:
-    image: nginx:alpine
-    container_name: nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx:/etc/nginx/conf.d:ro
-      - ./back-end/public:/var/www/public:ro
-    depends_on:
-      backend:
-        condition: service_started
-      dashboard:
-        condition: service_started
-      landing-page:
-        condition: service_started
-    networks:
-      - app-network
-
-  # --- LARAVEL BACKEND (PHP-FPM) ---
-  backend:
-    build:
-      context: ./back-end
-      dockerfile: Dockerfile
-    container_name: api
-    restart: unless-stopped
-    expose:
-      - "9000"
-    environment:
-      APP_ENV: "local"
-      APP_DEBUG: "true"
-      APP_URL: "http://localhost"
-      DB_CONNECTION: "mysql"
-      DB_HOST: "mysql"
-      DB_PORT: "3306"
-      DB_DATABASE: "laravel"
-      DB_USERNAME: "root"
-      DB_PASSWORD: "root"   # alinhado com MYSQL_ROOT_PASSWORD
-    volumes:
-      - ./back-end:/var/www
-    networks:
-      - app-network
-    depends_on:
-      mysql:
-        condition: service_healthy
-
   # --- MYSQL ---
   mysql:
     image: mysql:8.0
@@ -60,53 +13,64 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    networks:
-      - app-network
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$${MYSQL_ROOT_PASSWORD} --silent"]
       interval: 10s
       timeout: 5s
       retries: 10
 
-  # --- DASHBOARD (Vite) ---
+  # --- LARAVEL BACKEND (rodando php artisan serve) ---
+  backend:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+    container_name: api
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: "local"
+      APP_DEBUG: "true"
+      APP_URL: "http://localhost:8000"
+      DB_CONNECTION: "mysql"
+      DB_HOST: "mysql"
+      DB_PORT: "3306"
+      DB_DATABASE: "laravel"
+      DB_USERNAME: "root"
+      DB_PASSWORD: "root"
+    working_dir: /var/www
+    # Se você montar o código como volume, precisa garantir dependências a cada start.
+    # Para simplificar (sem hot-reload), NÃO monte volume e use o que foi copiado no build.
+    command: sh -lc "php artisan serve --host=0.0.0.0 --port=8000"
+
+  # --- DASHBOARD (React + Vite) servido como build estático (serve) ---
   dashboard:
     build:
       context: ./dashboard
       dockerfile: Dockerfile
     container_name: dashboard
     restart: unless-stopped
-    expose:
-      - "5173"
+    ports:
+      - "5173:5173"
     environment:
       NODE_ENV: "production"
-      VITE_API_URL: "http://localhost/api"
-    networks:
-      - app-network
-    depends_on:
-      backend:
-        condition: service_started
+      VITE_API_URL: "http://localhost:8000/api"
 
-  # --- LANDING PAGE (Next.js) ---
+  # --- LANDING PAGE (Next.js) em produção (next start) ---
   landing-page:
     build:
       context: ./landing-page
       dockerfile: Dockerfile
     container_name: landing_page
     restart: unless-stopped
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     environment:
       NODE_ENV: "production"
-      NEXT_PUBLIC_API_URL: "http://localhost/api"
-    networks:
-      - app-network
-    depends_on:
-      backend:
-        condition: service_started
+      NEXT_PUBLIC_API_URL: "http://localhost:8000/api"
 
 volumes:
   mysql_data:
-
-networks:
-  app-network:
-    driver: bridge
