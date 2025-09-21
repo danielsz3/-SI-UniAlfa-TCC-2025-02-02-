@@ -11,6 +11,7 @@ class Transacao extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'transacoes';
+    protected $primaryKey = 'id';
 
     protected $fillable = [
         'valor',

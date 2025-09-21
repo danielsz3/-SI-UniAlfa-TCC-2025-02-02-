@@ -11,6 +11,7 @@ class LarTemporario extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'lares_temporarios';
+    protected $primaryKey = 'id';
 
     protected $fillable = [
         'data_nascimento',
@@ -23,16 +24,16 @@ class LarTemporario extends Model
         'data_nascimento' => 'date',
     ];
 
-    // Relacionamento polimórfico com endereços (se você implementar)
+    // Relacionamento direto com endereços
     public function enderecos()
     {
-        return $this->morphMany(Endereco::class, 'enderecoable');
+        return $this->hasMany(Endereco::class, 'lar_temporario_id');
     }
 
     // Accessor para calcular idade
     public function getIdadeAttribute()
     {
-        return $this->data_nascimento->age;
+        return $this->data_nascimento ? $this->data_nascimento->age : null;
     }
 
     // Scope para filtrar apenas ativos
