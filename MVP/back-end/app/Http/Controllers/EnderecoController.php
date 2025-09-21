@@ -120,19 +120,5 @@ class EnderecoController extends Controller
         return response()->json(['message' => 'Endereço restaurado com sucesso!'], 200);
     }
 
-    /**
-     * Exclui permanentemente um endereço.
-     */
-    public function forceDelete($id)
-    {
-        $endereco = Endereco::withTrashed()->find($id);
-
-        if (!$endereco) {
-            return response()->json(['message' => 'Endereço não encontrado'], 404);
-        }
-
-        $endereco->forceDelete();
-
-        return response()->json(['message' => 'Endereço excluído permanentemente!'], 200);
-    }
+    
 }

@@ -21,13 +21,11 @@ class DocumentoController extends Controller
             $perPage = (int) $request->input('_limit', ($end > 0 ? ($end - $start) : 10));
             $page    = (int) $request->input('_page', ($perPage > 0 ? intval($start / $perPage) + 1 : 1));
 
-            // Ordenação
             $sort  = $request->query('_sort', 'id');
             $order = $request->query('_order', 'ASC');
 
             $query = Documento::query();
 
-            // Filtros dinâmicos
             foreach ($request->query() as $field => $value) {
                 if (in_array($field, ['_start','_end','_sort','_order','_page','_limit'])) {
                     continue;
@@ -77,14 +75,6 @@ class DocumentoController extends Controller
             'categoria' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:1000',
             'documento' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:4096',
-        ], [
-            'titulo.required' => 'O título é obrigatório',
-            'titulo.max' => 'O título não pode ter mais de 255 caracteres',
-            'categoria.max' => 'A categoria não pode ter mais de 255 caracteres',
-            'descricao.max' => 'A descrição não pode ter mais de 1000 caracteres',
-            'documento.required' => 'O arquivo é obrigatório',
-            'documento.mimes' => 'O arquivo deve ser PDF, DOC, DOCX, JPG ou PNG',
-            'documento.max' => 'O arquivo não pode ser maior que 4MB',
         ]);
 
         if ($validator->fails()) {
@@ -161,13 +151,6 @@ class DocumentoController extends Controller
                 'categoria' => 'nullable|string|max:255',
                 'descricao' => 'nullable|string|max:1000',
                 'documento' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:4096',
-            ], [
-                'titulo.required' => 'O título é obrigatório',
-                'titulo.max' => 'O título não pode ter mais de 255 caracteres',
-                'categoria.max' => 'A categoria não pode ter mais de 255 caracteres',
-                'descricao.max' => 'A descrição não pode ter mais de 1000 caracteres',
-                'documento.mimes' => 'O arquivo deve ser PDF, DOC, DOCX, JPG ou PNG',
-                'documento.max' => 'O arquivo não pode ser maior que 4MB',
             ]);
 
             if ($validator->fails()) {
@@ -229,6 +212,40 @@ class DocumentoController extends Controller
             return response()->json([
                 'error' => 'Erro interno do servidor',
                 'message' => 'Não foi possível excluir o documento'
+            ], 500);
+        }
+    }
+
+    /**
+     * Restaurar documento deletado (soft delete)
+     */
+    public function restore($id): JsonResponse
+    {
+        try {
+            $documento = Documento::withTrashed()->find($id);
+
+            if (!$documento) {
+                return response()->json([
+                    'error' => 'Documento não encontrado'
+                ], 404);
+            }
+
+            if (!$documento->trashed()) {
+                return response()->json([
+                    'error' => 'Documento já está ativo'
+                ], 400);
+            }
+
+            $documento->restore();
+
+            return response()->json([
+                'message' => 'Documento restaurado com sucesso!',
+                'data' => $documento
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro interno do servidor',
+                'message' => 'Não foi possível restaurar o documento'
             ], 500);
         }
     }

@@ -242,4 +242,41 @@ class LaresTemporarioController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Restaurar lar temporário deletado (soft delete)
+     */
+    public function restore($id): JsonResponse
+    {
+        try {
+            $lar = LarTemporario::withTrashed()->find($id);
+
+            if (!$lar) {
+                return response()->json([
+                    'error' => 'Lar temporário não encontrado',
+                    'message' => 'O lar temporário solicitado não existe'
+                ], 404);
+            }
+
+            if (!$lar->trashed()) {
+                return response()->json([
+                    'error' => 'Lar temporário já está ativo',
+                    'message' => 'Este lar temporário não foi excluído'
+                ], 400);
+            }
+
+            $lar->restore();
+
+            return response()->json([
+                'message' => 'Lar temporário restaurado com sucesso!',
+                'data' => $lar
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro interno do servidor',
+                'message' => 'Não foi possível restaurar o lar temporário'
+            ], 500);
+        }
+    }
 }

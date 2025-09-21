@@ -331,25 +331,5 @@ class OngController extends Controller
         }
     }
 
-    /**
-     * Buscar ONGs por usuário
-     */
-    public function byUser($userId): JsonResponse
-    {
-        try {
-            $ongs = Ong::where('usuario_id', $userId)->get();
-
-            return response()->json([
-                'message' => 'ONGs do usuário encontradas',
-                'data' => $ongs,
-                'total' => $ongs->count()
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível carregar as ONGs do usuário'
-            ], 500);
-        }
-    }
+    
 }
