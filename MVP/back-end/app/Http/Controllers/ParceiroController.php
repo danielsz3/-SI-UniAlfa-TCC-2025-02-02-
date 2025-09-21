@@ -26,17 +26,16 @@ class ParceiroController extends Controller
     }
 
     /**
-     * Listar parceiros incluindo deletados (soft delete)
+     * Listar parceiros incluindo deletados
      */
     public function indexWithTrashed(): JsonResponse
     {
         $parceiros = Parceiro::withTrashed()->get();
 
         return response()->json([
-            'message' => 'Lista de parceiros (incluindo deletados)',
             'data' => $parceiros,
             'total' => $parceiros->count()
-        ]);
+        ], 200);
     }
 
     /**
@@ -45,23 +44,14 @@ class ParceiroController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nome' => 'required|string|max:255',
-            'url_site'      => 'nullable|url',
-            'url_logo'      => 'nullable|url',
-            'descricao'     => 'nullable|string|max:500',
-        ], [
-            'nome.required' => 'O nome do parceiro é obrigatório',
-            'nome.max'      => 'O nome do parceiro não pode ter mais de 255 caracteres',
-            'url_site.url'           => 'Digite uma URL válida para o site',
-            'url_logo.url'           => 'Digite uma URL válida para a logo',
-            'descricao.max'          => 'A descrição não pode ter mais de 500 caracteres',
+            'nome'       => 'required|string|max:255',
+            'url_site'   => 'nullable|url',
+            'url_logo'   => 'nullable|url',
+            'descricao'  => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Dados inválidos',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
@@ -72,12 +62,9 @@ class ParceiroController extends Controller
                 'descricao'
             ]));
 
-            return response()->json($parceiro,201);
+            return response()->json($parceiro, 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => 'Não foi possível criar o parceiro'], 500);
         }
     }
 
@@ -89,15 +76,15 @@ class ParceiroController extends Controller
         $parceiro = Parceiro::find($id);
 
         if (!$parceiro) {
-            return response()->json([
-                'error' => 'Parceiro não encontrado'
-            ], 404);
+            return response()->json(['error' => 'Parceiro não encontrado'], 404);
         }
 
-        return response()->json($parceiro,200);
+        return response()->json($parceiro, 200);
     }
 
-
+    /**
+     * Atualizar parceiro
+     */
     public function update(Request $request, $id): JsonResponse
     {
         $parceiro = Parceiro::find($id);
@@ -107,22 +94,19 @@ class ParceiroController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'nome_parceiro' => 'sometimes|required|string|max:255',
-            'url_site'      => 'nullable|url',
-            'url_logo'      => 'nullable|url',
-            'descricao'     => 'nullable|string|max:500',
+            'nome'       => 'sometimes|required|string|max:255',
+            'url_site'   => 'nullable|url',
+            'url_logo'   => 'nullable|url',
+            'descricao'  => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Dados inválidos',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
             $parceiro->update($request->only([
-                'nome_parceiro',
+                'nome',
                 'url_site',
                 'url_logo',
                 'descricao'
@@ -130,10 +114,7 @@ class ParceiroController extends Controller
 
             return response()->json($parceiro->fresh(), 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno',
-                'message' => 'Não foi possível atualizar o parceiro'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível atualizar o parceiro'], 500);
         }
     }
 
@@ -151,15 +132,9 @@ class ParceiroController extends Controller
         try {
             $parceiro->delete();
 
-            return response()->json([
-                'message' => 'Parceiro excluído com sucesso!',
-                'data' => $parceiro
-            ]);
+            return response()->json(null, 204);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno',
-                'message' => 'Não foi possível excluir o parceiro'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível excluir o parceiro'], 500);
         }
     }
 
@@ -176,22 +151,14 @@ class ParceiroController extends Controller
 
         try {
             if (!$parceiro->trashed()) {
-                return response()->json([
-                    'error' => 'O parceiro já está ativo'
-                ], 400);
+                return response()->json(['error' => 'Parceiro já está ativo'], 400);
             }
 
             $parceiro->restore();
 
-            return response()->json([
-                'message' => 'Parceiro restaurado com sucesso!',
-                'data' => $parceiro
-            ]);
+            return response()->json($parceiro, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno',
-                'message' => 'Não foi possível restaurar o parceiro'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível restaurar o parceiro'], 500);
         }
     }
 }

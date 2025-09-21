@@ -13,6 +13,7 @@ use App\Traits\SearchIndex;
 class UsuarioController extends Controller
 {
     use SearchIndex;
+
     /**
      * Lista de usuários (getList)
      * React Admin espera: { data: [...], total: number }
@@ -23,12 +24,12 @@ class UsuarioController extends Controller
             $request,
             Usuario::query(),
             'usuarios',
-            ['nome', 'email', 'telefone'] // Campos que usam LIKE
+            ['nome', 'email', 'telefone']
         );
     }
 
     /**
-     * Criar um novo usuário (create)
+     * Criar um novo usuário
      */
     public function store(Request $request): JsonResponse
     {
@@ -40,43 +41,10 @@ class UsuarioController extends Controller
             'data_nascimento' => 'required|date|before:today|after:1900-01-01',
             'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
             'role' => 'nullable|string|in:user,admin',
-        ], [
-            // Mensagens personalizadas
-            'nome.required' => 'O nome é obrigatório',
-            'nome.min' => 'O nome deve ter pelo menos 2 caracteres',
-            'nome.max' => 'O nome não pode ter mais de 150 caracteres',
-
-            'email.required' => 'O email é obrigatório',
-            'email.email' => 'Digite um email válido',
-            'email.unique' => 'Este email já está sendo usado por outro usuário',
-            'email.max' => 'O email não pode ter mais de 150 caracteres',
-
-            'password.required' => 'A senha é obrigatória',
-            'password.min' => 'A senha deve ter pelo menos 8 caracteres',
-            'password.confirmed' => 'A confirmação da senha não confere',
-
-            'cpf.required' => 'O CPF é obrigatório',
-            'cpf.size' => 'O CPF deve ter exatamente 11 dígitos',
-            'cpf.regex' => 'O CPF deve conter apenas números',
-            'cpf.unique' => 'Este CPF já está cadastrado',
-
-            'data_nascimento.required' => 'A data de nascimento é obrigatória',
-            'data_nascimento.date' => 'Digite uma data válida',
-            'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje',
-            'data_nascimento.after' => 'Digite uma data de nascimento válida',
-
-            'telefone.size' => 'O telefone deve ter exatamente 11 dígitos',
-            'telefone.regex' => 'O telefone deve conter apenas números',
-
-            'role.in' => 'O tipo de usuário deve ser "user" ou "admin"',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Dados inválidos',
-                'message' => 'Verifique os campos e tente novamente',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
@@ -92,15 +60,12 @@ class UsuarioController extends Controller
 
             return response()->json($usuario, 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível criar o usuário'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível criar o usuário'], 500);
         }
     }
 
     /**
-     * Exibir um usuário específico (getOne)
+     * Exibir um usuário específico
      */
     public function show($id): JsonResponse
     {
@@ -108,23 +73,17 @@ class UsuarioController extends Controller
             $usuario = Usuario::find($id);
 
             if (!$usuario) {
-                return response()->json([
-                    'error' => 'Usuário não encontrado',
-                    'message' => 'O usuário solicitado não existe'
-                ], 404);
+                return response()->json(['error' => 'Usuário não encontrado'], 404);
             }
 
             return response()->json($usuario, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível carregar o usuário'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível carregar o usuário'], 500);
         }
     }
 
     /**
-     * Atualizar um usuário (update)
+     * Atualizar um usuário
      */
     public function update(Request $request, $id): JsonResponse
     {
@@ -132,10 +91,7 @@ class UsuarioController extends Controller
             $usuario = Usuario::find($id);
 
             if (!$usuario) {
-                return response()->json([
-                    'error' => 'Usuário não encontrado',
-                    'message' => 'O usuário que você está tentando atualizar não existe'
-                ], 404);
+                return response()->json(['error' => 'Usuário não encontrado'], 404);
             }
 
             $validator = Validator::make($request->all(), [
@@ -159,46 +115,12 @@ class UsuarioController extends Controller
                 'data_nascimento' => 'sometimes|required|date|before:today|after:1900-01-01',
                 'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
                 'role' => 'nullable|string|in:user,admin',
-            ], [
-                // Mensagens personalizadas (mesmas do store)
-                'nome.required' => 'O nome é obrigatório',
-                'nome.min' => 'O nome deve ter pelo menos 2 caracteres',
-                'nome.max' => 'O nome não pode ter mais de 150 caracteres',
-
-                'email.required' => 'O email é obrigatório',
-                'email.email' => 'Digite um email válido',
-                'email.unique' => 'Este email já está sendo usado por outro usuário',
-                'email.max' => 'O email não pode ter mais de 150 caracteres',
-
-                'password.required' => 'A senha é obrigatória',
-                'password.min' => 'A senha deve ter pelo menos 8 caracteres',
-                'password.confirmed' => 'A confirmação da senha não confere',
-
-                'cpf.required' => 'O CPF é obrigatório',
-                'cpf.size' => 'O CPF deve ter exatamente 11 dígitos',
-                'cpf.regex' => 'O CPF deve conter apenas números',
-                'cpf.unique' => 'Este CPF já está cadastrado',
-
-                'data_nascimento.required' => 'A data de nascimento é obrigatória',
-                'data_nascimento.date' => 'Digite uma data válida',
-                'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje',
-                'data_nascimento.after' => 'Digite uma data de nascimento válida',
-
-                'telefone.size' => 'O telefone deve ter exatamente 11 dígitos',
-                'telefone.regex' => 'O telefone deve conter apenas números',
-
-                'role.in' => 'O tipo de usuário deve ser "user" ou "admin"',
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'error' => 'Dados inválidos',
-                    'message' => 'Verifique os campos e tente novamente',
-                    'errors' => $validator->errors()
-                ], 422);
+                return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            // Atualização refatorada - mais limpa
             $data = $request->only([
                 'nome',
                 'email',
@@ -208,7 +130,6 @@ class UsuarioController extends Controller
                 'role'
             ]);
 
-            // Password precisa de tratamento especial
             if ($request->filled('password')) {
                 $data['password'] = Hash::make($request->password);
             }
@@ -217,15 +138,12 @@ class UsuarioController extends Controller
 
             return response()->json($usuario->fresh(), 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível atualizar o usuário'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível atualizar o usuário'], 500);
         }
     }
 
     /**
-     * Deletar um usuário (delete / soft delete)
+     * Deletar um usuário
      */
     public function destroy($id): JsonResponse
     {
@@ -233,23 +151,14 @@ class UsuarioController extends Controller
             $usuario = Usuario::find($id);
 
             if (!$usuario) {
-                return response()->json([
-                    'error' => 'Usuário não encontrado',
-                    'message' => 'O usuário que você está tentando excluir não existe'
-                ], 404);
+                return response()->json(['error' => 'Usuário não encontrado'], 404);
             }
 
             $usuario->delete();
 
-            return response()->json([
-                'message' => 'Usuário excluído com sucesso!',
-                'data' => $usuario
-            ]);
+            return response()->json(null, 204); // apenas status code
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível excluir o usuário'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível excluir o usuário'], 500);
         }
     }
 
@@ -262,30 +171,18 @@ class UsuarioController extends Controller
             $usuario = Usuario::withTrashed()->find($id);
 
             if (!$usuario) {
-                return response()->json([
-                    'error' => 'Usuário não encontrado',
-                    'message' => 'O usuário que você está tentando restaurar não existe'
-                ], 404);
+                return response()->json(['error' => 'Usuário não encontrado'], 404);
             }
 
             if (!$usuario->trashed()) {
-                return response()->json([
-                    'error' => 'Usuário já está ativo',
-                    'message' => 'Este usuário não precisa ser restaurado'
-                ], 400);
+                return response()->json(['error' => 'Usuário já está ativo'], 400);
             }
 
             $usuario->restore();
 
-            return response()->json([
-                'message' => 'Usuário restaurado com sucesso!',
-                'data' => $usuario
-            ]);
+            return response()->json($usuario, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível restaurar o usuário'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível restaurar o usuário'], 500);
         }
     }
 }

@@ -39,10 +39,7 @@ class ContatoOngController extends Controller
                 ->header('X-Total-Count', $contatos->total())
                 ->header('Access-Control-Expose-Headers', 'X-Total-Count');
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível carregar os contatos'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível carregar os contatos'], 500);
         }
     }
 
@@ -55,34 +52,18 @@ class ContatoOngController extends Controller
             'id_ong'        => 'required|exists:ongs,id',
             'tipo_contato'  => 'required|in:telefone,email,redesocial',
             'valor_contato' => 'required|string|max:255',
-        ], [
-            'id_ong.required' => 'A ONG vinculada é obrigatória',
-            'id_ong.exists' => 'A ONG informada não existe',
-            'tipo_contato.required' => 'O tipo de contato é obrigatório',
-            'tipo_contato.in' => 'O tipo deve ser telefone, email ou redesocial',
-            'valor_contato.required' => 'O valor do contato é obrigatório',
-            'valor_contato.max' => 'O contato não pode ter mais de 255 caracteres',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Dados inválidos',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
             $contato = ContatoOng::create($request->only(['id_ong', 'tipo_contato', 'valor_contato']));
 
-            return response()->json([
-                'message' => 'Contato criado com sucesso!',
-                'data' => $contato
-            ], 201);
+            return response()->json($contato, 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível criar o contato'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível criar o contato'], 500);
         }
     }
 
@@ -95,20 +76,12 @@ class ContatoOngController extends Controller
             $contato = ContatoOng::find($id);
 
             if (!$contato) {
-                return response()->json([
-                    'error' => 'Contato não encontrado'
-                ], 404);
+                return response()->json(['error' => 'Contato não encontrado'], 404);
             }
 
-            return response()->json([
-                'message' => 'Contato encontrado',
-                'data' => $contato
-            ]);
+            return response()->json($contato, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível carregar o contato'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível carregar o contato'], 500);
         }
     }
 
@@ -121,42 +94,24 @@ class ContatoOngController extends Controller
             $contato = ContatoOng::find($id);
 
             if (!$contato) {
-                return response()->json([
-                    'error' => 'Contato não encontrado'
-                ], 404);
+                return response()->json(['error' => 'Contato não encontrado'], 404);
             }
 
             $validator = Validator::make($request->all(), [
                 'id_ong'        => 'sometimes|required|exists:ongs,id',
                 'tipo_contato'  => 'sometimes|required|in:telefone,email,redesocial',
                 'valor_contato' => 'sometimes|required|string|max:255',
-            ], [
-                'id_ong.required' => 'A ONG vinculada é obrigatória',
-                'id_ong.exists' => 'A ONG informada não existe',
-                'tipo_contato.required' => 'O tipo de contato é obrigatório',
-                'tipo_contato.in' => 'O tipo deve ser telefone, email ou redesocial',
-                'valor_contato.required' => 'O valor do contato é obrigatório',
-                'valor_contato.max' => 'O contato não pode ter mais de 255 caracteres',
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'error' => 'Dados inválidos',
-                    'errors' => $validator->errors()
-                ], 422);
+                return response()->json(['errors' => $validator->errors()], 422);
             }
 
             $contato->update($request->only(['id_ong', 'tipo_contato', 'valor_contato']));
 
-            return response()->json([
-                'message' => 'Contato atualizado com sucesso!',
-                'data' => $contato->fresh()
-            ]);
+            return response()->json($contato->fresh(), 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível atualizar o contato'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível atualizar o contato'], 500);
         }
     }
 
@@ -169,22 +124,14 @@ class ContatoOngController extends Controller
             $contato = ContatoOng::find($id);
 
             if (!$contato) {
-                return response()->json([
-                    'error' => 'Contato não encontrado'
-                ], 404);
+                return response()->json(['error' => 'Contato não encontrado'], 404);
             }
 
             $contato->delete();
 
-            return response()->json([
-                'message' => 'Contato excluído com sucesso!',
-                'data' => $contato
-            ]);
+            return response()->json(null, 204);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível excluir o contato'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível excluir o contato'], 500);
         }
     }
 
@@ -197,28 +144,18 @@ class ContatoOngController extends Controller
             $contato = ContatoOng::withTrashed()->find($id);
 
             if (!$contato) {
-                return response()->json([
-                    'error' => 'Contato não encontrado'
-                ], 404);
+                return response()->json(['error' => 'Contato não encontrado'], 404);
             }
 
             if (!$contato->trashed()) {
-                return response()->json([
-                    'error' => 'Contato já está ativo'
-                ], 400);
+                return response()->json(['error' => 'Contato já está ativo'], 400);
             }
 
             $contato->restore();
 
-            return response()->json([
-                'message' => 'Contato restaurado com sucesso!',
-                'data' => $contato
-            ]);
+            return response()->json($contato, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível restaurar o contato'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível restaurar o contato'], 500);
         }
     }
 }
