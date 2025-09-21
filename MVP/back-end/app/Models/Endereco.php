@@ -2,32 +2,35 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Testing\Fluent\Concerns\Has;
 
 class Endereco extends Model
 {
-    //
-    use HasFactory,SoftDeletes;
-    
+    use SoftDeletes;
+
     protected $table = 'enderecos';
-    protected $primaryKey = 'id_endereco';
 
     protected $fillable = [
+        'id_usuario',
+        'lar_temporario_id',
         'cep',
         'logradouro',
         'numero',
         'complemento',
         'bairro',
         'cidade',
-        'uf',
-        'id_usuario',
+        'uf'
     ];
 
+    // Relacionamentos
     public function usuario()
     {
-        return $this->belongsTo(User::class, 'id_usuario', 'id_usuario');
+        return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
+    }
+
+    public function larTemporario()
+    {
+        return $this->belongsTo(LarTemporario::class, 'lar_temporario_id');
     }
 }
