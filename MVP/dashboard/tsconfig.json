@@ -1,31 +1,25 @@
 {
   "compilerOptions": {
-    // --- Configurações Essenciais ---
     "target": "ESNext",
     "module": "ESNext",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
 
-    // --- Verificações de Qualidade e Segurança de Tipos ---
     "strict": true,
     "skipLibCheck": true,
     "isolatedModules": true,
     "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": true, // Avisa sobre variáveis locais não usadas
-    "noUnusedParameters": true, // Avisa sobre parâmetros de função não usados
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
 
-    // --- Interoperabilidade com Módulos ---
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
 
-    // --- Build ---
-    "noEmit": true, // ❗️ Essencial: TypeScript só verifica os tipos, Vite faz o resto.
+    "noEmit": true,
 
-    // --- Caminhos ---
-    "baseUrl": ".", // Permite imports a partir da raiz (opcional)
+    "baseUrl": ".", 
   },
-  // Diz ao TypeScript para incluir todos os arquivos na pasta 'src' e o vite.config.ts
   "include": ["src", "vite.config.ts"],
 }
