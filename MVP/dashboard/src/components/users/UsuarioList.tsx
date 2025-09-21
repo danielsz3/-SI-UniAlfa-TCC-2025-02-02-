@@ -12,7 +12,7 @@ const filters = [
 ];
 export const UsuarioList = () => (
     <List filters={filters}>
-        <DataTable>
+        <DataTable rowClick="edit">
             <DataTable.Col source="id" />
             <DataTable.Col source="nome" />
             <DataTable.Col source="email">
