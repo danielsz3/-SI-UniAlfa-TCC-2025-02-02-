@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 
 class ParceiroController extends Controller
 {
+
     /**
      * Listar parceiros (com paginação + filtros dinâmicos)
      */
@@ -23,6 +24,16 @@ class ParceiroController extends Controller
 
             $filter = json_decode($request->input('filter', '{}'), true);
 
+        $query = Parceiro::query();
+
+
+        if (!empty($filter)) {
+            foreach ($filter as $field => $value) {
+                if ($value) {
+                    $query->where($field, 'like', "%{$value}%");
+                }
+            }
+        }
             $query = Parceiro::query();
 
             if (!empty($filter)) {
@@ -147,9 +158,7 @@ class ParceiroController extends Controller
         ]);
     }
 
-    /**
-     * Atualizar parceiro
-     */
+
     public function update(Request $request, $id): JsonResponse
     {
         $parceiro = Parceiro::find($id);

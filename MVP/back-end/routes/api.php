@@ -48,6 +48,7 @@ Route::get('usuarios/{id}', [UsuarioController::class, 'show'])->name('usuarios.
 Route::get('enderecos', [EnderecoController::class, 'index'])->name('enderecos.index');
 Route::get('enderecos/{id}', [EnderecoController::class, 'show'])->name('enderecos.show');
 
+Route::apiResource('ongs', OngController::class);
 Route::get('ongs', [OngController::class, 'index'])->name('ongs.index');
 Route::get('ongs/{id}', [OngController::class, 'show'])->name('ongs.show');
 
