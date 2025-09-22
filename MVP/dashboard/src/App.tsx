@@ -9,6 +9,7 @@ import { LoginPage } from './components/LoginPage';
 import PersonIcon from '@mui/icons-material/Person';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 
 import { i18nProvider, myTheme } from './theme';
 import UserCreate from './components/users/UsuarioCreate';
@@ -21,6 +22,8 @@ import ParceiroEdit from './components/parceiros/ParceiroEdit';
 import TransacaoCreate from './components/transacoes/TransacaoCreate';
 import { TransacaoList } from './components/transacoes/TransacaoList';
 import TransacaoEdit from './components/transacoes/TransacaoEdit';
+import { ArquivoList } from './components/arquivos/ArquivoList';
+import ArquivoCreate from './components/arquivos/ArquivoCreate';
 
 function App() {
   return (
@@ -62,6 +65,14 @@ function App() {
         list={TransacaoList}
         edit={TransacaoEdit}
         create={TransacaoCreate}
+      />
+      <Resource
+        options={{ label: "Documentos" }}
+        name="documentos"
+        icon={DescriptionOutlinedIcon}
+        list={ArquivoList}
+        edit={TransacaoEdit}
+        create={ArquivoCreate}
       />
   
     </Admin>
