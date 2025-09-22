@@ -14,14 +14,16 @@ export const authProvider = {
             throw new Error('Credenciais inválidas');
         }
 
-        const { access_token } = await response.json();
+        const { access_token, user } = await response.json();
 
         localStorage.setItem('authToken', access_token);
+        localStorage.setItem('user', JSON.stringify(user));
         return Promise.resolve();
     },
 
     logout: () => {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
         return Promise.resolve();
     },
 
@@ -32,6 +34,7 @@ export const authProvider = {
     checkError: (error: any) => {
         if (error.status === 401 || error.status === 403) {
             localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
             return Promise.reject();
         }
         return Promise.resolve();

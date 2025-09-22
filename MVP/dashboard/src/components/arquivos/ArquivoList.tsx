@@ -7,7 +7,7 @@ export const ArquivoList = () => (
     <List filters={filters}>
         <DataTable rowClick="edit">
             <DataTable.Col source="titulo" label="Título" />
-            <DataTable.Col source="valor">
+            <DataTable.Col source="url_arquivo">
                 <FileField source="url_arquivo" />
             </DataTable.Col>
             <DataTable.Col source="descricao" />

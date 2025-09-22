@@ -99,16 +99,16 @@ const baseTheme = deepmerge(defaultTheme, {
     },
     palette: {
         primary: {
-            main: '#337ab7'
+            main: '#337ab7',
         },
         secondary: {
-            main: '#23527c'
+            main: '#23527c',
+            color: '#fff',
         },
-        error: { main: '#aa5835' },
+        error: { main: '#c7483fff' },
         contrastThreshold: 3,
         tonalOffset: 0.2,
     },
 });
 
-// MODIFICADO: Agora usamos createTheme para combinar o tema base com os pacotes de tradução
 export const myTheme = createTheme(baseTheme, pickersPtBR, corePtBR);

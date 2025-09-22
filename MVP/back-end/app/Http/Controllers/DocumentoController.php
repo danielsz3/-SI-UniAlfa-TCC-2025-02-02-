@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Documento;
+use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -10,53 +11,18 @@ use Illuminate\Http\JsonResponse;
 
 class DocumentoController extends Controller
 {
+    use SearchIndex;
     /**
      * Listar documentos
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            $start   = (int) $request->query('_start', 0);
-            $end     = (int) $request->query('_end', 0);
-            $perPage = (int) $request->input('_limit', ($end > 0 ? ($end - $start) : 10));
-            $page    = (int) $request->input('_page', ($perPage > 0 ? intval($start / $perPage) + 1 : 1));
-
-            $sort  = $request->query('_sort', 'id');
-            $order = $request->query('_order', 'ASC');
-
-            $query = Documento::query();
-
-            foreach ($request->query() as $field => $value) {
-                if (in_array($field, ['_start','_end','_sort','_order','_page','_limit'])) continue;
-                if ($value === null || $value === '') continue;
-
-                if (preg_match('/(.+)_from$/', $field, $matches)) {
-                    $query->where($matches[1], '>=', $value);
-                    continue;
-                }
-                if (preg_match('/(.+)_to$/', $field, $matches)) {
-                    $query->where($matches[1], '<=', $value);
-                    continue;
-                }
-
-                if (in_array($field, ['titulo','categoria','descricao'])) {
-                    $query->where($field, 'like', '%' . $value . '%');
-                } else {
-                    $query->where($field, $value);
-                }
-            }
-
-            $query->orderBy($sort, $order);
-
-            $documentos = $query->paginate($perPage, ['*'], 'page', $page);
-
-            return response()
-                ->json($documentos->items())
-                ->header('X-Total-Count', $documentos->total())
-                ->header('Access-Control-Expose-Headers', 'X-Total-Count');
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível carregar os documentos'], 500);
-        }
+        return $this->SearchIndex(
+            $request,
+            Documento::query(),
+            'documentos',
+            ['titulo', 'categoria', 'descricao']
+        );
     }
 
     /**
@@ -86,11 +52,12 @@ class DocumentoController extends Controller
                 'arquivo'   => $path,
                 'tipo'      => $file->getClientMimeType(),
                 'tamanho'   => $file->getSize(),
+                'url_arquivo' => $path
             ]);
 
             return response()->json($documento, 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível salvar o documento'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

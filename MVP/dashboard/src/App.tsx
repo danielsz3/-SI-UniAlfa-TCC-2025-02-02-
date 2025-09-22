@@ -10,6 +10,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import NightShelterOutlinedIcon from '@mui/icons-material/NightShelterOutlined';
 
 import { i18nProvider, myTheme } from './theme';
 import UserCreate from './components/users/UsuarioCreate';
@@ -24,6 +25,8 @@ import { TransacaoList } from './components/transacoes/TransacaoList';
 import TransacaoEdit from './components/transacoes/TransacaoEdit';
 import { ArquivoList } from './components/arquivos/ArquivoList';
 import ArquivoCreate from './components/arquivos/ArquivoCreate';
+import LarTempCreate from './components/lar_temporarios/LarTempCreate';
+import { LarTempList } from './components/lar_temporarios/LarTempList';
 
 function App() {
   return (
@@ -74,7 +77,14 @@ function App() {
         edit={TransacaoEdit}
         create={ArquivoCreate}
       />
-  
+      <Resource
+        options={{ label: "Lares Temporários" }}
+        name="lares-temporarios"
+        icon={NightShelterOutlinedIcon}
+        list={LarTempList}
+        create={LarTempCreate}
+      />
+
     </Admin>
   )
 }

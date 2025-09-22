@@ -14,6 +14,7 @@ class LarTemporario extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
+        'nome',
         'data_nascimento',
         'telefone',
         'situacao',
