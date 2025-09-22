@@ -11,7 +11,7 @@ use Illuminate\Http\JsonResponse;
 class DocumentoController extends Controller
 {
     /**
-     * Listar documentos com paginação, ordenação e filtros dinâmicos
+     * Listar documentos
      */
     public function index(Request $request): JsonResponse
     {
@@ -27,10 +27,7 @@ class DocumentoController extends Controller
             $query = Documento::query();
 
             foreach ($request->query() as $field => $value) {
-                if (in_array($field, ['_start','_end','_sort','_order','_page','_limit'])) {
-                    continue;
-                }
-
+                if (in_array($field, ['_start','_end','_sort','_order','_page','_limit'])) continue;
                 if ($value === null || $value === '') continue;
 
                 if (preg_match('/(.+)_from$/', $field, $matches)) {
@@ -58,56 +55,47 @@ class DocumentoController extends Controller
                 ->header('X-Total-Count', $documentos->total())
                 ->header('Access-Control-Expose-Headers', 'X-Total-Count');
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível carregar os documentos'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível carregar os documentos'], 500);
         }
     }
 
     /**
-     * Criar novo documento com upload
+     * Criar novo documento
      */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'titulo' => 'required|string|max:255',
+            'titulo'    => 'required|string|max:255',
             'categoria' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:1000',
-            'documento' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:4096',
+            'arquivo'   => 'required|file|mimes:pdf,doc,docx,jpg,png|max:4096',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Dados inválidos',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
-            $path = $request->file('documento')->store('documentos', 'public');
+            $file = $request->file('arquivo');
+            $path = $file->store('documentos', 'public');
 
             $documento = Documento::create([
-                'titulo' => $request->titulo,
+                'titulo'    => $request->titulo,
                 'categoria' => $request->categoria,
                 'descricao' => $request->descricao,
-                'documento' => $path,
+                'arquivo'   => $path,
+                'tipo'      => $file->getClientMimeType(),
+                'tamanho'   => $file->getSize(),
             ]);
 
-            return response()->json([
-                'message' => 'Documento criado com sucesso!',
-                'data' => $documento
-            ], 201);
+            return response()->json($documento, 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível salvar o documento'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível salvar o documento'], 500);
         }
     }
 
     /**
-     * Mostrar um documento
+     * Mostrar documento
      */
     public function show($id): JsonResponse
     {
@@ -115,25 +103,17 @@ class DocumentoController extends Controller
             $documento = Documento::find($id);
 
             if (!$documento) {
-                return response()->json([
-                    'error' => 'Documento não encontrado'
-                ], 404);
+                return response()->json(['error' => 'Documento não encontrado'], 404);
             }
 
-            return response()->json([
-                'message' => 'Documento encontrado',
-                'data' => $documento
-            ]);
+            return response()->json($documento, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível carregar o documento'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível carregar o documento'], 500);
         }
     }
 
     /**
-     * Atualizar documento (dados + arquivo)
+     * Atualizar documento
      */
     public function update(Request $request, $id): JsonResponse
     {
@@ -141,46 +121,39 @@ class DocumentoController extends Controller
             $documento = Documento::find($id);
 
             if (!$documento) {
-                return response()->json([
-                    'error' => 'Documento não encontrado'
-                ], 404);
+                return response()->json(['error' => 'Documento não encontrado'], 404);
             }
 
             $validator = Validator::make($request->all(), [
-                'titulo' => 'sometimes|required|string|max:255',
+                'titulo'    => 'sometimes|required|string|max:255',
                 'categoria' => 'nullable|string|max:255',
                 'descricao' => 'nullable|string|max:1000',
-                'documento' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:4096',
+                'arquivo'   => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:4096',
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'error' => 'Dados inválidos',
-                    'errors' => $validator->errors()
-                ], 422);
+                return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            if ($request->hasFile('documento')) {
-                if ($documento->documento && Storage::disk('public')->exists($documento->documento)) {
-                    Storage::disk('public')->delete($documento->documento);
+            if ($request->hasFile('arquivo')) {
+                if ($documento->arquivo && Storage::disk('public')->exists($documento->arquivo)) {
+                    Storage::disk('public')->delete($documento->arquivo);
                 }
-                $documento->documento = $request->file('documento')->store('documentos', 'public');
+
+                $file = $request->file('arquivo');
+                $documento->arquivo = $file->store('documentos', 'public');
+                $documento->tipo    = $file->getClientMimeType();
+                $documento->tamanho = $file->getSize();
             }
 
-            $documento->titulo = $request->titulo ?? $documento->titulo;
+            $documento->titulo    = $request->titulo    ?? $documento->titulo;
             $documento->categoria = $request->categoria ?? $documento->categoria;
             $documento->descricao = $request->descricao ?? $documento->descricao;
             $documento->save();
 
-            return response()->json([
-                'message' => 'Documento atualizado com sucesso!',
-                'data' => $documento
-            ]);
+            return response()->json($documento->fresh(), 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível atualizar o documento'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível atualizar o documento'], 500);
         }
     }
 
@@ -193,31 +166,23 @@ class DocumentoController extends Controller
             $documento = Documento::find($id);
 
             if (!$documento) {
-                return response()->json([
-                    'error' => 'Documento não encontrado'
-                ], 404);
+                return response()->json(['error' => 'Documento não encontrado'], 404);
             }
 
-            if ($documento->documento && Storage::disk('public')->exists($documento->documento)) {
-                Storage::disk('public')->delete($documento->documento);
+            if ($documento->arquivo && Storage::disk('public')->exists($documento->arquivo)) {
+                Storage::disk('public')->delete($documento->arquivo);
             }
 
             $documento->delete();
 
-            return response()->json([
-                'message' => 'Documento deletado com sucesso!',
-                'data' => $documento
-            ]);
+            return response()->json(null, 204);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível excluir o documento'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível excluir o documento'], 500);
         }
     }
 
     /**
-     * Restaurar documento deletado (soft delete)
+     * Restaurar documento deletado
      */
     public function restore($id): JsonResponse
     {
@@ -225,28 +190,18 @@ class DocumentoController extends Controller
             $documento = Documento::withTrashed()->find($id);
 
             if (!$documento) {
-                return response()->json([
-                    'error' => 'Documento não encontrado'
-                ], 404);
+                return response()->json(['error' => 'Documento não encontrado'], 404);
             }
 
             if (!$documento->trashed()) {
-                return response()->json([
-                    'error' => 'Documento já está ativo'
-                ], 400);
+                return response()->json(['error' => 'Documento já está ativo'], 400);
             }
 
             $documento->restore();
 
-            return response()->json([
-                'message' => 'Documento restaurado com sucesso!',
-                'data' => $documento
-            ]);
+            return response()->json($documento, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro interno do servidor',
-                'message' => 'Não foi possível restaurar o documento'
-            ], 500);
+            return response()->json(['error' => 'Não foi possível restaurar o documento'], 500);
         }
     }
 }
