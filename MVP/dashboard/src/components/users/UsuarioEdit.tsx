@@ -40,13 +40,12 @@ const UserEdit = () => (
             <PasswordInput
                 source="password"
                 label="Senha"
-                validate={required('A senha é obrigatória')}
+                helperText="Deixe em branco para não alterar a senha"
             />
 
             <PasswordInput
                 source="password_confirmation"
                 label="Confirmar Senha"
-                validate={required('A confirmação de senha é obrigatória')}
             />
 
         </SimpleForm>
