@@ -1,12 +1,12 @@
 import { ArrayInput, Create, DateTimeInput, NumberInput, RadioButtonGroupInput, SimpleForm, TextArrayInput, TextInput, minValue, required } from 'react-admin';
+import CustomDateTimePicker from '../datepicker/customDateTimePicker';
 
 const TransacaoCreate = () => (
-    <Create title="Criar Nova Transção" sx={{ width: 600, margin: '0 auto' }}>
+    <Create title="Criar Nova Transção" sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}>
         <SimpleForm>
-            <DateTimeInput
+            <CustomDateTimePicker
                 source="data_transacao"
                 label="Data da Transação"
-                value={new Date()}
                 validate={required('A data da transação é obrigatória')}
             />
 
