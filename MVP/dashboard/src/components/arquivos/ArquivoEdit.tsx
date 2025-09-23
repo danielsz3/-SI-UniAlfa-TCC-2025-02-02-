@@ -1,11 +1,11 @@
-import { Create, FileField, FileInput, SimpleForm, TextInput, required } from 'react-admin';
+import { Edit, FileField, FileInput, SimpleForm, TextInput, required } from 'react-admin';
 import { FilePlaceholder } from '../FilePlaceHolder';
 
-const ArquivoCreate = () => (
-    <Create
-        title="Criar Novo Documento"
-        sx={{ minWidth: '100%', maxWidth: 600, margin: '0 auto' }}
+const ArquivoEdit = () => (
+    <Edit
+        title="Editar Documento"
         redirect="list"
+        sx={{ minWidth: '100%', maxWidth: 600, margin: '0 auto' }}
     >
         <SimpleForm>
             <TextInput
@@ -17,6 +17,7 @@ const ArquivoCreate = () => (
             <FileInput
                 source="arquivo"
                 label="Arquivo"
+                helperText="Deixe vazio para manter o arquivo atual"
                 accept={{ 'application/pdf': ['.pdf'] }}
                 maxSize={5000000}
                 placeholder={
@@ -25,7 +26,6 @@ const ArquivoCreate = () => (
                         accept={[".pdf"]}
                     />
                 }
-                validate={required('O arquivo é obrigatório')}
                 sx={{
                     '& .RaFileInput-dropZone': {
                         backgroundColor: "#fff",
@@ -55,7 +55,7 @@ const ArquivoCreate = () => (
             /> */}
 
         </SimpleForm>
-    </Create>
+    </Edit>
 );
 
-export default ArquivoCreate;
+export default ArquivoEdit;

@@ -1,4 +1,4 @@
-import { DataTable, DateField, List, NumberField, NumberInput } from 'react-admin';
+import { ChipField, DataTable, DateField, FunctionField, List, NumberField, NumberInput } from 'react-admin';
 
 const filters = [
     <NumberInput label="Valor" source="valor" size="small" alwaysOn />,
@@ -7,13 +7,21 @@ export const TransacaoList = () => (
     <List filters={filters}>
         <DataTable rowClick="edit">
             <DataTable.Col source="data_transacao" label="Data">
-                <DateField source="data_transacao" showTime locales={'pt-BR'}/>
+                <DateField source="data_transacao" showTime locales={'pt-BR'} />
             </DataTable.Col>
-            <DataTable.Col source="tipo_transacao" label="Tipo" />
+            <DataTable.Col source="tipo_transacao" label="Tipo">
+                <FunctionField
+                    render={(record) => {
+                        const color = record.situacao === 'entrada' ? 'forestgreen' : 'red';
+                        return <ChipField source="tipo_transacao" style={{ backgroundColor: color, color: 'white' }} />
+                    }}
+                />
+            </DataTable.Col>
             <DataTable.Col source="valor">
                 <NumberField
                     source="valor"
                     options={{ style: 'currency', currency: 'BRL' }}
+                    sx={{ textAlign: 'right' }}
                 />
             </DataTable.Col>
             <DataTable.Col source="descricao" />
