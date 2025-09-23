@@ -27,6 +27,8 @@ import { ArquivoList } from './components/arquivos/ArquivoList';
 import ArquivoCreate from './components/arquivos/ArquivoCreate';
 import LarTempCreate from './components/lar_temporarios/LarTempCreate';
 import { LarTempList } from './components/lar_temporarios/LarTempList';
+import ArquivoEdit from './components/arquivos/ArquivoEdit';
+import LarTempEdit from './components/lar_temporarios/LarTempEdit';
 
 function App() {
   return (
@@ -74,7 +76,7 @@ function App() {
         name="documentos"
         icon={DescriptionOutlinedIcon}
         list={ArquivoList}
-        edit={TransacaoEdit}
+        edit={ArquivoEdit}
         create={ArquivoCreate}
       />
       <Resource
@@ -83,6 +85,7 @@ function App() {
         icon={NightShelterOutlinedIcon}
         list={LarTempList}
         create={LarTempCreate}
+        edit={LarTempEdit}
       />
 
     </Admin>

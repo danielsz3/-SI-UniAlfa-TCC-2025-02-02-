@@ -25,7 +25,7 @@ const TransacaoEdit = () => (
                 label="Valor R$"
                 validate={[
                     required('O valor é obrigatório'),
-                    minValue('O valor deve ser maior que zero', 0)
+                    minValue(0,'O valor deve ser maior que zero')
                 ]}
             />
 
