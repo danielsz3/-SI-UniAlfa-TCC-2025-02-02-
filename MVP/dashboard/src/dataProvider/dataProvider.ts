@@ -3,35 +3,76 @@ import simpleRestProvider from "ra-data-simple-rest";
 
 const apiUrl = "http://127.0.0.1:8000/api";
 
+// Função utilitária para requisições com autenticação (Token)
+// httpClient ajustado para lidar com FormData E Headers
 const httpClient = (url: string, options: fetchUtils.Options = {}) => {
-  if (!options.headers) {
-    options.headers = new Headers({ Accept: "application/json" });
+
+  // 1. GARANTE que options.headers é um objeto Headers
+  const finalHeaders = new Headers(options.headers || {});
+  options.headers = finalHeaders; // Atualiza options.headers com a instância correta
+
+  // 2. Lógica de Autenticação (Agora segura para usar .set())
+  if (!finalHeaders.has("Accept")) {
+    finalHeaders.set("Accept", "application/json");
   }
   const token = localStorage.getItem("authToken");
   if (token) {
-    (options.headers as Headers).set("Authorization", `Bearer ${token}`);
+    finalHeaders.set("Authorization", `Bearer ${token}`);
   }
+
+  // 3. Verifica se o corpo (body) é um FormData
+  if (options.body instanceof FormData) {
+
+    // Para FormData, DELETAMOS Content-Type, pois o navegador lida com isso.
+    finalHeaders.delete("Content-Type");
+
+    // ... restante da lógica para FormData usando fetch nativo (mantido)
+    return fetch(url, options as RequestInit).then(response => {
+      if (!response.ok) {
+        return response.json()
+          .then(errorBody => {
+            return Promise.reject({
+              status: response.status,
+              message: errorBody.message || 'Erro de rede', // Use a mensagem da API se existir
+            });
+          })
+          .catch(() => {
+            // Caso o corpo da resposta não seja um JSON válido
+            return Promise.reject({ status: response.status });
+          });
+      }
+      // Se a resposta for bem-sucedida, continue como antes
+      return response.json().then(json => ({
+        status: response.status,
+        headers: response.headers,
+        body: '',
+        json: json
+      }));
+    });
+  }
+
+  // 4. Se for JSON ou outra requisição, usa o fetchUtils.fetchJson
   return fetchUtils.fetchJson(url, options);
 };
 
-// Cria o provider base
+// Cria o provider base com o httpClient customizado (para métodos GET, GET_ONE, GET_LIST, etc.)
 const baseDataProvider = simpleRestProvider(apiUrl, httpClient);
 
-// Função para converter dados em FormData quando necessário
+// Função para converter dados para JSON ou FormData (Upload de Arquivos)
 const convertDataRequestToHTTP = (data: any, isUpdate = false): { data: string | FormData; headers: Record<string, string> } => {
   const requestData = { ...data };
-  
-  // No update, remove campos de arquivo que não foram alterados (não têm rawFile)
+
+  // Lógica de remoção de campos de arquivo não alterados (comum em updates)
   if (isUpdate) {
     Object.keys(requestData).forEach(key => {
       const field = requestData[key];
-      if (key === 'arquivo' && !field.rawFile) {
+      if (key === 'arquivo' && !field?.rawFile) {
         delete requestData[key];
       }
     });
   }
-  
-  // Verifica se algum campo tem a propriedade rawFile (indicando upload)
+
+  // Verifica se há upload de arquivo (se algum campo possui rawFile)
   const hasFileUpload = Object.keys(requestData).some(key => {
     const field = requestData[key];
     return field && typeof field === 'object' && field.rawFile instanceof File;
@@ -44,17 +85,17 @@ const convertDataRequestToHTTP = (data: any, isUpdate = false): { data: string |
     };
   }
 
-  // Se tem upload, cria FormData
+  // Se houver upload, monta o FormData
   const formData = new FormData();
-  
+
   Object.keys(requestData).forEach(key => {
     const field = requestData[key];
-    
+
     if (field && typeof field === 'object' && field.rawFile instanceof File) {
-      // Campo de arquivo - adiciona o arquivo
+      // Arquivo: Adiciona o File ao FormData
       formData.append(key, field.rawFile, field.title || field.rawFile.name);
     } else if (Array.isArray(field)) {
-      // Array de arquivos
+      // Lógica de tratamento para arrays (ex: múltiplos uploads ou IDs)
       field.forEach((item, index) => {
         if (item && typeof item === 'object' && item.rawFile instanceof File) {
           formData.append(`${key}[${index}]`, item.rawFile, item.title || item.rawFile.name);
@@ -63,82 +104,89 @@ const convertDataRequestToHTTP = (data: any, isUpdate = false): { data: string |
         }
       });
     } else if (field !== null && field !== undefined && field !== '') {
-      // Campo normal
+      // Campos simples
       formData.append(key, String(field));
     }
   });
 
   return {
     data: formData,
-    headers: {} // Não definir Content-Type para FormData
+    headers: {} // O browser define o Content-Type para FormData
   };
 };
 
-// Customiza o data provider
+// Customiza o data provider para sobrescrever métodos
 export const dataProvider: DataProvider = {
   ...baseDataProvider,
 
+  /**
+   * CREATE (Criação de Recurso)
+   * Sobrescrito para suportar o envio de FormData (Upload de Arquivos).
+   */
   create: async (resource: string, params: any) => {
-    const token = localStorage.getItem("authToken");
-    const { data, headers } = convertDataRequestToHTTP(params.data, false);
-    
-    const requestHeaders: Record<string, string> = { ...headers };
-    if (token) {
-      requestHeaders['Authorization'] = `Bearer ${token}`;
-    }
+    // Converte os dados para body e headers
+    const { data: body, headers } = convertDataRequestToHTTP(params.data, false);
 
-    try {
-      const response = await fetch(`${apiUrl}/${resource}`, {
-        method: 'POST',
-        body: data,
-        headers: requestHeaders,
-      });
+    // Usa o httpClient para enviar a requisição de forma padronizada
+    const response = await httpClient(`${apiUrl}/${resource}`, {
+      method: 'POST',
+      body: body,
+      headers: headers,
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      const json = await response.json();
-      return { 
-        data: json,
-        redirectTo: 'list' // Redireciona para a lista após criar
-      };
-    } catch (error) {
-      console.error('Erro no create:', error);
-      throw error;
-    }
+    return {
+      data: response.json,
+      redirectTo: 'list'
+    };
   },
 
+  /**
+   * UPDATE (Atualização de Recurso)
+   * Sobrescrito para suportar o envio de FormData (Upload de Arquivos).
+   */
   update: async (resource: string, params: any) => {
-    const token = localStorage.getItem("authToken");
-    const { data, headers } = convertDataRequestToHTTP(params.data, true);
-    
-    const requestHeaders: Record<string, string> = { ...headers };
-    if (token) {
-      requestHeaders['Authorization'] = `Bearer ${token}`;
+    // Converte os dados para body e headers
+    const { data: body, headers } = convertDataRequestToHTTP(params.data, true);
+
+    // Usa o httpClient para enviar a requisição de forma padronizada
+    const response = await httpClient(`${apiUrl}/${resource}/${params.id}`, {
+      method: 'PUT',
+      body: body,
+      headers: headers,
+    });
+
+    return {
+      data: response.json,
+      redirectTo: 'list'
+    };
+  },
+
+  /**
+   * DELETEMANY (Exclusão em Massa)
+   * Sobrescrito para garantir a robustez contra IDs nulos e retornar
+   * os IDs deletados quando a API não retorna um corpo de resposta.
+   */
+  deleteMany: (resource, params) => {
+    // ... sua lógica de exclusão em massa aqui (usa httpClient naturalmente)
+    const idsToDelete = params.ids.filter(id => id);
+
+    if (idsToDelete.length === 0) {
+      return Promise.resolve({ data: [] });
     }
 
-    try {
-      const response = await fetch(`${apiUrl}/${resource}/${params.id}`, {
-        method: 'PUT',
-        body: data,
-        headers: requestHeaders,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      const json = await response.json();
-      return { 
-        data: json,
-        redirectTo: 'list' // Redireciona para a lista após editar
+    return Promise.all(
+      idsToDelete.map(id =>
+        httpClient(`${apiUrl}/${resource}/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: new Headers({
+            'Content-Type': 'text/plain',
+          }),
+        })
+      )
+    ).then(() => {
+      return {
+        data: idsToDelete
       };
-    } catch (error) {
-      console.error('Erro no update:', error);
-      throw error;
-    }
+    });
   },
 };
