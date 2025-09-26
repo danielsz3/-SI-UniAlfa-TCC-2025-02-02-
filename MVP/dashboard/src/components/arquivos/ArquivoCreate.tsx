@@ -4,12 +4,12 @@ import { FilePlaceholder } from '../FilePlaceHolder';
 const ArquivoCreate = () => (
     <Create
         title="Criar Novo Documento"
-        sx={{ minWidth: '100%', maxWidth: 600, margin: '0 auto' }}
+        sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
         redirect="list"
     >
         <SimpleForm>
             <TextInput
-                source="title"
+                source="titulo"
                 label="Título"
                 validate={required('O título é obrigatório')}
             />

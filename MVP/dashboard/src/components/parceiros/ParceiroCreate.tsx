@@ -1,7 +1,11 @@
 import { Create, SimpleForm, TextInput, required } from 'react-admin';
 
 const ParceiroCreate = () => (
-    <Create title="Criar Novo Parceiro" sx={{ width: 600, margin: '0 auto' }}>
+    <Create
+        title="Criar Novo Parceiro"
+        sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
+        redirect="list"
+    >
         <SimpleForm>
             <TextInput
                 source="nome"

@@ -6,11 +6,11 @@ import Layout from './layout/Layout';
 import { authProvider } from './authProvider/authProvider';
 import ConfiguracaoUsuario from './components/users/Configuracao';
 import { LoginPage } from './components/LoginPage';
-import PersonIcon from '@mui/icons-material/Person';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import NightShelterOutlinedIcon from '@mui/icons-material/NightShelterOutlined';
+import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 
 import { i18nProvider, myTheme } from './theme';
 import UserCreate from './components/users/UsuarioCreate';
@@ -50,7 +50,7 @@ function App() {
       <Resource
         options={{ label: "Usuários" }}
         name="usuarios"
-        icon={PersonIcon}
+        icon={PeopleOutlineIcon}
         list={UsuarioList}
         edit={UserEdit}
         create={UserCreate}

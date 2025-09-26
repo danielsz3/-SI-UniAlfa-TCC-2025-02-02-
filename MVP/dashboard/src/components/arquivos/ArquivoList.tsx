@@ -17,7 +17,7 @@ const formatFileSize = (bytes: number): string => {
 export const ArquivoList = () => (
     <List filters={filters}>
         <DataTable rowClick="edit">
-            <DataTable.Col source="title" label="Título" />
+            <DataTable.Col source="titulo" label="Título" />
             <DataTable.Col source="arquivo">
                 <FileField source="arquivo" title="tipo"/>
             </DataTable.Col>

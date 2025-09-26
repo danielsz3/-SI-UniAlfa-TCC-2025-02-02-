@@ -1,7 +1,11 @@
 import { ArrayInput, DateTimeInput, Edit, NumberInput, RadioButtonGroupInput, SimpleForm, TextArrayInput, TextInput, minValue, required } from 'react-admin';
 
 const TransacaoEdit = () => (
-    <Edit title="Editar Transação" sx={{ width: 600, margin: '0 auto' }}>
+    <Edit
+        title="Editar Transação"
+        sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
+        redirect="list"
+    >
         <SimpleForm>
             <DateTimeInput
                 source="data_transacao"
@@ -25,7 +29,7 @@ const TransacaoEdit = () => (
                 label="Valor R$"
                 validate={[
                     required('O valor é obrigatório'),
-                    minValue(0,'O valor deve ser maior que zero')
+                    minValue(0, 'O valor deve ser maior que zero')
                 ]}
             />
 

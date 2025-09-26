@@ -2,7 +2,11 @@ import { ArrayInput, Create, DateTimeInput, NumberInput, RadioButtonGroupInput, 
 import CustomDateTimePicker from '../datepicker/customDateTimePicker';
 
 const TransacaoCreate = () => (
-    <Create title="Criar Nova Transção" sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}>
+    <Create
+        title="Criar Nova Transção"
+        sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
+        redirect="list"
+    >
         <SimpleForm>
             <CustomDateTimePicker
                 source="data_transacao"

@@ -12,7 +12,7 @@ export const TransacaoList = () => (
             <DataTable.Col source="tipo_transacao" label="Tipo">
                 <FunctionField
                     render={(record) => {
-                        const color = record.situacao === 'entrada' ? 'forestgreen' : 'red';
+                        const color = record.tipo_transacao === 'entrada' ? 'green' : 'red';
                         return <ChipField source="tipo_transacao" style={{ backgroundColor: color, color: 'white' }} />
                     }}
                 />
