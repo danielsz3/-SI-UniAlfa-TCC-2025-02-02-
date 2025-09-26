@@ -14,15 +14,29 @@ const ArquivoCreate = () => (
                 validate={required('O título é obrigatório')}
             />
 
+            <TextInput
+                source="categoria"
+                label="Categoria"
+                validate={required('Pelo menos uma categoria é obrigatória')}
+            />
+
+            <TextInput
+                source="descricao"
+                label="Descrição"
+                multiline
+                rows={3}
+                validate={required('A descrição é obrigatória')}
+            />
+
             <FileInput
                 source="arquivo"
                 label="Arquivo"
-                accept={{ 'application/pdf': ['.pdf'] }}
+                accept={{ 'application/pdf': ['.pdf'], 'application/msword': ['.doc', '.docx'], 'application/vnd.ms-excel': ['.xls', '.xlsx'], 'text/csv': ['.csv'] }}
                 maxSize={5000000}
                 placeholder={
                     <FilePlaceholder
                         maxSize={5_200_000}
-                        accept={[".pdf"]}
+                        accept={[".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv"]}
                     />
                 }
                 validate={required('O arquivo é obrigatório')}
@@ -35,24 +49,6 @@ const ArquivoCreate = () => (
             >
                 <FileField source="src" title="title" />
             </FileInput>
-
-            <TextInput
-                source="descricao"
-                label="Descrição"
-                validate={required('A descrição é obrigatória')}
-            />
-
-            <TextInput
-                source="categoria"
-                label="Categoria"
-                validate={required('Pelo menos uma categoria é obrigatória')}
-            />
-
-            {/* <TextArrayInput
-                source="categoria"
-                label="Categorias"
-                validate={required('Pelo menos uma categoria é obrigatória')}
-            /> */}
 
         </SimpleForm>
     </Create>
