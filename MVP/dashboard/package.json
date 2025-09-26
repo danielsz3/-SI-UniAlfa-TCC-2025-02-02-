@@ -16,6 +16,7 @@
     "@mui/material": "^7.1.0",
     "@mui/x-date-pickers": "^8.4.0",
     "date-fns": "^4.1.0",
+    "ldrs": "^1.1.7",
     "ra-data-json-server": "^5.10.2",
     "ra-data-simple-rest": "^5.8.1",
     "ra-i18n-polyglot": "^5.8.1",

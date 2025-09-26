@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { Grid, Card, CardContent, Typography, Box } from '@mui/material';
 import {
     PictureAsPdf as PdfIcon,
-    Article as DocIcon, // Ícone genérico para documentos
+    InsertDriveFileOutlined as DocIcon, // Ícone genérico para documentos
     InsertDriveFile as GenericFileIcon, // Ícone para tipos desconhecidos
 } from '@mui/icons-material';
 import React from 'react';
@@ -36,8 +36,10 @@ const getIconForFileType = (filename: string): React.ReactElement => {
             return <DocIcon sx={{ fontSize: 40, color: 'blue' }} />;
         case 'docx':
             return <DocIcon sx={{ fontSize: 40, color: 'blue' }} />;
-        case 'txt':
-            return <DocIcon sx={{ fontSize: 40, color: 'blue' }} />;
+        case 'xls':
+            return <DocIcon sx={{ fontSize: 40, color: 'green' }} />;
+        case 'xlsx':
+            return <DocIcon sx={{ fontSize: 40, color: 'green' }} />;
         default:
             return <GenericFileIcon sx={{ fontSize: 40, color: 'grey.700' }} />;
     }
