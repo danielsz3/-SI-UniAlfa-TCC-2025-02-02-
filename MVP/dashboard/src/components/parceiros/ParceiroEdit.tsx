@@ -1,7 +1,11 @@
-import {Edit, SimpleForm, TextInput, required } from 'react-admin';
+import { Edit, SimpleForm, TextInput, required } from 'react-admin';
 
 const ParceiroEdit = () => (
-    <Edit title="Editar Parceiro" sx={{ width: 600, margin: '0 auto' }}>
+    <Edit
+        title="Editar Parceiro"
+        sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
+        redirect="list"
+    >
         <SimpleForm>
             <TextInput
                 source="nome"

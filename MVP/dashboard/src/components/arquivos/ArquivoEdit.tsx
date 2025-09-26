@@ -4,8 +4,8 @@ import { FilePlaceholder } from '../FilePlaceHolder';
 const ArquivoEdit = () => (
     <Edit
         title="Editar Documento"
+        sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
         redirect="list"
-        sx={{ minWidth: '100%', maxWidth: 600, margin: '0 auto' }}
     >
         <SimpleForm>
             <TextInput

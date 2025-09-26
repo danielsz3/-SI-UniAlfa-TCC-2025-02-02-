@@ -70,7 +70,8 @@ const LarTempCreate = (props: CreateProps) => {
         <Create
             {...props}
             title="Criar Novo Lar Temporário"
-            sx={{ width: 600, margin: '0 auto' }}
+            sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
+            redirect="list"
         >
             <TabbedForm>
                 <FormTab label="Responsável">
@@ -102,7 +103,7 @@ const LarTempCreate = (props: CreateProps) => {
                 </FormTab>
 
                 <FormTab label="Endereço" disabled>
-                    <TextInput source="cep" label="CEP"/>
+                    <TextInput source="cep" label="CEP" />
                     <TextInput
                         source="logradouro"
                         label="Logradouro"
@@ -120,7 +121,7 @@ const LarTempCreate = (props: CreateProps) => {
                         source="cidade"
                         label="Cidade"
                     />
-                    <TextInput source="uf" label="UF"/>
+                    <TextInput source="uf" label="UF" />
                 </FormTab>
             </TabbedForm>
         </Create>

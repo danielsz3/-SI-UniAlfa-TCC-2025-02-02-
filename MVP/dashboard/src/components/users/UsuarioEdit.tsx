@@ -1,8 +1,12 @@
-import {SimpleForm, TextInput, required, PasswordInput, Edit } from 'react-admin';
+import { SimpleForm, TextInput, required, PasswordInput, Edit } from 'react-admin';
 import CustomDatePicker from '../datepicker/customDatePicker';
 
 const UserEdit = () => (
-    <Edit title="Editar Usuário" sx={{ width: 600, margin: '0 auto' }}>
+    <Edit
+        title="Editar Usuário"
+        sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
+        redirect="list"
+    >
         <SimpleForm>
             <TextInput
                 source="nome"
