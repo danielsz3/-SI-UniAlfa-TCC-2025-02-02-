@@ -10,6 +10,8 @@ use App\Http\Controllers\LaresTemporarioController;
 use App\Http\Controllers\OngController;
 use App\Http\Controllers\ParceiroController;
 use App\Http\Controllers\TransacaoController;
+use App\Http\Controllers\InstagramAuthController;
+use App\Http\Controllers\IntegracaoController;
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -28,6 +30,11 @@ Route::middleware('jwt.auth')->group(function () {
     Route::apiResource('transacoes', TransacaoController::class);
     Route::apiResource('lares-temporarios', LaresTemporarioController::class);
 
+    Route::get('/login/instagram', [InstagramAuthController::class, 'redirectToInstagram']);
+    Route::get('/auth/instagram/callback', [InstagramAuthController::class, 'handleInstagramCallback']);
+    Route::get('/integracoes', [IntegracaoController::class, 'index']);
+
+
     Route::post('usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
     Route::post('enderecos/{id}/restore', [EnderecoController::class, 'restore'])->name('enderecos.restore');
     Route::post('ongs/{id}/restore', [OngController::class, 'restore'])->name('ongs.restore');
@@ -37,7 +44,6 @@ Route::middleware('jwt.auth')->group(function () {
     Route::post('documentos/{id}/restore', [DocumentoController::class, 'restore'])->name('documentos.restore');
     Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');
     Route::post('lares-temporarios/{id}/restore', [LaresTemporarioController::class, 'restore'])->name('lares-temporarios.restore');
-
 });
 
 

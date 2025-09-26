@@ -29,22 +29,28 @@ import LarTempCreate from './components/lar_temporarios/LarTempCreate';
 import { LarTempList } from './components/lar_temporarios/LarTempList';
 import ArquivoEdit from './components/arquivos/ArquivoEdit';
 import LarTempEdit from './components/lar_temporarios/LarTempEdit';
+import { Loading } from './components/Loading';
+import IntegracoesPage from './components/integracoes/IntegracoesPage';
 
 function App() {
   return (
     <Admin
       layout={Layout}
       theme={myTheme}
+      loading={Loading}
       dataProvider={dataProvider}
       i18nProvider={i18nProvider}
       authProvider={authProvider}
       loginPage={LoginPage}
-
     >
       <CustomRoutes>
         <Route
           path="/configuracoes"
           element={<ConfiguracaoUsuario />}
+        />
+        <Route
+          path="/integracoes"
+          element={<IntegracoesPage />}
         />
       </CustomRoutes>
       <Resource
