@@ -26,7 +26,7 @@ class Endereco extends Model
     // Relacionamentos
     public function usuario()
     {
-        return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
+        return $this->belongsTo(Usuario::class, 'id_usuario', 'id');
     }
 
     public function larTemporario()

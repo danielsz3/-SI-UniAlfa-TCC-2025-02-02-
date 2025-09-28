@@ -71,11 +71,12 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('documentos', DocumentoController::class)->except(['index', 'show']);
         Route::post('documentos/{id}/restore', [DocumentoController::class, 'restore'])->name('documentos.restore');
+        Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
         Route::apiResource('transacoes', TransacaoController::class)->except(['index', 'show']);
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');
 
         // Integrações - mantendo como admin-only (ajuste se quiser público)
         Route::get('/integracoes', [IntegracaoController::class, 'index'])->name('integracoes.index');
-    });
+    }); 
 });

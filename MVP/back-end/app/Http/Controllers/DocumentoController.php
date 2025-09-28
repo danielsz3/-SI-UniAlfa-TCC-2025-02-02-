@@ -8,10 +8,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentoController extends Controller
 {
     use SearchIndex;
+
     /**
      * Listar documentos
      */
@@ -46,13 +49,14 @@ class DocumentoController extends Controller
             $path = $file->store('documentos', 'public');
 
             $documento = Documento::create([
-                'titulo'    => $request->titulo,
-                'categoria' => $request->categoria,
-                'descricao' => $request->descricao,
-                'arquivo'   => $path,
-                'tipo'      => $file->getClientMimeType(),
-                'tamanho'   => $file->getSize(),
-                'url_arquivo' => $path
+                'titulo'       => $request->titulo,
+                'categoria'    => $request->categoria,
+                'descricao'    => $request->descricao,
+                'arquivo'      => $path,
+                'tipo'         => $file->getClientMimeType(),
+                'tamanho'      => $file->getSize(),
+                'url_arquivo'  => $path, // mantenho igual ao seu código; se preferir URL pública use Storage::url($path)
+                // 'nome_original' => $file->getClientOriginalName(), // opcional: requer coluna no banco
             ]);
 
             return response()->json($documento, 201);
@@ -111,6 +115,8 @@ class DocumentoController extends Controller
                 $documento->arquivo = $file->store('documentos', 'public');
                 $documento->tipo    = $file->getClientMimeType();
                 $documento->tamanho = $file->getSize();
+                // $documento->nome_original = $file->getClientOriginalName(); // opcional: requer coluna no banco
+                // $documento->url_arquivo = $documento->arquivo; // se quiser manter sincronizado
             }
 
             $documento->titulo    = $request->titulo    ?? $documento->titulo;
@@ -169,6 +175,46 @@ class DocumentoController extends Controller
             return response()->json($documento, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Não foi possível restaurar o documento'], 500);
+        }
+    }
+
+    /**
+     * Download do arquivo do documento
+     *
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\JsonResponse
+     */
+    public function download($id): StreamedResponse|JsonResponse
+    {
+        try {
+            $documento = Documento::find($id);
+
+            if (!$documento) {
+                return response()->json(['error' => 'Documento não encontrado'], 404);
+            }
+
+            $path = $documento->arquivo;
+
+            if (!$path || !Storage::disk('public')->exists($path)) {
+                return response()->json(['error' => 'Arquivo não encontrado no armazenamento'], 404);
+            }
+
+            // Nome do arquivo para download
+            $ext = pathinfo($path, PATHINFO_EXTENSION);
+            $baseName = Str::slug($documento->titulo ?: 'documento');
+
+            // Se houver coluna nome_original no banco, ela será usada; caso contrário, usa título + extensão
+            $fileName = !empty($documento->nome_original)
+                ? $documento->nome_original
+                : ($ext ? "{$baseName}.{$ext}" : $baseName);
+
+            // Content-Type
+            $mime = $documento->tipo ?: (Storage::disk('public')->mimeType($path) ?? 'application/octet-stream');
+
+            return Storage::disk('public')->download($path, $fileName, [
+                'Content-Type' => $mime,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Não foi possível realizar o download'], 500);
         }
     }
 }
