@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AuthController;
@@ -18,6 +20,13 @@ use App\Http\Controllers\IntegracaoController;
  * AUTENTICAÇÃO PÚBLICA
  */
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+
+/**
+ * REDEFINIÇÃO DE SENHA 
+ */
+Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLink']);
+Route::post('reset-password', [ResetPasswordController::class, 'reset']);
+Route::post('validate-token', [ResetPasswordController::class, 'validateToken']);
 
 /**
  * RECURSOS PÚBLICOS (somente leitura: index, show)
