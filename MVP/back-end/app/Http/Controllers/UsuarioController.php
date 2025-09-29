@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Usuario;
 use App\Models\Endereco;
+use App\Models\PreferenciaUsuario;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -24,7 +25,7 @@ class UsuarioController extends Controller
     {
         return $this->SearchIndex(
             $request,
-            Usuario::with('endereco'),
+            Usuario::with(['endereco', 'preferencias']),
             'usuarios',
             ['nome', 'email', 'telefone']
         );
@@ -53,6 +54,12 @@ class UsuarioController extends Controller
             'endereco.bairro' => 'nullable|string|max:100',
             'endereco.cidade' => 'nullable|string|max:100',
             'endereco.uf' => 'nullable|string|max:2',
+            
+            // Validações das preferências (opcionais)
+            'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
+            'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
+            'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
+            'preferencias.espaco_casa' => 'nullable|string|in:area_pequena,area_media,area_externa',
         ]);
 
         if ($validator->fails()) {
@@ -78,10 +85,18 @@ class UsuarioController extends Controller
                     $enderecoData['id_usuario'] = $usuario->id;
                     
                     Endereco::create($enderecoData);
-                    
-                    // Recarregar usuário com endereço
-                    $usuario->load('enderecos');
                 }
+
+                // Se foi enviado dados de preferências, criar as preferências
+                if ($request->has('preferencias') && !empty(array_filter($request->preferencias))) {
+                    $prefsData = $request->preferencias;
+                    $prefsData['usuario_id'] = $usuario->id;
+                    
+                    PreferenciaUsuario::create($prefsData);
+                }
+
+                // Recarregar usuário com endereço e preferências
+                $usuario->load(['endereco', 'preferencias']);
 
                 return response()->json($usuario, 201);
             });
@@ -99,7 +114,7 @@ class UsuarioController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $usuario = Usuario::with('endereco')->find($id);
+            $usuario = Usuario::with(['endereco', 'preferencias'])->find($id);
 
             if (!$usuario) {
                 return response()->json(['error' => 'Usuário não encontrado'], 404);
@@ -154,6 +169,12 @@ class UsuarioController extends Controller
                 'endereco.bairro' => 'nullable|string|max:100',
                 'endereco.cidade' => 'nullable|string|max:100',
                 'endereco.uf' => 'nullable|string|max:2',
+                
+                // Validações das preferências (opcionais)
+                'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
+                'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
+                'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
+                'preferencias.espaco_casa' => 'nullable|string|in:area_pequena,area_media,area_externa',
             ]);
 
             if ($validator->fails()) {
@@ -191,7 +212,21 @@ class UsuarioController extends Controller
                     }
                 }
 
-                return response()->json($usuario->fresh('endereco'), 200);
+                // Atualizar ou criar preferências se enviadas
+                if ($request->has('preferencias') && !empty(array_filter($request->preferencias))) {
+                    $prefsData = $request->preferencias;
+                    
+                    if ($usuario->preferencias) {
+                        // Atualizar preferências existentes
+                        $usuario->preferencias->update($prefsData);
+                    } else {
+                        // Criar novas preferências
+                        $prefsData['usuario_id'] = $usuario->id;
+                        PreferenciaUsuario::create($prefsData);
+                    }
+                }
+
+                return response()->json($usuario->fresh(['endereco', 'preferencias']), 200);
             });
         } catch (\Exception $e) {
             return response()->json([
@@ -240,7 +275,7 @@ class UsuarioController extends Controller
 
             $usuario->restore();
 
-            return response()->json($usuario->load('endereco'), 200);
+            return response()->json($usuario->load(['endereco', 'preferencias']), 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Não foi possível restaurar o usuário'], 500);
         }
