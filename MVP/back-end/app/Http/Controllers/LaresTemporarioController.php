@@ -2,32 +2,39 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\LarTemporario;
+use App\Models\Endereco;
+use App\Models\ImagemLarTemporario;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Traits\SearchIndex;
 
 class LaresTemporarioController extends Controller
 {
     use SearchIndex;
-    /**
-     * Listar lares temporários com paginação, ordenação e filtros dinâmicos
-     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Listagem
+    |--------------------------------------------------------------------------
+    */
     public function index(Request $request): JsonResponse
     {
         return $this->SearchIndex(
             $request,
-            LarTemporario::query(),
+            LarTemporario::with(['endereco', 'imagens']),
             'lares_temporarios',
             ['nome', 'data_nascimento', 'telefone']
         );
     }
 
-    /**
-     * Criar lar temporário
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Criação
+    |--------------------------------------------------------------------------
+    */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -36,6 +43,19 @@ class LaresTemporarioController extends Controller
             'telefone'        => 'required|string|size:11|regex:/^[0-9]+$/',
             'situacao'        => 'required|in:ativo,inativo',
             'experiencia'     => 'nullable|string|max:1000',
+
+            // Endereço
+            'endereco.cep'          => 'nullable|string|max:9',
+            'endereco.logradouro'   => 'nullable|string|max:255',
+            'endereco.numero'       => 'nullable|string|max:10',
+            'endereco.complemento'  => 'nullable|string|max:100',
+            'endereco.bairro'       => 'nullable|string|max:100',
+            'endereco.cidade'       => 'nullable|string|max:100',
+            'endereco.uf'           => 'nullable|string|max:2',
+
+            // Imagens
+            'imagens'   => 'nullable|array',
+            'imagens.*' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -43,114 +63,180 @@ class LaresTemporarioController extends Controller
         }
 
         try {
-            $lar = LarTemporario::create($request->only([
-                'nome','data_nascimento','telefone','situacao','experiencia'
-            ]));
+            return DB::transaction(function () use ($request) {
+                $lar = LarTemporario::create($request->only([
+                    'nome',
+                    'data_nascimento',
+                    'telefone',
+                    'situacao',
+                    'experiencia'
+                ]));
 
-            return response()->json($lar, 201);
+                // Endereço
+                if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
+                    $enderecoData = $request->endereco;
+                    $enderecoData['lar_temporario_id'] = $lar->id;
+                    Endereco::create($enderecoData);
+                }
 
+                // Imagens
+                if ($request->has('imagens') && is_array($request->imagens)) {
+                    foreach ($request->imagens as $url) {
+                        if (!empty($url)) {
+                            ImagemLarTemporario::create([
+                                'id_lar_temporario' => $lar->id,
+                                'url_imagem' => $url
+                            ]);
+                        }
+                    }
+                }
+
+                return response()->json($lar->load(['endereco', 'imagens']), 201);
+            });
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Erro ao criar lar temporário'], 500);
         }
     }
 
-    /**
-     * Exibir lar temporário
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Detalhes
+    |--------------------------------------------------------------------------
+    */
     public function show($id): JsonResponse
     {
-        try {
-            $lar = LarTemporario::with('enderecos')->find($id);
+        $lar = LarTemporario::with(['endereco', 'imagens'])->find($id);
 
-            if (!$lar) {
-                return response()->json(['error' => 'Lar temporário não encontrado'], 404);
-            }
-
-            return response()->json($lar, 200);
-
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível carregar o lar temporário'], 500);
+        if (!$lar) {
+            return response()->json(['error' => 'Lar temporário não encontrado'], 404);
         }
+
+        return response()->json($lar, 200);
     }
 
-    /**
-     * Atualizar lar temporário
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Atualização
+    |--------------------------------------------------------------------------
+    */
     public function update(Request $request, $id): JsonResponse
     {
+        $lar = LarTemporario::find($id);
+
+        if (!$lar) {
+            return response()->json(['error' => 'Lar temporário não encontrado'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'nome'            => 'sometimes|required|string|min:2|max:150',
+            'data_nascimento' => 'sometimes|required|date|before:today|after:1900-01-01',
+            'telefone'        => 'sometimes|required|string|size:11|regex:/^[0-9]+$/',
+            'situacao'        => 'sometimes|required|in:ativo,inativo',
+            'experiencia'     => 'nullable|string|max:1000',
+
+            // Endereço
+            'endereco.id'           => 'nullable|integer|exists:enderecos,id',
+            'endereco.cep'          => 'nullable|string|max:9',
+            'endereco.logradouro'   => 'nullable|string|max:255',
+            'endereco.numero'       => 'nullable|string|max:10',
+            'endereco.complemento'  => 'nullable|string|max:100',
+            'endereco.bairro'       => 'nullable|string|max:100',
+            'endereco.cidade'       => 'nullable|string|max:100',
+            'endereco.uf'           => 'nullable|string|max:2',
+
+            // Imagens
+            'imagens'   => 'nullable|array',
+            'imagens.*' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
         try {
-            $lar = LarTemporario::find($id);
+            return DB::transaction(function () use ($request, $lar) {
+                $lar->update($request->only([
+                    'nome',
+                    'data_nascimento',
+                    'telefone',
+                    'situacao',
+                    'experiencia'
+                ]));
 
-            if (!$lar) {
-                return response()->json(['error' => 'Lar temporário não encontrado'], 404);
-            }
+                // Endereço
+                if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
+                    $enderecoData = $request->endereco;
 
-            $validator = Validator::make($request->all(), [
-                'nome'            => 'sometimes|required|string|min:2|max:150',
-                'data_nascimento' => 'sometimes|required|date|before:today|after:1900-01-01',
-                'telefone'        => 'sometimes|required|string|size:11|regex:/^[0-9]+$/',
-                'situacao'        => 'sometimes|required|in:ativo,inativo',
-                'experiencia'     => 'nullable|string|max:1000',
-            ]);
+                    if (isset($enderecoData['id'])) {
+                        $endereco = Endereco::where('id', $enderecoData['id'])
+                            ->where('lar_temporario_id', $lar->id)
+                            ->first();
+                        if ($endereco) {
+                            $endereco->update($enderecoData);
+                        }
+                    } else {
+                        Endereco::where('lar_temporario_id', $lar->id)->delete();
+                        $enderecoData['lar_temporario_id'] = $lar->id;
+                        Endereco::create($enderecoData);
+                    }
+                }
 
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
-            }
+                // Imagens → substitui todas
+                if ($request->has('imagens') && is_array($request->imagens)) {
+                    ImagemLarTemporario::where('id_lar_temporario', $lar->id)->delete();
 
-            $lar->update($request->only([
-                'nome','data_nascimento','telefone','situacao','experiencia'
-            ]));
+                    foreach ($request->imagens as $url) {
+                        if (!empty($url)) {
+                            ImagemLarTemporario::create([
+                                'id_lar_temporario' => $lar->id,
+                                'url_imagem' => $url
+                            ]);
+                        }
+                    }
+                }
 
-            return response()->json($lar->fresh(), 200);
-
+                return response()->json($lar->fresh(['endereco', 'imagens']), 200);
+            });
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível atualizar o lar temporário'], 500);
+            return response()->json(['error' => 'Erro ao atualizar lar temporário'], 500);
         }
     }
 
-    /**
-     * Deletar lar temporário
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Exclusão
+    |--------------------------------------------------------------------------
+    */
     public function destroy($id): JsonResponse
     {
-        try {
-            $lar = LarTemporario::find($id);
+        $lar = LarTemporario::find($id);
 
-            if (!$lar) {
-                return response()->json(['error' => 'Lar temporário não encontrado'], 404);
-            }
-
-            $lar->delete();
-
-            return response()->json(null, 204);
-
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível excluir o lar temporário'], 500);
+        if (!$lar) {
+            return response()->json(['error' => 'Lar temporário não encontrado'], 404);
         }
+
+        $lar->delete(); // SoftDelete
+        return response()->json(null, 204);
     }
 
-    /**
-     * Restaurar lar temporário
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Restauração
+    |--------------------------------------------------------------------------
+    */
     public function restore($id): JsonResponse
     {
-        try {
-            $lar = LarTemporario::withTrashed()->find($id);
+        $lar = LarTemporario::withTrashed()->find($id);
 
-            if (!$lar) {
-                return response()->json(['error' => 'Lar temporário não encontrado'], 404);
-            }
-
-            if (!$lar->trashed()) {
-                return response()->json(['error' => 'Lar temporário já está ativo'], 400);
-            }
-
-            $lar->restore();
-
-            return response()->json($lar, 200);
-
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível restaurar o lar temporário'], 500);
+        if (!$lar) {
+            return response()->json(['error' => 'Lar temporário não encontrado'], 404);
         }
+
+        if (!$lar->trashed()) {
+            return response()->json(['error' => 'Lar já está ativo'], 400);
+        }
+
+        $lar->restore();
+        return response()->json($lar->load(['endereco', 'imagens']), 200);
     }
 }
