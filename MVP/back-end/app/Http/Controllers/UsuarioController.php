@@ -80,7 +80,7 @@ class UsuarioController extends Controller
                     Endereco::create($enderecoData);
                     
                     // Recarregar usuário com endereço
-                    $usuario->load('endereco');
+                    $usuario->load('enderecos');
                 }
 
                 return response()->json($usuario, 201);
