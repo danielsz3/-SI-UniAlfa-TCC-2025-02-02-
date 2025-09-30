@@ -25,27 +25,19 @@ class LarTemporario extends Model
         'data_nascimento' => 'date',
     ];
 
-    // Relacionamento direto com endereços
-    public function enderecos()
+    public function endereco()
     {
-        return $this->hasMany(Endereco::class, 'lar_temporario_id');
+        return $this->hasOne(Endereco::class, 'lar_temporario_id');
     }
 
-    // Accessor para calcular idade
-    public function getIdadeAttribute()
+    public function imagens()
     {
-        return $this->data_nascimento ? $this->data_nascimento->age : null;
+        return $this->hasMany(ImagemLarTemporario::class, 'id_lar_temporario');
     }
 
-    // Scope para filtrar apenas ativos
-    public function scopeAtivos($query)
+    public function getIdadeAttribute(): ?int
     {
-        return $query->where('situacao', 'ativo');
+        return $this->data_nascimento?->age;
     }
 
-    // Scope para filtrar apenas inativos
-    public function scopeInativos($query)
-    {
-        return $query->where('situacao', 'inativo');
-    }
 }
