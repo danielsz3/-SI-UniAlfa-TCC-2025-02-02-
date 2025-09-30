@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnimalController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,8 @@ Route::apiResource('lares-temporarios', LaresTemporarioController::class)->only(
 Route::apiResource('contato-ongs', ContatoOngController::class)->only(['index', 'show']);
 Route::apiResource('documentos', DocumentoController::class)->only(['index', 'show']);
 Route::apiResource('transacoes', TransacaoController::class)->only(['index', 'show']);
+Route::apiResource('animais', AnimalController::class)->only(['index', 'show']);
+
 
 /**
  * CADASTRO DE USUÁRIO (PÚBLICO)
@@ -53,7 +56,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
     Route::get('/me', [AuthController::class, 'me'])->name('me');
-
+    Route::get('/usuarios/{id}/recomendar-animais', [AnimalController::class, 'recomendar']);
     /**
      * ADMIN-ONLY: CRUD completo (exceto index/show que são públicos) + restore
      */
@@ -85,7 +88,9 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::apiResource('transacoes', TransacaoController::class)->except(['index', 'show']);
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');
 
+        Route::apiResource('animais', AnimalController::class)->except(['index', 'show']);
+        Route::post('/animais/{id}/restore', [AnimalController::class, 'restore'])->name('animais.restore'); 
         // Integrações - mantendo como admin-only (ajuste se quiser público)
         Route::get('/integracoes', [IntegracaoController::class, 'index'])->name('integracoes.index');
-    }); 
+    });
 });
