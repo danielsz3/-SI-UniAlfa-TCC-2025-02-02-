@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AnimalController extends Controller
 {
@@ -27,7 +28,7 @@ class AnimalController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'ong_id' => 'required|exists:ongs,id',
+            'id_ong' => 'required|exists:ongs,id_ong',
             'nome' => 'required|string|max:100',
             'sexo' => 'required|in:macho,femea',
             'idade' => 'required|integer|min:0',
@@ -42,9 +43,9 @@ class AnimalController extends Controller
             'tempo_necessario' => 'nullable|in:pouco_tempo,tempo_moderado,muito_tempo',
             'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
 
-            // imagens (array)
+            // imagens (upload de arquivos)
             'imagens' => 'nullable|array',
-            'imagens.*' => 'string'
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
         if ($validator->fails()) {
@@ -53,16 +54,18 @@ class AnimalController extends Controller
 
         return DB::transaction(function () use ($request) {
             $animal = Animal::create($request->only([
-                'ong_id','nome','sexo','idade','castrado','vale_castracao',
+                'id_ong','nome','sexo','idade','castrado','vale_castracao',
                 'descricao','tipo_animal','nivel_energia','tamanho',
                 'tempo_necessario','ambiente_ideal'
             ]));
 
-            if ($request->has('imagens')) {
-                foreach ($request->imagens as $img) {
+            // Upload de imagens
+            if ($request->hasFile('imagens')) {
+                foreach ($request->file('imagens') as $file) {
+                    $path = $file->store('animais', 'public');
                     ImagemAnimal::create([
-                        'animal_id'=>$animal->id,
-                        'caminho'=>$img
+                        'animal_id' => $animal->id,
+                        'caminho' => '/storage/' . $path
                     ]);
                 }
             }
@@ -102,13 +105,23 @@ class AnimalController extends Controller
             'tempo_necessario','ambiente_ideal'
         ]));
 
-        if ($request->has('imagens')) {
-            // limpa antigas e insere novas
+        // Atualizar imagens se enviadas
+        if ($request->hasFile('imagens')) {
+            // Remove imagens antigas do storage
+            foreach ($animal->imagens as $imagem) {
+                $oldPath = str_replace('/storage/', '', $imagem->caminho);
+                Storage::disk('public')->delete($oldPath);
+            }
+            
+            // Remove registros antigos do banco
             $animal->imagens()->delete();
-            foreach ($request->imagens as $img) {
+            
+            // Salva novas imagens
+            foreach ($request->file('imagens') as $file) {
+                $path = $file->store('animais', 'public');
                 ImagemAnimal::create([
-                    'animal_id'=>$animal->id,
-                    'caminho'=>$img
+                    'animal_id' => $animal->id,
+                    'caminho' => '/storage/' . $path
                 ]);
             }
         }
