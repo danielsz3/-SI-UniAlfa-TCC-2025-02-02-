@@ -13,7 +13,7 @@ class TransacaoController extends Controller
     use SearchIndex;
 
     /**
-     * Listar transações (getList)
+     * Listar transações
      */
     public function index(Request $request): JsonResponse
     {
@@ -31,11 +31,14 @@ class TransacaoController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'valor'          => 'required|numeric|min:0.01',
-            'descricao'      => 'required|string|min:3|max:255',
-            'categoria'      => 'required|string|min:2|max:100',
-            'tipo_transacao' => 'required|in:entrada,saida',
-            'data_transacao' => 'required|date|before_or_equal:today',
+            'tipo'            => 'required|in:Receita,Despesa',
+            'valor'           => 'required|numeric|min:0.01',
+            'data'            => 'required|date|before_or_equal:today',
+            'categoria'       => 'required|string|min:2|max:100',
+            'descricao'       => 'required|string|min:3|max:255',
+            'forma_pagamento' => 'required|exists:formas_pagamentos,id',
+            'situacao'        => 'required|in:Pendente,Concluída,Cancelada',
+            'observacao'      => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
@@ -44,7 +47,7 @@ class TransacaoController extends Controller
 
         try {
             $transacao = Transacao::create($request->only([
-                'valor', 'descricao', 'categoria', 'tipo_transacao', 'data_transacao'
+                'tipo', 'valor', 'data', 'categoria', 'descricao', 'forma_pagamento', 'situacao', 'observacao'
             ]));
 
             return response()->json($transacao, 201);
@@ -54,21 +57,17 @@ class TransacaoController extends Controller
     }
 
     /**
-     * Exibir uma transação (getOne)
+     * Exibir uma transação
      */
     public function show($id): JsonResponse
     {
-        try {
-            $transacao = Transacao::find($id);
+        $transacao = Transacao::find($id);
 
-            if (!$transacao) {
-                return response()->json(['error' => 'Transação não encontrada'], 404);
-            }
-
-            return response()->json($transacao, 200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível carregar a transação'], 500);
+        if (!$transacao) {
+            return response()->json(['error' => 'Transação não encontrada'], 404);
         }
+
+        return response()->json($transacao, 200);
     }
 
     /**
@@ -76,33 +75,32 @@ class TransacaoController extends Controller
      */
     public function update(Request $request, $id): JsonResponse
     {
-        try {
-            $transacao = Transacao::find($id);
+        $transacao = Transacao::find($id);
 
-            if (!$transacao) {
-                return response()->json(['error' => 'Transação não encontrada'], 404);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'valor'          => 'sometimes|required|numeric|min:0.01',
-                'descricao'      => 'sometimes|required|string|min:3|max:255',
-                'categoria'      => 'sometimes|required|string|min:2|max:100',
-                'tipo_transacao' => 'sometimes|required|in:entrada,saida',
-                'data_transacao' => 'sometimes|required|date|before_or_equal:today',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
-            }
-
-            $transacao->update($request->only([
-                'valor', 'descricao', 'categoria', 'tipo_transacao', 'data_transacao'
-            ]));
-
-            return response()->json($transacao->fresh(), 200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível atualizar a transação'], 500);
+        if (!$transacao) {
+            return response()->json(['error' => 'Transação não encontrada'], 404);
         }
+
+        $validator = Validator::make($request->all(), [
+            'tipo'            => 'sometimes|required|in:Receita,Despesa',
+            'valor'           => 'sometimes|required|numeric|min:0.01',
+            'data'            => 'sometimes|required|date|before_or_equal:today',
+            'categoria'       => 'sometimes|required|string|min:2|max:100',
+            'descricao'       => 'sometimes|required|string|min:3|max:255',
+            'forma_pagamento' => 'sometimes|required|exists:formas_pagamentos,id',
+            'situacao'        => 'sometimes|required|in:Pendente,Concluída,Cancelada',
+            'observacao'      => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $transacao->update($request->only([
+            'tipo', 'valor', 'data', 'categoria', 'descricao', 'forma_pagamento', 'situacao', 'observacao'
+        ]));
+
+        return response()->json($transacao->fresh(), 200);
     }
 
     /**
@@ -110,19 +108,15 @@ class TransacaoController extends Controller
      */
     public function destroy($id): JsonResponse
     {
-        try {
-            $transacao = Transacao::find($id);
+        $transacao = Transacao::find($id);
 
-            if (!$transacao) {
-                return response()->json(['error' => 'Transação não encontrada'], 404);
-            }
-
-            $transacao->delete();
-
-            return response()->json(null, 204); // ✅ só status code
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível excluir a transação'], 500);
+        if (!$transacao) {
+            return response()->json(['error' => 'Transação não encontrada'], 404);
         }
+
+        $transacao->delete();
+
+        return response()->json(null, 204);
     }
 
     /**
@@ -130,22 +124,18 @@ class TransacaoController extends Controller
      */
     public function restore($id): JsonResponse
     {
-        try {
-            $transacao = Transacao::withTrashed()->find($id);
+        $transacao = Transacao::withTrashed()->find($id);
 
-            if (!$transacao) {
-                return response()->json(['error' => 'Transação não encontrada'], 404);
-            }
-
-            if (!$transacao->trashed()) {
-                return response()->json(['error' => 'Transação já está ativa'], 400);
-            }
-
-            $transacao->restore();
-
-            return response()->json($transacao, 200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível restaurar a transação'], 500);
+        if (!$transacao) {
+            return response()->json(['error' => 'Transação não encontrada'], 404);
         }
+
+        if (!$transacao->trashed()) {
+            return response()->json(['error' => 'Transação já está ativa'], 400);
+        }
+
+        $transacao->restore();
+
+        return response()->json($transacao, 200);
     }
 }

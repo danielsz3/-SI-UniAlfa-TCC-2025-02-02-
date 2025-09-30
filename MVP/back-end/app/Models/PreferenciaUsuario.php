@@ -44,7 +44,7 @@ class PreferenciaUsuario extends Model
         ],
     ];
 
-    // 🔹 Acessor para retornar descrições legíveis
+    //Acessor para retornar descrições legíveis
     public function getPreferenciasDescritasAttribute()
     {
         $prefs = $this->only([
