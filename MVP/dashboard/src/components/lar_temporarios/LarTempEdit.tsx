@@ -102,26 +102,29 @@ const LarTempEdit = (props: EditProps) => {
                     />
                 </FormTab>
 
-                <FormTab label="Endereço" disabled>
-                    <TextInput source="cep" label="CEP" />
+                <FormTab label="Endereço">
+                    <TextInput source="endereco.cep" label="CEP" />
                     <TextInput
-                        source="logradouro"
+                        source="endereco.logradouro"
                         label="Logradouro"
+                        validate={required()}
                     />
                     <TextInput
-                        source="numero"
+                        source="endereco.numero"
                         label="Número"
+                        validate={required()}
                     />
-                    <TextInput source="complemento" label="Complemento" />
+                    <TextInput source="endereco.complemento" label="Complemento" />
                     <TextInput
-                        source="bairro"
+                        source="endereco.bairro"
                         label="Bairro"
                     />
                     <TextInput
-                        source="cidade"
+                        source="endereco.cidade"
                         label="Cidade"
+                        validate={required()}
                     />
-                    <TextInput source="uf" label="UF" />
+                    <TextInput source="endereco.uf" label="UF" validate={required()}/>
                 </FormTab>
             </TabbedForm>
         </Edit>
