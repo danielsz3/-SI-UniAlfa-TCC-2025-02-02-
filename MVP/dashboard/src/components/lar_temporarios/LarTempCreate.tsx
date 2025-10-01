@@ -4,68 +4,60 @@ import {
     FormTab,
     TextInput,
     required,
-    // useDataProvider,
-    // useRedirect,
     CreateProps,
-    // RaRecord,
-    // UseCreateMutateParams,
-    // useNotify,
     RadioButtonGroupInput,
+    useNotify,
+    ImageInput,
+    ImageField,
 } from 'react-admin';
 import CustomDatePicker from '../datepicker/customDatePicker';
+import { useFormContext } from 'react-hook-form';
+import { useEffect, useState } from 'react';
 
-// Tipos dos dados
-// interface LarTemporario extends RaRecord {
-//     nome: string;
-//     telefone: string;
-//     data_nascimento: string;
-//     situacao: string;
-// }
+const CepInput = () => {
+    const { setValue, watch } = useFormContext();
+    const cep = watch("endereco.cep"); // observa o campo de CEP
+    const notify = useNotify();
+    const [helpText, setHelpText] = useState("Digite o CEP para preencher automaticamente o endereço");
 
-// interface Endereco extends RaRecord {
-//     lar_temporario_id: number;
-//     cep: string;
-//     logradouro: string;
-//     numero: string;
-//     complemento?: string;
-//     bairro: string;
-//     cidade: string;
-//     uf: string;
-// }
+    useEffect(() => {
+        const fetchAddress = async () => {
+            if (cep && /^\d{8}$/.test(cep)) { // ViaCEP espera 8 dígitos
+                setHelpText("Buscando endereço...");
+                try {
+                    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                    const data = await response.json();
+                    if (data.erro) {
+                        setHelpText("CEP não encontrado");
+                        notify("CEP não encontrado", { type: 'warning' });
+                        return;
+                    }
+                    // Atualiza os campos de endereço automaticamente
+                    setValue("endereco.logradouro", data.logradouro || "");
+                    setValue("endereco.bairro", data.bairro || "");
+                    setValue("endereco.cidade", data.localidade || "");
+                    setValue("endereco.uf", data.uf || "");
+                    setHelpText("Endereço preenchido automaticamente");
+                } catch (error) {
+                    console.error("Erro ao buscar o CEP:", error);
+                    notify("Erro ao buscar o CEP", { type: 'error' });
+                }
+            }
+        };
+        fetchAddress();
+    }, [cep, setValue, notify]);
+
+    return (
+        <TextInput
+            source="endereco.cep"
+            label="CEP"
+            validate={required()}
+            helperText={helpText}
+        />
+    );
+};
 
 const LarTempCreate = (props: CreateProps) => {
-    // const dataProvider = useDataProvider();
-    // const redirect = useRedirect();
-    // const notify = useNotify();
-    // const id_usuario = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') as string).id : '';
-
-    // const onSuccess = async (
-    //     data: LarTemporario,
-    //     variables: UseCreateMutateParams<LarTemporario & Endereco>
-    // ) => {
-    //     try {
-    //         const values = variables.data as Endereco;
-
-    //         await dataProvider.create<Endereco>('enderecos', {
-    //             data: {
-    //                 id_usuario: id_usuario,
-    //                 lar_temporario_id: data.id,
-    //                 cep: values.cep,
-    //                 logradouro: values.logradouro,
-    //                 numero: values.numero,
-    //                 complemento: values.complemento,
-    //                 bairro: values.bairro,
-    //                 cidade: values.cidade,
-    //                 uf: values.uf,
-    //             },
-    //         });
-
-    //         redirect('/lar-temporario');
-    //     } catch (error) {
-    //         notify('Erro ao criar endereço:' + error);
-    //     }
-    // };
-
     return (
         <Create
             {...props}
@@ -103,7 +95,9 @@ const LarTempCreate = (props: CreateProps) => {
                 </FormTab>
 
                 <FormTab label="Endereço">
-                    <TextInput source="endereco.cep" label="CEP" />
+
+                    <CepInput />
+
                     <TextInput
                         source="endereco.logradouro"
                         label="Logradouro"
@@ -114,17 +108,38 @@ const LarTempCreate = (props: CreateProps) => {
                         label="Número"
                         validate={required()}
                     />
-                    <TextInput source="endereco.complemento" label="Complemento" />
+                    <TextInput
+                        source="endereco.complemento"
+                        label="Complemento" />
+
                     <TextInput
                         source="endereco.bairro"
                         label="Bairro"
+                        validate={required()}
                     />
+
                     <TextInput
                         source="endereco.cidade"
                         label="Cidade"
                         validate={required()}
                     />
-                    <TextInput source="endereco.uf" label="UF" validate={required()}/>
+
+                    <TextInput
+                        source="endereco.uf"
+                        label="UF"
+                        validate={required()}
+                    />
+                </FormTab>
+
+                <FormTab label="Galeria">
+                    <ImageInput
+                        source="imagens"
+                        label="Imagens do Lar Temporário"
+                        multiple
+                        validate={required('Pelo menos uma imagem é obrigatória')}
+                    >
+                        <ImageField source="src" title="title" />
+                    </ImageInput>
                 </FormTab>
             </TabbedForm>
         </Create>
