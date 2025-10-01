@@ -32,7 +32,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Criar um novo usuário com endereço opcional
+     * Criar um novo usuário com endereço e preferências opcionais
      */
     public function store(Request $request): JsonResponse
     {
@@ -46,16 +46,16 @@ class UsuarioController extends Controller
             'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
             'role' => 'nullable|string|in:user,admin',
             
-            // Validações do endereço (opcionais)
-            'endereco.cep' => 'nullable|string|max:9',
-            'endereco.logradouro' => 'nullable|string|max:255',
-            'endereco.numero' => 'nullable|string|max:10',
-            'endereco.complemento' => 'nullable|string|max:100',
-            'endereco.bairro' => 'nullable|string|max:100',
-            'endereco.cidade' => 'nullable|string|max:100',
-            'endereco.uf' => 'nullable|string|max:2',
+            // Endereço
+            'endereco.cep'          => 'nullable|string|max:9',
+            'endereco.logradouro'   => 'nullable|string|max:255',
+            'endereco.numero'       => 'nullable|string|max:10',
+            'endereco.complemento'  => 'nullable|string|max:100',
+            'endereco.bairro'       => 'nullable|string|max:100',
+            'endereco.cidade'       => 'nullable|string|max:100',
+            'endereco.uf'           => 'nullable|string|max:2',
             
-            // Validações das preferências (opcionais)
+            // Preferências
             'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
             'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
             'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
@@ -68,7 +68,7 @@ class UsuarioController extends Controller
 
         try {
             return DB::transaction(function () use ($request) {
-                // Criar o usuário
+                // Criar usuário
                 $usuario = Usuario::create([
                     'nome' => $request->nome,
                     'email' => $request->email,
@@ -79,25 +79,21 @@ class UsuarioController extends Controller
                     'role' => $request->role ?? 'user',
                 ]);
 
-                // Se foi enviado dados de endereço, criar o endereço
-                if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
+                // Endereço (se enviado, mesmo que parcial)
+                if ($request->has('endereco')) {
                     $enderecoData = $request->endereco;
                     $enderecoData['id_usuario'] = $usuario->id;
-                    
                     Endereco::create($enderecoData);
                 }
 
-                // Se foi enviado dados de preferências, criar as preferências
-                if ($request->has('preferencias') && !empty(array_filter($request->preferencias))) {
+                // Preferências (se enviadas, mesmo que parcial)
+                if ($request->has('preferencias')) {
                     $prefsData = $request->preferencias;
                     $prefsData['usuario_id'] = $usuario->id;
-                    
                     PreferenciaUsuario::create($prefsData);
                 }
 
-                // Recarregar usuário com endereço e preferências
                 $usuario->load(['endereco', 'preferencias']);
-
                 return response()->json($usuario, 201);
             });
         } catch (\Exception $e) {
@@ -109,7 +105,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Exibir um usuário específico com endereço
+     * Exibir um usuário específico
      */
     public function show($id): JsonResponse
     {
@@ -127,7 +123,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Atualizar um usuário e seu endereço
+     * Atualizar um usuário, endereço e preferências
      */
     public function update(Request $request, $id): JsonResponse
     {
@@ -139,38 +135,31 @@ class UsuarioController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                // Validações do usuário
+                // Usuário
                 'nome' => 'sometimes|required|string|min:2|max:150',
                 'email' => [
-                    'sometimes',
-                    'required',
-                    'email',
-                    'max:150',
+                    'sometimes','required','email','max:150',
                     Rule::unique('usuarios')->ignore($usuario->id)
                 ],
                 'password' => 'sometimes|required|min:8|confirmed',
                 'cpf' => [
-                    'sometimes',
-                    'required',
-                    'string',
-                    'size:11',
-                    'regex:/^[0-9]+$/',
+                    'sometimes','required','string','size:11','regex:/^[0-9]+$/',
                     Rule::unique('usuarios')->ignore($usuario->id)
                 ],
                 'data_nascimento' => 'sometimes|required|date|before:today|after:1900-01-01',
                 'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
                 'role' => 'nullable|string|in:user,admin',
                 
-                // Validações do endereço (opcionais)
-                'endereco.cep' => 'nullable|string|max:9',
-                'endereco.logradouro' => 'nullable|string|max:255',
-                'endereco.numero' => 'nullable|string|max:10',
-                'endereco.complemento' => 'nullable|string|max:100',
-                'endereco.bairro' => 'nullable|string|max:100',
-                'endereco.cidade' => 'nullable|string|max:100',
-                'endereco.uf' => 'nullable|string|max:2',
+                // Endereço
+                'endereco.cep'          => 'nullable|string|max:9',
+                'endereco.logradouro'   => 'nullable|string|max:255',
+                'endereco.numero'       => 'nullable|string|max:10',
+                'endereco.complemento'  => 'nullable|string|max:100',
+                'endereco.bairro'       => 'nullable|string|max:100',
+                'endereco.cidade'       => 'nullable|string|max:100',
+                'endereco.uf'           => 'nullable|string|max:2',
                 
-                // Validações das preferências (opcionais)
+                // Preferências
                 'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
                 'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
                 'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
@@ -182,14 +171,9 @@ class UsuarioController extends Controller
             }
 
             return DB::transaction(function () use ($request, $usuario) {
-                // Atualizar dados do usuário
+                // Atualizar usuário
                 $userData = $request->only([
-                    'nome',
-                    'email',
-                    'cpf',
-                    'data_nascimento',
-                    'telefone',
-                    'role'
+                    'nome','email','cpf','data_nascimento','telefone','role'
                 ]);
 
                 if ($request->filled('password')) {
@@ -198,29 +182,23 @@ class UsuarioController extends Controller
 
                 $usuario->update($userData);
 
-                // Atualizar ou criar endereço se enviado
-                if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
+                // Endereço
+                if ($request->has('endereco')) {
                     $enderecoData = $request->endereco;
-                    
                     if ($usuario->endereco) {
-                        // Atualizar endereço existente
                         $usuario->endereco->update($enderecoData);
                     } else {
-                        // Criar novo endereço
                         $enderecoData['id_usuario'] = $usuario->id;
                         Endereco::create($enderecoData);
                     }
                 }
 
-                // Atualizar ou criar preferências se enviadas
-                if ($request->has('preferencias') && !empty(array_filter($request->preferencias))) {
+                // Preferências
+                if ($request->has('preferencias')) {
                     $prefsData = $request->preferencias;
-                    
                     if ($usuario->preferencias) {
-                        // Atualizar preferências existentes
                         $usuario->preferencias->update($prefsData);
                     } else {
-                        // Criar novas preferências
                         $prefsData['usuario_id'] = $usuario->id;
                         PreferenciaUsuario::create($prefsData);
                     }
@@ -237,7 +215,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Deletar um usuário (soft delete)
+     * Deletar usuário (soft delete)
      */
     public function destroy($id): JsonResponse
     {
@@ -248,9 +226,7 @@ class UsuarioController extends Controller
                 return response()->json(['error' => 'Usuário não encontrado'], 404);
             }
 
-            // Soft delete do usuário (o endereço também será soft deleted se configurado)
             $usuario->delete();
-
             return response()->json(null, 204);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Não foi possível excluir o usuário'], 500);
@@ -258,7 +234,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Restaurar um usuário deletado
+     * Restaurar usuário deletado
      */
     public function restore($id): JsonResponse
     {
@@ -274,8 +250,7 @@ class UsuarioController extends Controller
             }
 
             $usuario->restore();
-
-            return response()->json($usuario->load(['endereco', 'preferencias']), 200);
+            return response()->json($usuario->load(['endereco','preferencias']), 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Não foi possível restaurar o usuário'], 500);
         }

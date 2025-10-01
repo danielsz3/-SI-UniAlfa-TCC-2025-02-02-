@@ -11,6 +11,8 @@ import {
     // UseCreateMutateParams,
     // useNotify,
     RadioButtonGroupInput,
+    ImageInput,
+    ImageField,
 } from 'react-admin';
 import CustomDatePicker from '../datepicker/customDatePicker';
 
@@ -124,8 +126,15 @@ const LarTempCreate = (props: CreateProps) => {
                         label="Cidade"
                         validate={required()}
                     />
-                    <TextInput source="endereco.uf" label="UF" validate={required()}/>
+                    <TextInput source="endereco.uf" label="UF" validate={required()} />
                 </FormTab>
+
+                <FormTab label="Galeria">
+                    <ImageInput source="imagens" label="Fotos" multiple>
+                        <ImageField source="src" title="title" />
+                    </ImageInput>
+                </FormTab>
+
             </TabbedForm>
         </Create>
     );

@@ -37,7 +37,7 @@ class DocumentoController extends Controller
             'titulo'    => 'required|string|max:255',
             'categoria' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:1000',
-            'arquivo'   => 'required|file|mimes:pdf,doc,docx,jpg,png|max:4096',
+            'arquivo'   => 'required|file|mimes:pdf,doc,docx,jpg,png|max:10240', // 10MB
         ]);
 
         if ($validator->fails()) {
@@ -99,7 +99,7 @@ class DocumentoController extends Controller
                 'titulo'    => 'sometimes|required|string|max:255',
                 'categoria' => 'nullable|string|max:255',
                 'descricao' => 'nullable|string|max:1000',
-                'arquivo'   => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:4096',
+                'arquivo'   => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:10240',
             ]);
 
             if ($validator->fails()) {

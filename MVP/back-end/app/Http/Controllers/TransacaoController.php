@@ -36,8 +36,8 @@ class TransacaoController extends Controller
             'data'            => 'required|date|before_or_equal:today',
             'categoria'       => 'required|string|min:2|max:100',
             'descricao'       => 'required|string|min:3|max:255',
-            'forma_pagamento' => 'required|string',
-            'situacao'        => 'required|in:cendente,concluida,cancelada',
+            'forma_pagamento' => 'required|string|min:2|max:50',
+            'situacao'        => 'required|in:pendente,concluida,cancelada',
             'observacao'      => 'nullable|string|max:1000',
         ]);
 
@@ -87,8 +87,8 @@ class TransacaoController extends Controller
             'data'            => 'sometimes|required|date|before_or_equal:today',
             'categoria'       => 'sometimes|required|string|min:2|max:100',
             'descricao'       => 'sometimes|required|string|min:3|max:255',
-            'forma_pagamento' => 'sometimes|required',
-            'situacao'        => 'sometimes|required|in:pendente,concluída,cancelada',
+            'forma_pagamento' => 'sometimes|required|string|min:2|max:50',
+            'situacao'        => 'sometimes|required|in:pendente,concluida,cancelada',
             'observacao'      => 'nullable|string|max:1000',
         ]);
 

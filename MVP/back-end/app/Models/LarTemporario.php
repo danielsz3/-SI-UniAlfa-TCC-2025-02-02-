@@ -27,7 +27,7 @@ class LarTemporario extends Model
 
     public function endereco()
     {
-        return $this->hasOne(Endereco::class, 'lar_temporario_id');
+        return $this->hasOne(Endereco::class, 'lar_temporario_id', 'id');
     }
 
     public function imagens()
@@ -39,5 +39,4 @@ class LarTemporario extends Model
     {
         return $this->data_nascimento?->age;
     }
-
 }

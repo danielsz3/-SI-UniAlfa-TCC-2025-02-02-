@@ -45,7 +45,7 @@ class AnimalController extends Controller
 
             // imagens (upload de arquivos)
             'imagens' => 'nullable|array',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240', // limite 10MB
         ]);
 
         if ($validator->fails()) {

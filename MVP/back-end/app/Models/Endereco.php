@@ -31,6 +31,6 @@ class Endereco extends Model
 
     public function larTemporario()
     {
-        return $this->belongsTo(LarTemporario::class, 'lar_temporario_id');
+        return $this->belongsTo(LarTemporario::class, 'lar_temporario_id', 'id');
     }
 }
