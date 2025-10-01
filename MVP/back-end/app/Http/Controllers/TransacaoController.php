@@ -36,7 +36,7 @@ class TransacaoController extends Controller
             'data'            => 'required|date|before_or_equal:today',
             'categoria'       => 'required|string|min:2|max:100',
             'descricao'       => 'required|string|min:3|max:255',
-            'forma_pagamento' => 'required|exists:formas_pagamentos,id',
+            'forma_pagamento' => 'required|string',
             'situacao'        => 'required|in:Pendente,Concluída,Cancelada',
             'observacao'      => 'nullable|string|max:1000',
         ]);
