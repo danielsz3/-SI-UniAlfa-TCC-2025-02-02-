@@ -6,22 +6,29 @@ const filters = [
 export const TransacaoList = () => (
     <List filters={filters}>
         <DataTable rowClick="edit">
-            <DataTable.Col source="data_transacao" label="Data">
-                <DateField source="data_transacao" showTime locales={'pt-BR'} />
+            <DataTable.Col source="data" label="Data">
+                <DateField source="data" showTime locales={'pt-BR'} />
             </DataTable.Col>
-            <DataTable.Col source="tipo_transacao" label="Tipo">
+            <DataTable.Col source="tipo" label="Tipo">
                 <FunctionField
                     render={(record) => {
-                        const color = record.tipo_transacao === 'entrada' ? 'green' : 'red';
-                        return <ChipField source="tipo_transacao" style={{ backgroundColor: color, color: 'white' }} />
+                        const color = record.tipo === 'RECEITA' ? 'green' : 'red';
+                        record.tipo = record.tipo.toUpperCase();
+                        return <ChipField source="tipo" style={{ backgroundColor: color, color: 'white' }} />
                     }}
                 />
             </DataTable.Col>
             <DataTable.Col source="valor">
-                <NumberField
-                    source="valor"
-                    options={{ style: 'currency', currency: 'BRL' }}
-                    sx={{ textAlign: 'right' }}
+                <FunctionField
+                    render={(record) => {
+                        const color = record.tipo === 'RECEITA' ? 'green' : 'red';
+                        record.tipo = record.tipo.toUpperCase();
+                        return <NumberField
+                            source="valor"
+                            options={{ style: 'currency', currency: 'BRL' }}
+                            sx={{ textAlign: 'right', color: color }}
+                        />
+                    }}
                 />
             </DataTable.Col>
             <DataTable.Col source="descricao" />

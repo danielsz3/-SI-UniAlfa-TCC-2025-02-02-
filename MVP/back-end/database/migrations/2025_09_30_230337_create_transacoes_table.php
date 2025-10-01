@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('transacoes', function (Blueprint $table) {
             $table->id();
-            $table->enum('tipo', ['entrada', 'saida']); // Tipo da transação
+            $table->enum('tipo', ['receita', 'despesa']); // Tipo da transação
             $table->decimal('valor', 10, 2);            // Valor financeiro
             $table->dateTime('data');                   // Data da transação
             $table->string('categoria');                // Categoria
-            $table->string('descricao');    // Descrição 
+            $table->string('descricao');    // Descrição
             $table->string('forma_pagamento');          // Forma de pagamento
             $table->enum('situacao', ['pendente', 'concluido', 'cancelado']); // Situação
             $table->text('observacao')->nullable();     // Observação opcional
