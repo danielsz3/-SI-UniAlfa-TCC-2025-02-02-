@@ -31,7 +31,7 @@ class TransacaoController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'tipo'            => 'required|in:Receita,Despesa',
+            'tipo'            => 'required|in:receita,despesa',
             'valor'           => 'required|numeric|min:0.01',
             'data'            => 'required|date|before_or_equal:today',
             'categoria'       => 'required|string|min:2|max:100',
@@ -82,13 +82,13 @@ class TransacaoController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'tipo'            => 'sometimes|required|in:Receita,Despesa',
+            'tipo'            => 'sometimes|required|in:receita,despesa',
             'valor'           => 'sometimes|required|numeric|min:0.01',
             'data'            => 'sometimes|required|date|before_or_equal:today',
             'categoria'       => 'sometimes|required|string|min:2|max:100',
             'descricao'       => 'sometimes|required|string|min:3|max:255',
-            'forma_pagamento' => 'sometimes|required|exists:formas_pagamentos,id',
-            'situacao'        => 'sometimes|required|in:Pendente,Concluída,Cancelada',
+            'forma_pagamento' => 'sometimes|required',
+            'situacao'        => 'sometimes|required|in:pendente,concluída,cancelada',
             'observacao'      => 'nullable|string|max:1000',
         ]);
 
