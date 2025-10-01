@@ -31,13 +31,13 @@ class TransacaoController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'tipo'            => 'required|in:Receita,Despesa',
+            'tipo'            => 'required|in:receita,despesa',
             'valor'           => 'required|numeric|min:0.01',
             'data'            => 'required|date|before_or_equal:today',
             'categoria'       => 'required|string|min:2|max:100',
             'descricao'       => 'required|string|min:3|max:255',
-            'forma_pagamento' => 'required|exists:formas_pagamentos,id',
-            'situacao'        => 'required|in:Pendente,Concluída,Cancelada',
+            'forma_pagamento' => 'required|string',
+            'situacao'        => 'required|in:pendente,concluido,cancelado',
             'observacao'      => 'nullable|string|max:1000',
         ]);
 
@@ -52,7 +52,7 @@ class TransacaoController extends Controller
 
             return response()->json($transacao, 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível criar a transação'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -87,7 +87,7 @@ class TransacaoController extends Controller
             'data'            => 'sometimes|required|date|before_or_equal:today',
             'categoria'       => 'sometimes|required|string|min:2|max:100',
             'descricao'       => 'sometimes|required|string|min:3|max:255',
-            'forma_pagamento' => 'sometimes|required|exists:formas_pagamentos,id',
+            'forma_pagamento' => 'required|string',
             'situacao'        => 'sometimes|required|in:Pendente,Concluída,Cancelada',
             'observacao'      => 'nullable|string|max:1000',
         ]);
