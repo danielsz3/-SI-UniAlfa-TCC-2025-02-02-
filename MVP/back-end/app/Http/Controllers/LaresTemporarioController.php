@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Traits\SearchIndex;
 
 class LaresTemporarioController extends Controller
@@ -53,9 +54,9 @@ class LaresTemporarioController extends Controller
             'endereco.cidade'       => 'nullable|string|max:100',
             'endereco.uf'           => 'nullable|string|max:2',
 
-            // Imagens
+            // Imagens (até 10MB cada)
             'imagens'   => 'nullable|array',
-            'imagens.*' => 'nullable|string|max:255',
+            'imagens.*' => 'file|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -79,21 +80,21 @@ class LaresTemporarioController extends Controller
                     Endereco::create($enderecoData);
                 }
 
-                // Imagens
-                if ($request->has('imagens') && is_array($request->imagens)) {
-                    foreach ($request->imagens as $url) {
-                        if (!empty($url)) {
-                            ImagemLarTemporario::create([
-                                'id_lar_temporario' => $lar->id,
-                                'url_imagem' => $url
-                            ]);
-                        }
+                // Upload de imagens
+                if ($request->hasFile('imagens')) {
+                    foreach ($request->file('imagens') as $file) {
+                        $path = $file->store('lares_temporarios', 'public');
+                        ImagemLarTemporario::create([
+                            'id_lar_temporario' => $lar->id,
+                            'url_imagem' => '/storage/' . $path
+                        ]);
                     }
                 }
 
                 return response()->json($lar->load(['endereco', 'imagens']), 201);
             });
         } catch (\Exception $e) {
+            Log::error('Erro ao criar lar temporário: ' . $e->getMessage());
             return response()->json(['error' => 'Erro ao criar lar temporário'], 500);
         }
     }
@@ -146,7 +147,7 @@ class LaresTemporarioController extends Controller
 
             // Imagens
             'imagens'   => 'nullable|array',
-            'imagens.*' => 'nullable|string|max:255',
+            'imagens.*' => 'file|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -181,23 +182,23 @@ class LaresTemporarioController extends Controller
                     }
                 }
 
-                // Imagens → substitui todas
-                if ($request->has('imagens') && is_array($request->imagens)) {
+                // Substitui todas as imagens se enviadas
+                if ($request->hasFile('imagens')) {
                     ImagemLarTemporario::where('id_lar_temporario', $lar->id)->delete();
 
-                    foreach ($request->imagens as $url) {
-                        if (!empty($url)) {
-                            ImagemLarTemporario::create([
-                                'id_lar_temporario' => $lar->id,
-                                'url_imagem' => $url
-                            ]);
-                        }
+                    foreach ($request->file('imagens') as $file) {
+                        $path = $file->store('lares_temporarios', 'public');
+                        ImagemLarTemporario::create([
+                            'id_lar_temporario' => $lar->id,
+                            'url_imagem' => '/storage/' . $path
+                        ]);
                     }
                 }
 
                 return response()->json($lar->fresh(['endereco', 'imagens']), 200);
             });
         } catch (\Exception $e) {
+            Log::error('Erro ao atualizar lar temporário: ' . $e->getMessage());
             return response()->json(['error' => 'Erro ao atualizar lar temporário'], 500);
         }
     }
