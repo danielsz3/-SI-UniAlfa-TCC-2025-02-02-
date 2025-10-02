@@ -15,8 +15,9 @@ class Integracao extends Model
 
     protected $fillable = [
         'service',
+        'username',
         'access_token',
-        'external_user_id',
-        'expires_at',
+        'user_id',
+        'status',
     ];
 }
