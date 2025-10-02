@@ -8,7 +8,6 @@ import {
     Menu
 } from 'react-admin';
 import MenuUsuario from '../components/users/MenuUsuario'; 
-import WebhookOutlinedIcon from '@mui/icons-material/WebhookOutlined';
 
 const MinhaAppBar: React.FC<AppBarProps> = (props) => (
     <AppBar {...props} userMenu={<MenuUsuario />} />
@@ -17,7 +16,6 @@ const MinhaAppBar: React.FC<AppBarProps> = (props) => (
 const CustomMenu: React.FC<MenuProps> = (props) => (
     <Menu {...props}>
         <Menu.ResourceItems />
-        <Menu.Item to="/integracoes" primaryText="Integrações" leftIcon={<WebhookOutlinedIcon />} />
     </Menu>
 );
 

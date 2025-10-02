@@ -11,6 +11,7 @@ import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import NightShelterOutlinedIcon from '@mui/icons-material/NightShelterOutlined';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
+import WebhookOutlinedIcon from '@mui/icons-material/WebhookOutlined';
 
 import { i18nProvider, myTheme } from './theme';
 import UserCreate from './components/users/UsuarioCreate';
@@ -31,6 +32,7 @@ import ArquivoEdit from './components/arquivos/ArquivoEdit';
 import LarTempEdit from './components/lar_temporarios/LarTempEdit';
 import { Loading } from './components/Loading';
 import IntegracoesPage from './components/integracoes/IntegracoesPage';
+import { IntegracaoList } from './components/integracoes/IntegracoesList';
 
 function App() {
   return (
@@ -47,10 +49,6 @@ function App() {
         <Route
           path="/configuracoes"
           element={<ConfiguracaoUsuario />}
-        />
-        <Route
-          path="/integracoes"
-          element={<IntegracoesPage />}
         />
       </CustomRoutes>
       <Resource
@@ -92,6 +90,13 @@ function App() {
         list={LarTempList}
         create={LarTempCreate}
         edit={LarTempEdit}
+      />
+
+       <Resource
+        options={{ label: "Integrações" }}
+        name="integracoes"
+        icon={WebhookOutlinedIcon}
+        list={IntegracaoList}
       />
 
     </Admin>

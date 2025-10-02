@@ -14,9 +14,10 @@ return new class extends Migration
         Schema::create('integracoes', function (Blueprint $table) {
             $table->id();
             $table->string('service');
+            $table->string('username');
             $table->text('access_token');
-            $table->string('external_user_id')->nullable();
-            $table->timestamp('expires_at')->nullable();
+            $table->string('user_id');
+            $table->enum('status', ['ativo', 'inativo'])->default('ativo');
             $table->timestamps();
             $table->softDeletes();
         });

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Integracao;
 use App\Models\Usuario;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -26,5 +27,22 @@ class DatabaseSeeder extends Seeder
                 'data_nascimento' => '2000-01-01',
             ]
         );
+
+        Integracao::create([
+            'service' => 'instagram',
+            'username' => '',
+            'access_token' => '',
+            'user_id' => '',
+            'status' => 'ativo',
+        ]);
+
+        Integracao::create([
+            'service' => 'whatsapp',
+            'username' => '',
+            'access_token' => '',
+            'user_id' => '',
+            'status' => 'inativo',
+        ]);
     }
 }
+
