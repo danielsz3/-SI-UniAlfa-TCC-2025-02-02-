@@ -51,7 +51,7 @@ class Usuario extends Authenticatable implements JWTSubject
         return $this->password;
     }
 
-    public function enderecos()
+    public function endereco()
     {
         return $this->hasOne(Endereco::class, 'id_usuario', 'id');
     }

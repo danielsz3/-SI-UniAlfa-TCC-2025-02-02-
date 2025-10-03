@@ -37,7 +37,7 @@ const baseTheme = deepmerge(defaultTheme, {
                 root: {
                     borderLeft: '3px solid #fff',
                     '&.RaMenuItemLink-active': {
-                        borderLeft: '5px solid #007bff',
+                        borderLeft: '5px solid #337ab7',
                     },
                     '&:hover': {
                         color: '#337ab7',
@@ -87,15 +87,6 @@ const baseTheme = deepmerge(defaultTheme, {
                 },
             },
         },
-        MuiButton: {
-            styleOverrides: {
-                root: {
-                    '&:hover': {
-                        color: '#23527c',
-                    },
-                },
-            },
-        }
     },
     palette: {
         primary: {
