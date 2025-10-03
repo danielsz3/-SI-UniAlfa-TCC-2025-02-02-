@@ -56,3 +56,4 @@ Thumbs.db
 coverage/
 *.tmp
 *.temp
+MVP/back-end/storage/app/public/documentos/

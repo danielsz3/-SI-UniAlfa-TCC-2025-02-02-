@@ -37,7 +37,7 @@ class DocumentoController extends Controller
             'titulo'    => 'required|string|max:255',
             'categoria' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:1000',
-            'arquivo'   => 'required|file|mimes:pdf,doc,docx,jpg,png|max:4096',
+            'arquivo'   => 'required|file|mimes:pdf,doc,docx,jpg,png,xls,xlsx,csv|max:4096',
         ]);
 
         if ($validator->fails()) {
@@ -55,8 +55,6 @@ class DocumentoController extends Controller
                 'arquivo'      => $path,
                 'tipo'         => $file->getClientMimeType(),
                 'tamanho'      => $file->getSize(),
-                'url_arquivo'  => $path, // mantenho igual ao seu código; se preferir URL pública use Storage::url($path)
-                // 'nome_original' => $file->getClientOriginalName(), // opcional: requer coluna no banco
             ]);
 
             return response()->json($documento, 201);

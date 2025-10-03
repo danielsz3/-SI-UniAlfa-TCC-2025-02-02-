@@ -4,45 +4,57 @@ import {
     useListContext,
 } from 'react-admin';
 import { Link } from 'react-router-dom';
-import { Grid, Card, CardContent, Typography, Box } from '@mui/material';
+import { Grid, Card, CardContent, Typography, Box, CardActions, IconButton } from '@mui/material';
 import {
     PictureAsPdf as PdfIcon,
-    InsertDriveFileOutlined as DocIcon, // Ícone genérico para documentos
-    InsertDriveFile as GenericFileIcon, // Ícone para tipos desconhecidos
+    InsertDriveFileOutlined as DocIcon,
+    InsertDriveFile as GenericFileIcon,
+    Description as TextIcon, // Ícone para texto, se necessário
+    DataObject as DataIcon, // Ícone para dados/planilhas
 } from '@mui/icons-material';
 import React from 'react';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 
-// Filtros para a busca na lista (mantidos do seu código original)
+// --- Variáveis de Estilo ---
+
+// Mapeamento de cor e ícone por extensão
+const fileTypeStyles = {
+    pdf: { icon: PdfIcon, color: 'error.main', bgColor: '#fee8e8' }, // Vermelho claro
+    doc: { icon: DocIcon, color: 'primary.main', bgColor: '#e8f0fe' }, // Azul claro
+    docx: { icon: DocIcon, color: 'primary.main', bgColor: '#e8f0fe' },
+    xls: { icon: DataIcon, color: 'success.main', bgColor: '#e8fef4' }, // Verde claro
+    xlsx: { icon: DataIcon, color: 'success.main', bgColor: '#e8fef4' },
+    txt: { icon: TextIcon, color: 'text.secondary', bgColor: '#f5f5f5' }, // Cinza claro
+    default: { icon: GenericFileIcon, color: 'text.disabled', bgColor: '#eeeeee' }, // Cinza bem claro
+};
+
+// --- Funções Auxiliares ---
+
+// Filtros para a busca na lista
 const filters = [
     <TextInput label="Título" source="titulo" size="small" alwaysOn />,
 ];
 
 /**
- * Retorna um ícone do Material-UI com base na extensão do arquivo.
+ * Retorna o ícone e a cor de fundo com base na extensão do arquivo.
  * @param {string} filename - O nome do arquivo (ex: "relatorio.pdf").
- * @returns {React.ReactElement} - O componente do ícone.
+ * @returns {{ icon: React.ReactElement, bgColor: string }} - O componente do ícone e a cor de fundo.
  */
-const getIconForFileType = (filename: string): React.ReactElement => {
-    if (!filename) {
-        return <GenericFileIcon sx={{ fontSize: 40, color: 'grey.500' }} />;
+const getIconAndBackgroundForFileType = (filename: string) => {
+    const defaultStyle = fileTypeStyles.default;
+    let style = defaultStyle;
+
+    if (filename) {
+        const extension = filename.split('.').pop()?.toLowerCase();
+        style = fileTypeStyles[extension as keyof typeof fileTypeStyles] || defaultStyle;
     }
 
-    const extension = filename.split('.').pop()?.toLowerCase();
+    const IconComponent = style.icon;
 
-    switch (extension) {
-        case 'pdf':
-            return <PdfIcon sx={{ fontSize: 40, color: 'red' }} />;
-        case 'doc':
-            return <DocIcon sx={{ fontSize: 40, color: 'blue' }} />;
-        case 'docx':
-            return <DocIcon sx={{ fontSize: 40, color: 'blue' }} />;
-        case 'xls':
-            return <DocIcon sx={{ fontSize: 40, color: 'green' }} />;
-        case 'xlsx':
-            return <DocIcon sx={{ fontSize: 40, color: 'green' }} />;
-        default:
-            return <GenericFileIcon sx={{ fontSize: 40, color: 'grey.700' }} />;
-    }
+    return {
+        iconComponent: <IconComponent sx={{ fontSize: 40, color: style.color }} />,
+        bgColor: style.bgColor,
+    };
 };
 
 // Função para converter bytes em formato legível
@@ -56,11 +68,13 @@ const formatFileSize = (bytes: number): string => {
     return `${size} ${sizes[i]}`;
 };
 
+// --- Componentes Principais ---
+
 // Componente de Card individual para cada arquivo
 const ArquivoGrid = () => {
     const { data, isLoading } = useListContext();
 
-    if (isLoading || !data) return null
+    if (isLoading || !data) return null;
 
     return (
         <Grid
@@ -68,61 +82,79 @@ const ArquivoGrid = () => {
             spacing={3}
             sx={{
                 p: 2,
-                backgroundColor: theme => theme.palette.background.default,
-                borderColor: theme => theme.palette.background.default,
+                backgroundColor: (theme) => theme.palette.background.default,
             }}
         >
-            {data?.map(record => (
-                <Grid key={record.id} size={{ xs: 12, md: 4, sm: 6 }}>
-                    <Card
-                        raised
-                        sx={{
-                            height: '100%',
-                            display: 'flex',
-                            textDecoration: 'none',
-                            color: 'inherit',
-                        }}
-                        component={Link}
-                        to={`/documentos/${record.id}`}
-                    >
-                        <Box
-                            sx={{
-                                width: 80,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: 'grey.200',
-                            }}
-                        >
-                            {getIconForFileType(record?.arquivo)}
-                        </Box>
-                        <CardContent>
-                            <Typography variant="h6" component="div" noWrap>
-                                {record?.titulo || 'Sem título'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {record?.categoria || 'Sem categoria'}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                                {formatFileSize(record?.tamanho) || 'Sem categoria'}
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            ))}
-        </Grid>
+            {data?.map((record) => {
+                const { iconComponent, bgColor } = getIconAndBackgroundForFileType(record?.arquivo);
 
+                return (
+                    <Grid key={record.id} size={{ xs: 12, md: 4, sm: 6, lg: 3 }}>
+                        <Card
+                            raised
+                            sx={{
+                                height: '100%',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                textDecoration: 'none',
+                                color: 'inherit',
+                                pr: 1,
+                            }}
+                            component={Link}
+                            to={`/documentos/${record.id}`}
+                        >
+                            <Box
+                                sx={{
+                                    minWidth: 65,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: bgColor,
+                                }}
+                            >
+                                {iconComponent}
+                            </Box>
+                            <CardContent sx={{ flexGrow: 1, p: 1, '&:last-child': { pb: 1 } }}>
+                                <Typography variant="subtitle1" component="div" noWrap title={record?.titulo}>
+                                    {record?.titulo || 'Sem título'}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" noWrap>
+                                    {record?.categoria || 'Sem categoria'}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {formatFileSize(record?.tamanho)}
+                                </Typography>
+                            </CardContent>
+                            <CardActions sx={{ p: 0 }}>
+                                <IconButton aria-label="download" onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+
+
+                                    
+                                    console.log(`Baixar arquivo: ${record?.arquivo}`);
+                                }}>
+                                    <FileDownloadOutlinedIcon fontSize="small" />
+                                </IconButton>
+                            </CardActions>
+                        </Card>
+                    </Grid>
+                );
+            })}
+        </Grid>
     );
 };
 
 // Componente principal da lista
 export const ArquivoList = () => (
-    <List filters={filters} title="Documentos"
+    <List
+        filters={filters}
+        title="Documentos"
+        // Estilos para remover a sombra padrão da lista do React-Admin
         sx={{
             '& .RaList-content': {
                 boxShadow: 'none',
             },
-
         }}
     >
         <ArquivoGrid />

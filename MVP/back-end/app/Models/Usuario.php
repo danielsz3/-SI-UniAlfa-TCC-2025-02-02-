@@ -58,6 +58,6 @@ class Usuario extends Authenticatable implements JWTSubject
 
     public function preferencias()
     {
-        return $this->hasOne(PreferenciaUsuario::class, 'usuario_id', 'id');
+        return $this->hasOne(PreferenciaUsuario::class, 'usuario_id');
     }
 }
