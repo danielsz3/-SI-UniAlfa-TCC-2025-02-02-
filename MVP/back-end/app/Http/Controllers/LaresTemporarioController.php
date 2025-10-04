@@ -38,6 +38,13 @@ class LaresTemporarioController extends Controller
     */
     public function store(Request $request): JsonResponse
     {
+
+        // Decodifica o campo 'endereco' (string JSON) para array, pois foi enviado via FormData
+        if ($request->has('endereco') && is_string($request->input('endereco'))) {
+            // 'true' garante que o JSON vire um array associativo PHP
+            $request->merge(['endereco' => json_decode($request->input('endereco'), true)]);
+        }
+
         $validator = Validator::make($request->all(), [
             'nome'            => 'required|string|min:2|max:150',
             'data_nascimento' => 'required|date|before:today|after:1900-01-01',
