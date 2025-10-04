@@ -60,59 +60,99 @@ const baseDataProvider = simpleRestProvider(apiUrl, httpClient);
 
 // Função para converter dados para JSON ou FormData (Upload de Arquivos)
 const convertDataRequestToHTTP = (data: any, isUpdate = false): { data: string | FormData; headers: Record<string, string> } => {
-  const requestData = { ...data };
+    const requestData = { ...data };
 
-  // Lógica de remoção de campos de arquivo não alterados (comum em updates)
-  if (isUpdate) {
-    Object.keys(requestData).forEach(key => {
-      const field = requestData[key];
-      if (key === 'arquivo' && !field?.rawFile) {
-        delete requestData[key];
-      }
-    });
-  }
-
-  // Verifica se há upload de arquivo (se algum campo possui rawFile)
-  const hasFileUpload = Object.keys(requestData).some(key => {
-    const field = requestData[key];
-    return field && typeof field === 'object' && field.rawFile instanceof File;
-  });
-
-  if (!hasFileUpload) {
-    return {
-      data: JSON.stringify(requestData),
-      headers: { 'Content-Type': 'application/json' }
-    };
-  }
-
-  // Se houver upload, monta o FormData
-  const formData = new FormData();
-
-  Object.keys(requestData).forEach(key => {
-    const field = requestData[key];
-
-    if (field && typeof field === 'object' && field.rawFile instanceof File) {
-      // Arquivo: Adiciona o File ao FormData
-      formData.append(key, field.rawFile, field.title || field.rawFile.name);
-    } else if (Array.isArray(field)) {
-      // Lógica de tratamento para arrays (ex: múltiplos uploads ou IDs)
-      field.forEach((item, index) => {
-        if (item && typeof item === 'object' && item.rawFile instanceof File) {
-          formData.append(`${key}[${index}]`, item.rawFile, item.title || item.rawFile.name);
-        } else if (item !== null && item !== undefined) {
-          formData.append(`${key}[${index}]`, String(item));
-        }
-      });
-    } else if (field !== null && field !== undefined && field !== '') {
-      // Campos simples
-      formData.append(key, String(field));
+    if (isUpdate) {
+        Object.keys(requestData).forEach(key => {
+            const field = requestData[key];
+            if ((key === 'arquivo' || key === 'imagens') && field && typeof field === 'object' && !field.rawFile) {
+                delete requestData[key];
+            }
+        });
     }
-  });
 
-  return {
-    data: formData,
-    headers: {} // O browser define o Content-Type para FormData
-  };
+    const hasFileUpload = Object.keys(requestData).some(key => {
+        const field = requestData[key];
+        return Array.isArray(field)
+            ? field.some(item => item && typeof item === 'object' && item.rawFile instanceof File)
+            : field && typeof field === 'object' && field.rawFile instanceof File;
+    });
+
+    if (!hasFileUpload) {
+        return {
+            data: JSON.stringify(requestData),
+            headers: { 'Content-Type': 'application/json' }
+        };
+    }
+
+    const formData = new FormData();
+
+    // Função auxiliar para verificar se é uma string de data ISO 8601 (para o caso de a data vir como string no objeto)
+    const isIsoDateString = (value: string) => {
+        if (typeof value !== 'string') return false;
+        return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(value.replace(/"/g, ''));
+    };
+
+    Object.keys(requestData).forEach(key => {
+        const field = requestData[key];
+
+        // 1. Lógica para CAMPO DE ARQUIVO ÚNICO (Mantida)
+        if (field && typeof field === 'object' && field.rawFile instanceof File) {
+            formData.append(key, field.rawFile, field.title || field.rawFile.name);
+
+        // 2. Lógica para ARRAY (Mantida)
+        } else if (Array.isArray(field)) {
+            
+            const hasFileInArray = field.some(item => item && typeof item === 'object' && item.rawFile instanceof File);
+            
+            if (hasFileInArray) {
+                field.forEach((item) => {
+                    if (item && typeof item === 'object' && item.rawFile instanceof File) {
+                        formData.append(`${key}[]`, item.rawFile, item.title || item.rawFile.name);
+                    } else if (item !== null && item !== undefined) {
+                         formData.append(`${key}[]`, JSON.stringify(item));
+                    }
+                });
+            } else {
+                formData.append(key, JSON.stringify(field));
+            }
+
+        // 3. Lógica para OUTROS OBJETOS COMPLEXOS (Endereço, Data de Nascimento como Objeto Date)
+        } else if (field && typeof field === 'object' && field !== null) {
+            
+            let valueToAppend;
+
+            // Se for uma instância de Data (objeto nativo Date do JS)
+            if (field instanceof Date) {
+                valueToAppend = field.toISOString(); // Converte para o formato ISO sem aspas
+            
+            // Se for o campo 'data_nascimento' e já for uma string ISO 8601 (que pode vir como objeto no estado)
+            } else if (key === 'data_nascimento' || isIsoDateString(field)) {
+                // Remove as aspas se a string estiver encapsulada
+                valueToAppend = String(field).replace(/^"|"$/g, '');
+            
+            // Se for qualquer outro objeto complexo (como 'endereço')
+            } else {
+                // Serializa o objeto completo para JSON
+                valueToAppend = JSON.stringify(field);
+            }
+            
+            // GARANTIA: Adiciona o valor serializado ou a string de data ao FormData
+            if (valueToAppend !== undefined) {
+                 formData.append(key, valueToAppend);
+            }
+
+        // 4. Lógica para CAMPOS SIMPLES (Mantida)
+        } else if (field !== null && field !== undefined && field !== '') {
+            // Este bloco agora trata apenas strings, números e booleanos simples
+            formData.append(key, String(field));
+        }
+    });
+
+    return {
+        data: formData,
+        headers: {}
+    };
 };
 
 // Customiza o data provider para sobrescrever métodos

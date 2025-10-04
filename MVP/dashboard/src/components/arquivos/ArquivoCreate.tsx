@@ -42,7 +42,6 @@ const ArquivoCreate = () => (
                 validate={required('O arquivo é obrigatório')}
                 sx={{
                     '& .RaFileInput-dropZone': {
-                        backgroundColor: "#fff",
                         p: 0,
                     },
                 }}
