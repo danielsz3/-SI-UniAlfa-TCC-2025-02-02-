@@ -63,9 +63,12 @@ class AnimalController extends Controller
             if ($request->hasFile('imagens')) {
                 foreach ($request->file('imagens') as $file) {
                     $path = $file->store('animais', 'public');
+                    [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                     ImagemAnimal::create([
                         'animal_id' => $animal->id,
-                        'caminho' => '/storage/' . $path
+                        'caminho' => '/storage/' . $path,
+                        'width' => $width,
+                        'height' => $height,
                     ]);
                 }
             }
@@ -119,9 +122,12 @@ class AnimalController extends Controller
             // Salva novas imagens
             foreach ($request->file('imagens') as $file) {
                 $path = $file->store('animais', 'public');
+                [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                 ImagemAnimal::create([
                     'animal_id' => $animal->id,
-                    'caminho' => '/storage/' . $path
+                    'caminho' => '/storage/' . $path,
+                    'width' => $width,
+                    'height' => $height,
                 ]);
             }
         }

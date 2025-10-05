@@ -91,9 +91,12 @@ class LaresTemporarioController extends Controller
                 if ($request->hasFile('imagens')) {
                     foreach ($request->file('imagens') as $file) {
                         $path = $file->store('lares_temporarios', 'public');
+                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
                             'id_lar_temporario' => $lar->id,
-                            'url_imagem' => '/storage/' . $path
+                            'url_imagem' => '/storage/' . $path,
+                            'width' => $width,
+                            'height' => $height,
                         ]);
                     }
                 }
@@ -195,9 +198,12 @@ class LaresTemporarioController extends Controller
 
                     foreach ($request->file('imagens') as $file) {
                         $path = $file->store('lares_temporarios', 'public');
+                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
                             'id_lar_temporario' => $lar->id,
-                            'url_imagem' => '/storage/' . $path
+                            'url_imagem' => '/storage/' . $path,
+                            'width' => $width,
+                            'height' => $height,
                         ]);
                     }
                 }

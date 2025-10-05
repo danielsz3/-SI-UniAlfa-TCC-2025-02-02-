@@ -12,7 +12,7 @@ class Animal extends Model
     protected $table = 'animais';
 
     protected $fillable = [
-        'ong_id',
+        'id_ong',
         'nome',
         'sexo',
         'idade',
@@ -29,7 +29,7 @@ class Animal extends Model
     // ✅ Relacionamentos
     public function ong()
     {
-        return $this->belongsTo(Ong::class, 'ong_id');
+        return $this->belongsTo(Ong::class, 'id_ong');
     }
 
     public function imagens()

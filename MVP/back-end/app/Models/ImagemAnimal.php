@@ -11,7 +11,7 @@ class ImagemAnimal extends Model
 
     protected $table = 'imagens_animais';
 
-    protected $fillable = ['animal_id', 'caminho'];
+    protected $fillable = ['animal_id', 'caminho', 'width', 'height'];
 
     public function animal()
     {
