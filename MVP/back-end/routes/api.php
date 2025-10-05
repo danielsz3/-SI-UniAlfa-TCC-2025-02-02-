@@ -13,6 +13,7 @@ use App\Http\Controllers\ParceiroController;
 use App\Http\Controllers\LaresTemporarioController;
 use App\Http\Controllers\ContatoOngController;
 use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\EventoController;
 use App\Http\Controllers\TransacaoController;
 use App\Http\Controllers\InstagramAuthController;
 use App\Http\Controllers\IntegracaoController;
@@ -41,6 +42,7 @@ Route::apiResource('contato-ongs', ContatoOngController::class)->only(['index', 
 Route::apiResource('documentos', DocumentoController::class)->only(['index', 'show']);
 Route::apiResource('transacoes', TransacaoController::class)->only(['index', 'show']);
 Route::apiResource('animais', AnimalController::class)->only(['index', 'show']);
+Route::apiResource('eventos', EventoController::class)->only(['index', 'show']);
 
 
 /**
@@ -90,7 +92,10 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('animais', AnimalController::class)->except(['index', 'show']);
         Route::post('/animais/{id}/restore', [AnimalController::class, 'restore'])->name('animais.restore'); 
-        // Integrações - mantendo como admin-only (ajuste se quiser público)
         Route::get('/integracoes', [IntegracaoController::class, 'index'])->name('integracoes.index');
+        
+        Route::apiResource('eventos', EventoController::class)->except(['index', 'show']);
+        Route::post('/eventos/{id}/restore', [EventoController::class, 'restore'])->name('eventos.restore');
+        
     });
 });

@@ -18,7 +18,7 @@ class AnimalController extends Controller
      */
     public function index(): JsonResponse
     {
-        $animais = Animal::with(['ong','imagens'])->paginate(10);
+        $animais = Animal::with(['ong', 'imagens'])->paginate(10);
         return response()->json($animais);
     }
 
@@ -49,14 +49,23 @@ class AnimalController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors'=>$validator->errors()],422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         return DB::transaction(function () use ($request) {
             $animal = Animal::create($request->only([
-                'id_ong','nome','sexo','idade','castrado','vale_castracao',
-                'descricao','tipo_animal','nivel_energia','tamanho',
-                'tempo_necessario','ambiente_ideal'
+                'id_ong',
+                'nome',
+                'sexo',
+                'idade',
+                'castrado',
+                'vale_castracao',
+                'descricao',
+                'tipo_animal',
+                'nivel_energia',
+                'tamanho',
+                'tempo_necessario',
+                'ambiente_ideal'
             ]));
 
             // Upload de imagens
@@ -64,16 +73,18 @@ class AnimalController extends Controller
                 foreach ($request->file('imagens') as $file) {
                     $path = $file->store('animais', 'public');
                     [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
-                    ImagemAnimal::create([
+                    $imagem = ImagemAnimal::create([
                         'animal_id' => $animal->id,
                         'caminho' => '/storage/' . $path,
                         'width' => $width,
                         'height' => $height,
                     ]);
+                    if (!$imagem) {
+                        return response()->json(['error' => 'Erro ao salvar imagem no banco'], 500);
+                    }
                 }
             }
-
-            return response()->json($animal->load('imagens'),201);
+            return response()->json($animal->load('imagens'), 201);
         });
     }
 
@@ -82,10 +93,10 @@ class AnimalController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $animal = Animal::with(['ong','imagens'])->find($id);
+        $animal = Animal::with(['ong', 'imagens'])->find($id);
 
-        if(!$animal){
-            return response()->json(['error'=>'Animal não encontrado'],404);
+        if (!$animal) {
+            return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
         return response()->json($animal);
@@ -94,18 +105,26 @@ class AnimalController extends Controller
     /**
      * Atualizar animal
      */
-    public function update(Request $request,$id): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
         $animal = Animal::find($id);
 
-        if(!$animal){
-            return response()->json(['error'=>'Animal não encontrado'],404);
+        if (!$animal) {
+            return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
         $animal->update($request->only([
-            'nome','sexo','idade','castrado','vale_castracao',
-            'descricao','tipo_animal','nivel_energia','tamanho',
-            'tempo_necessario','ambiente_ideal'
+            'nome',
+            'sexo',
+            'idade',
+            'castrado',
+            'vale_castracao',
+            'descricao',
+            'tipo_animal',
+            'nivel_energia',
+            'tamanho',
+            'tempo_necessario',
+            'ambiente_ideal'
         ]));
 
         // Atualizar imagens se enviadas
@@ -115,10 +134,10 @@ class AnimalController extends Controller
                 $oldPath = str_replace('/storage/', '', $imagem->caminho);
                 Storage::disk('public')->delete($oldPath);
             }
-            
+
             // Remove registros antigos do banco
             $animal->imagens()->delete();
-            
+
             // Salva novas imagens
             foreach ($request->file('imagens') as $file) {
                 $path = $file->store('animais', 'public');
@@ -142,13 +161,13 @@ class AnimalController extends Controller
     {
         $animal = Animal::find($id);
 
-        if(!$animal){
-            return response()->json(['error'=>'Animal não encontrado'],404);
+        if (!$animal) {
+            return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
         $animal->delete();
 
-        return response()->json(null,204);
+        return response()->json(null, 204);
     }
 
     /**
@@ -168,7 +187,7 @@ class AnimalController extends Controller
 
         $animal->restore();
 
-        return response()->json($animal->fresh(['ong','imagens']), 200);
+        return response()->json($animal->fresh(['ong', 'imagens']), 200);
     }
 
     /**
