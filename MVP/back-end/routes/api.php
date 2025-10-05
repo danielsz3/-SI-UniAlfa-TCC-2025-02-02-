@@ -17,6 +17,7 @@ use App\Http\Controllers\EventoController;
 use App\Http\Controllers\TransacaoController;
 use App\Http\Controllers\InstagramAuthController;
 use App\Http\Controllers\IntegracaoController;
+use App\Http\Controllers\PostController;
 
 /**
  * AUTENTICAÇÃO PÚBLICA
@@ -43,7 +44,7 @@ Route::apiResource('documentos', DocumentoController::class)->only(['index', 'sh
 Route::apiResource('transacoes', TransacaoController::class)->only(['index', 'show']);
 Route::apiResource('animais', AnimalController::class)->only(['index', 'show']);
 Route::apiResource('eventos', EventoController::class)->only(['index', 'show']);
-
+//Route::apiResource('posts', PostController::class)->only(['index', 'show']);
 
 /**
  * CADASTRO DE USUÁRIO (PÚBLICO)
@@ -96,6 +97,10 @@ Route::middleware(['jwt.auth'])->group(function () {
         
         Route::apiResource('eventos', EventoController::class)->except(['index', 'show']);
         Route::post('/eventos/{id}/restore', [EventoController::class, 'restore'])->name('eventos.restore');
+    
+        Route::apiResource('posts', PostController::class)->except(['index', 'show']);
+        Route::post('/posts/{id}/restore', [PostController::class, 'restore'])->name('posts.restore');
         
     });
+
 });
