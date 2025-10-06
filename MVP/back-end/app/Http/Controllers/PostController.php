@@ -24,7 +24,20 @@ class PostController extends Controller
             'legenda' => 'nullable|string|max:1000',
             'imagens' => 'nullable|array',
             'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+        ], [
+            'imagens.*.image' => 'Cada arquivo deve ser uma imagem válida.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 2MB.',
+            'legenda.max' => 'A legenda deve ter no máximo 1000 caracteres.',
         ]);
+
+        // Validação customizada: pelo menos legenda ou imagens deve ser enviado
+        $validator->after(function ($validator) use ($request) {
+            if (empty($request->legenda) && !$request->hasFile('imagens')) {
+                $validator->errors()->add('legenda', 'Você deve enviar uma legenda ou pelo menos uma imagem.');
+                $validator->errors()->add('imagens', 'Você deve enviar uma legenda ou pelo menos uma imagem.');
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -73,7 +86,19 @@ class PostController extends Controller
             'legenda' => 'nullable|string|max:1000',
             'imagens' => 'nullable|array',
             'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+        ], [
+            'imagens.*.image' => 'Cada arquivo deve ser uma imagem válida.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 2MB.',
+            'legenda.max' => 'A legenda deve ter no máximo 1000 caracteres.',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            if (empty($request->legenda) && !$request->hasFile('imagens')) {
+                $validator->errors()->add('legenda', 'Você deve enviar uma legenda ou pelo menos uma imagem.');
+                $validator->errors()->add('imagens', 'Você deve enviar uma legenda ou pelo menos uma imagem.');
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);

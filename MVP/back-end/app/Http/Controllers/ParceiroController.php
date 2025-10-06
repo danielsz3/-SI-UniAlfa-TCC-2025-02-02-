@@ -26,8 +26,6 @@ class ParceiroController extends Controller
         );
     }
 
-   
-
     /**
      * Criar parceiro
      */
@@ -37,7 +35,14 @@ class ParceiroController extends Controller
             'nome'      => 'required|string|max:255',
             'url_site'  => 'nullable|url',
             'descricao' => 'nullable|string|max:500',
-            'url_logo'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif',
+            'url_logo'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+        ], [
+            'nome.required' => 'O nome do parceiro é obrigatório.',
+            'nome.max' => 'O nome do parceiro deve ter no máximo 255 caracteres.',
+            'url_site.url' => 'A URL do site deve ser válida.',
+            'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
+            'url_logo.mimes' => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
+            'url_logo.max' => 'A logo deve ter no máximo 4MB.',
         ]);
 
         if ($validator->fails()) {
@@ -99,13 +104,20 @@ class ParceiroController extends Controller
                 'url_site'  => 'nullable|url',
                 'descricao' => 'nullable|string|max:500',
                 'url_logo'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            ], [
+                'nome.required' => 'O nome do parceiro é obrigatório.',
+                'nome.max' => 'O nome do parceiro deve ter no máximo 255 caracteres.',
+                'url_site.url' => 'A URL do site deve ser válida.',
+                'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
+                'url_logo.mimes' => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
+                'url_logo.max' => 'A logo deve ter no máximo 4MB.',
             ]);
 
             if ($validator->fails()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            // Se veio nova imagem, remove a antiga e salva a nova
+            // Só depois da validação, manipule a imagem
             if ($request->hasFile('url_logo')) {
                 if ($parceiro->url_logo && Storage::disk('public')->exists($parceiro->url_logo)) {
                     Storage::disk('public')->delete($parceiro->url_logo);

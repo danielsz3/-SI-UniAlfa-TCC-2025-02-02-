@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use App\Models\ContatoOng;
 
 class OngController extends Controller
 {
@@ -103,6 +102,42 @@ class OngController extends Controller
 
             'imagens' => 'nullable|array',
             'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
+        ], [
+            // Mensagens personalizadas para validações
+            'nome_ong.required' => 'O nome da ONG é obrigatório.',
+            'nome_ong.min' => 'O nome da ONG deve ter no mínimo 3 caracteres.',
+            'nome_ong.max' => 'O nome da ONG deve ter no máximo 255 caracteres.',
+
+            'cnpj.required' => 'O CNPJ é obrigatório.',
+            'cnpj.size' => 'O CNPJ deve ter exatamente 14 números.',
+            'cnpj.regex' => 'O CNPJ deve conter apenas números.',
+            'cnpj.unique' => 'Este CNPJ já está em uso.',
+
+            'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
+
+            'url_logo.url' => 'A URL do logo deve ser válida.',
+            'url_banner.url' => 'A URL do banner deve ser válida.',
+
+            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
+            'telefone.regex' => 'O telefone deve conter apenas números.',
+
+            'pix.max' => 'O PIX deve ter no máximo 255 caracteres.',
+            'banco.max' => 'O banco deve ter no máximo 100 caracteres.',
+            'agencia.max' => 'A agência deve ter no máximo 10 caracteres.',
+            'numero_conta.max' => 'O número da conta deve ter no máximo 20 caracteres.',
+            'conta.max' => 'A conta deve ter no máximo 20 caracteres.',
+
+            'enderecos_ids.*.exists' => 'Um ou mais endereços selecionados não existem.',
+
+            'contatos.*.tipo.in' => 'O tipo de contato deve ser telefone, email, whatsapp, instagram, facebook, site ou outro.',
+            'contatos.*.contato.max' => 'O contato deve ter no máximo 255 caracteres.',
+            'contatos.*.link.url' => 'O link do contato deve ser uma URL válida.',
+            'contatos.*.link.max' => 'O link do contato deve ter no máximo 255 caracteres.',
+            'contatos.*.descricao.max' => 'A descrição do contato deve ter no máximo 1000 caracteres.',
+
+            'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -144,12 +179,12 @@ class OngController extends Controller
                 return response()->json($ong->load(['enderecos', 'contatos', 'imagens']), 201);
             });
         } catch (\Exception $e) {
-    return response()->json([
-        'error' => 'Erro ao criar ONG',
-        'message' => $e->getMessage(),
-        'trace' => $e->getTraceAsString()
-    ], 500);
-}
+            return response()->json([
+                'error' => 'Erro ao criar ONG',
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
     }
 
     /**
@@ -218,6 +253,42 @@ class OngController extends Controller
 
             'imagens' => 'nullable|array',
             'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
+        ], [
+            // Mensagens personalizadas para validações
+            'nome_ong.required' => 'O nome da ONG é obrigatório.',
+            'nome_ong.min' => 'O nome da ONG deve ter no mínimo 3 caracteres.',
+            'nome_ong.max' => 'O nome da ONG deve ter no máximo 255 caracteres.',
+
+            'cnpj.required' => 'O CNPJ é obrigatório.',
+            'cnpj.size' => 'O CNPJ deve ter exatamente 14 números.',
+            'cnpj.regex' => 'O CNPJ deve conter apenas números.',
+            'cnpj.unique' => 'Este CNPJ já está em uso.',
+
+            'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
+
+            'url_logo.url' => 'A URL do logo deve ser válida.',
+            'url_banner.url' => 'A URL do banner deve ser válida.',
+
+            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
+            'telefone.regex' => 'O telefone deve conter apenas números.',
+
+            'pix.max' => 'O PIX deve ter no máximo 255 caracteres.',
+            'banco.max' => 'O banco deve ter no máximo 100 caracteres.',
+            'agencia.max' => 'A agência deve ter no máximo 10 caracteres.',
+            'numero_conta.max' => 'O número da conta deve ter no máximo 20 caracteres.',
+            'conta.max' => 'A conta deve ter no máximo 20 caracteres.',
+
+            'enderecos_ids.*.exists' => 'Um ou mais endereços selecionados não existem.',
+
+            'contatos.*.tipo.in' => 'O tipo de contato deve ser telefone, email, whatsapp, instagram, facebook, site ou outro.',
+            'contatos.*.contato.max' => 'O contato deve ter no máximo 255 caracteres.',
+            'contatos.*.link.url' => 'O link do contato deve ser uma URL válida.',
+            'contatos.*.link.max' => 'O link do contato deve ter no máximo 255 caracteres.',
+            'contatos.*.descricao.max' => 'A descrição do contato deve ter no máximo 1000 caracteres.',
+
+            'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {

@@ -10,16 +10,59 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class AnimalController extends Controller
 {
     /**
-     * Listar animais
+     * Listar animais (suporta paginação, filtros e ordenação)
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $animais = Animal::with(['ong', 'imagens'])->paginate(10);
-        return response()->json($animais);
+        try {
+            $perPage = (int) $request->input('_limit', 10);
+            $page    = (int) $request->input('_page', 1);
+            $sort    = $request->input('_sort', 'id');
+            $order   = $request->input('_order', 'desc');
+            $filter  = json_decode($request->input('filter', '{}'), true);
+
+            // Validar campos de ordenação mínimos
+            if (!in_array($order, ['asc', 'desc'])) {
+                $order = 'desc';
+            }
+
+            $query = Animal::with(['ong', 'imagens']);
+
+            // Filtros permitidos (evita injeção via campo)
+            $allowedFilters = ['nome', 'tipo_animal', 'sexo', 'idade'];
+            if (is_array($filter) && !empty($filter)) {
+                foreach ($filter as $field => $value) {
+                    if (in_array($field, $allowedFilters) && $value !== null && $value !== '') {
+                        $query->where($field, 'like', "%{$value}%");
+                    }
+                }
+            }
+
+            // Ordenar por coluna permitida (fallback para id)
+            $allowedSorts = ['id', 'nome', 'idade', 'created_at'];
+            if (!in_array($sort, $allowedSorts)) {
+                $sort = 'id';
+            }
+
+            $paginated = $query->orderBy($sort, $order)
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            return response()
+                ->json($paginated->items(), 200)
+                ->header('X-Total-Count', $paginated->total())
+                ->header('Access-Control-Expose-Headers', 'X-Total-Count');
+        } catch (\Exception $e) {
+            Log::error('Erro ao listar animais: '.$e->getMessage(), ['exception' => $e, 'request' => $request->all()]);
+            return response()->json([
+                'error' => 'Não foi possível carregar os animais',
+                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+            ], 500);
+        }
     }
 
     /**
@@ -32,60 +75,85 @@ class AnimalController extends Controller
             'nome' => 'required|string|max:100',
             'sexo' => 'required|in:macho,femea',
             'idade' => 'required|integer|min:0',
-            'castrado' => 'boolean',
-            'vale_castracao' => 'boolean',
-            'descricao' => 'nullable|string',
+            'castrado' => 'nullable|boolean',
+            'vale_castracao' => 'nullable|boolean',
+            'descricao' => 'nullable|string|max:2000',
             'tipo_animal' => 'required|in:cao,gato,outro',
 
-            // comportamento
             'nivel_energia' => 'nullable|in:baixa,moderada,alta',
             'tamanho' => 'nullable|in:pequeno,medio,grande',
             'tempo_necessario' => 'nullable|in:pouco_tempo,tempo_moderado,muito_tempo',
             'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
 
-            // imagens (upload de arquivos)
-            'imagens' => 'nullable|array',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'imagens' => 'nullable|array|max:10',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+        ], [
+            'id_ong.required' => 'A ONG responsável é obrigatória.',
+            'id_ong.exists' => 'A ONG informada não existe.',
+
+            'nome.required' => 'O nome do animal é obrigatório.',
+            'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
+
+            'sexo.required' => 'O sexo é obrigatório.',
+            'sexo.in' => 'O sexo deve ser "macho" ou "femea".',
+
+            'idade.required' => 'A idade é obrigatória.',
+            'idade.integer' => 'A idade deve ser um número inteiro.',
+
+            'tipo_animal.required' => 'O tipo do animal é obrigatório.',
+            'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
+
+            'imagens.array' => 'As imagens devem ser enviadas como um array.',
+            'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
+            'imagens.*.image' => 'Cada arquivo enviado deve ser uma imagem válida.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 4MB.',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        return DB::transaction(function () use ($request) {
-            $animal = Animal::create($request->only([
-                'id_ong',
-                'nome',
-                'sexo',
-                'idade',
-                'castrado',
-                'vale_castracao',
-                'descricao',
-                'tipo_animal',
-                'nivel_energia',
-                'tamanho',
-                'tempo_necessario',
-                'ambiente_ideal'
-            ]));
+        try {
+            return DB::transaction(function () use ($request) {
+                $animal = Animal::create($request->only([
+                    'id_ong',
+                    'nome',
+                    'sexo',
+                    'idade',
+                    'castrado',
+                    'vale_castracao',
+                    'descricao',
+                    'tipo_animal',
+                    'nivel_energia',
+                    'tamanho',
+                    'tempo_necessario',
+                    'ambiente_ideal'
+                ]));
 
-            // Upload de imagens
-            if ($request->hasFile('imagens')) {
-                foreach ($request->file('imagens') as $file) {
-                    $path = $file->store('animais', 'public');
-                    [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
-                    $imagem = ImagemAnimal::create([
-                        'animal_id' => $animal->id,
-                        'caminho' => '/storage/' . $path,
-                        'width' => $width,
-                        'height' => $height,
-                    ]);
-                    if (!$imagem) {
-                        return response()->json(['error' => 'Erro ao salvar imagem no banco'], 500);
+                // Upload de imagens (se houver)
+                if ($request->hasFile('imagens')) {
+                    foreach ($request->file('imagens') as $file) {
+                        $path = $file->store('animais', 'public');
+                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+
+                        ImagemAnimal::create([
+                            'animal_id' => $animal->id,
+                            'caminho' => '/storage/'.$path,
+                            'width' => $width,
+                            'height' => $height,
+                        ]);
                     }
                 }
-            }
-            return response()->json($animal->load('imagens'), 201);
-        });
+
+                return response()->json($animal->load('imagens'), 201);
+            });
+        } catch (\Exception $e) {
+            Log::error('Erro ao criar animal: '.$e->getMessage(), ['exception' => $e, 'payload' => $request->except('imagens')]);
+            return response()->json([
+                'error' => 'Não foi possível criar o animal',
+                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+            ], 500);
+        }
     }
 
     /**
@@ -93,13 +161,18 @@ class AnimalController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $animal = Animal::with(['ong', 'imagens'])->find($id);
+        try {
+            $animal = Animal::with(['ong', 'imagens'])->find($id);
 
-        if (!$animal) {
-            return response()->json(['error' => 'Animal não encontrado'], 404);
+            if (!$animal) {
+                return response()->json(['error' => 'Animal não encontrado'], 404);
+            }
+
+            return response()->json($animal, 200);
+        } catch (\Exception $e) {
+            Log::error('Erro ao exibir animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e]);
+            return response()->json(['error' => 'Não foi possível carregar o animal'], 500);
         }
-
-        return response()->json($animal);
     }
 
     /**
@@ -113,61 +186,114 @@ class AnimalController extends Controller
             return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
-        $animal->update($request->only([
-            'nome',
-            'sexo',
-            'idade',
-            'castrado',
-            'vale_castracao',
-            'descricao',
-            'tipo_animal',
-            'nivel_energia',
-            'tamanho',
-            'tempo_necessario',
-            'ambiente_ideal'
-        ]));
+        $validator = Validator::make($request->all(), [
+            'nome' => 'sometimes|required|string|max:100',
+            'sexo' => 'sometimes|required|in:macho,femea',
+            'idade' => 'sometimes|required|integer|min:0',
+            'castrado' => 'nullable|boolean',
+            'vale_castracao' => 'nullable|boolean',
+            'descricao' => 'nullable|string|max:2000',
+            'tipo_animal' => 'sometimes|required|in:cao,gato,outro',
 
-        // Atualizar imagens se enviadas
-        if ($request->hasFile('imagens')) {
-            // Remove imagens antigas do storage
-            foreach ($animal->imagens as $imagem) {
-                $oldPath = str_replace('/storage/', '', $imagem->caminho);
-                Storage::disk('public')->delete($oldPath);
-            }
+            'nivel_energia' => 'nullable|in:baixa,moderada,alta',
+            'tamanho' => 'nullable|in:pequeno,medio,grande',
+            'tempo_necessario' => 'nullable|in:pouco_tempo,tempo_moderado,muito_tempo',
+            'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
 
-            // Remove registros antigos do banco
-            $animal->imagens()->delete();
+            'imagens' => 'nullable|array|max:10',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+        ]);
 
-            // Salva novas imagens
-            foreach ($request->file('imagens') as $file) {
-                $path = $file->store('animais', 'public');
-                [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
-                ImagemAnimal::create([
-                    'animal_id' => $animal->id,
-                    'caminho' => '/storage/' . $path,
-                    'width' => $width,
-                    'height' => $height,
-                ]);
-            }
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        return response()->json($animal->fresh('imagens'));
+        try {
+            return DB::transaction(function () use ($request, $animal) {
+                $animal->update($request->only([
+                    'nome',
+                    'sexo',
+                    'idade',
+                    'castrado',
+                    'vale_castracao',
+                    'descricao',
+                    'tipo_animal',
+                    'nivel_energia',
+                    'tamanho',
+                    'tempo_necessario',
+                    'ambiente_ideal'
+                ]));
+
+                if ($request->hasFile('imagens')) {
+                    // Apagar arquivos antigos do storage
+                    $oldImagens = $animal->imagens()->get();
+                    foreach ($oldImagens as $img) {
+                        if ($img->caminho) {
+                            $oldPath = ltrim(str_replace('/storage/', '', $img->caminho), '/');
+                            if (Storage::disk('public')->exists($oldPath)) {
+                                Storage::disk('public')->delete($oldPath);
+                            }
+                        }
+                    }
+
+                    // Remover registros antigos
+                    $animal->imagens()->delete();
+
+                    // Salvar novas imagens
+                    foreach ($request->file('imagens') as $file) {
+                        $path = $file->store('animais', 'public');
+                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+
+                        ImagemAnimal::create([
+                            'animal_id' => $animal->id,
+                            'caminho' => '/storage/'.$path,
+                            'width' => $width,
+                            'height' => $height,
+                        ]);
+                    }
+                }
+
+                return response()->json($animal->fresh('imagens'), 200);
+            });
+        } catch (\Exception $e) {
+            Log::error('Erro ao atualizar animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e, 'payload' => $request->except('imagens')]);
+            return response()->json([
+                'error' => 'Não foi possível atualizar o animal',
+                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+            ], 500);
+        }
     }
 
     /**
-     * Deletar (softdelete)
+     * Deletar (soft delete)
      */
     public function destroy($id): JsonResponse
     {
-        $animal = Animal::find($id);
+        try {
+            $animal = Animal::with('imagens')->find($id);
+            if (!$animal) {
+                return response()->json(['error' => 'Animal não encontrado'], 404);
+            }
 
-        if (!$animal) {
-            return response()->json(['error' => 'Animal não encontrado'], 404);
+            // Apagar arquivos do storage
+            foreach ($animal->imagens as $img) {
+                if ($img->caminho) {
+                    $oldPath = ltrim(str_replace('/storage/', '', $img->caminho), '/');
+                    if (Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                }
+            }
+
+            $animal->delete(); // soft delete
+            return response()->json(null, 204);
+        } catch (\Exception $e) {
+            Log::error('Erro ao deletar animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e]);
+            return response()->json([
+                'error' => 'Não foi possível excluir o animal',
+                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+            ], 500);
         }
-
-        $animal->delete();
-
-        return response()->json(null, 204);
     }
 
     /**
@@ -175,19 +301,26 @@ class AnimalController extends Controller
      */
     public function restore($id): JsonResponse
     {
-        $animal = Animal::withTrashed()->find($id);
+        try {
+            $animal = Animal::withTrashed()->find($id);
 
-        if (!$animal) {
-            return response()->json(['error' => 'Animal não encontrado'], 404);
+            if (!$animal) {
+                return response()->json(['error' => 'Animal não encontrado'], 404);
+            }
+
+            if (!$animal->trashed()) {
+                return response()->json(['error' => 'Animal já está ativo'], 400);
+            }
+
+            $animal->restore();
+            return response()->json($animal->fresh(['ong', 'imagens']), 200);
+        } catch (\Exception $e) {
+            Log::error('Erro ao restaurar animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e]);
+            return response()->json([
+                'error' => 'Não foi possível restaurar o animal',
+                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+            ], 500);
         }
-
-        if (!$animal->trashed()) {
-            return response()->json(['error' => 'Animal já está ativo'], 400);
-        }
-
-        $animal->restore();
-
-        return response()->json($animal->fresh(['ong', 'imagens']), 200);
     }
 
     /**
@@ -195,40 +328,56 @@ class AnimalController extends Controller
      */
     public function recomendar($usuarioId): JsonResponse
     {
-        $usuario = Usuario::with('preferencias')->findOrFail($usuarioId);
+        try {
+            $usuario = Usuario::with('preferencias')->find($usuarioId);
 
-        if (!$usuario->preferencias) {
+            if (!$usuario) {
+                return response()->json(['error' => 'Usuário não encontrado'], 404);
+            }
+
+            $pref = $usuario->preferencias;
+            if (!$pref) {
+                return response()->json(['error' => 'Usuário não possui preferências definidas'], 400);
+            }
+
+            // Considera apenas animais ativos (não deletados)
+            $animais = Animal::with('imagens')->get();
+
+            $resultados = $animais->map(function ($animal) use ($pref) {
+                $score = 0;
+                $total = 4; // número de critérios ponderados
+
+                if (!empty($pref->tamanho_pet) && $pref->tamanho_pet === $animal->tamanho) {
+                    $score += 1;
+                }
+                if (!empty($pref->tempo_disponivel) && $pref->tempo_disponivel === $animal->tempo_necessario) {
+                    $score += 1;
+                }
+                if (!empty($pref->estilo_vida) && $pref->estilo_vida === $animal->nivel_energia) {
+                    $score += 1;
+                }
+                if (!empty($pref->espaco_casa) && $pref->espaco_casa === $animal->ambiente_ideal) {
+                    $score += 1;
+                }
+
+                $percent = $total > 0 ? intval(($score / $total) * 100) : 0;
+
+                return [
+                    'animal' => $animal,
+                    'afinidade' => $score,
+                    'afinidade_percent' => $percent,
+                ];
+            });
+
+            $ordenados = $resultados->sortByDesc('afinidade')->values();
+
+            return response()->json($ordenados, 200);
+        } catch (\Exception $e) {
+            Log::error('Erro ao recomendar animais: '.$e->getMessage(), ['usuario_id' => $usuarioId, 'exception' => $e]);
             return response()->json([
-                'error' => 'Usuário não possui preferências definidas'
-            ], 400);
+                'error' => 'Não foi possível gerar recomendações',
+                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+            ], 500);
         }
-
-        $animais = Animal::with('imagens')->get();
-
-        $resultados = $animais->map(function ($animal) use ($usuario) {
-            $score = 0;
-
-            if ($usuario->preferencias->tamanho_pet === $animal->tamanho) {
-                $score += 25;
-            }
-            if ($usuario->preferencias->tempo_disponivel === $animal->tempo_necessario) {
-                $score += 25;
-            }
-            if ($usuario->preferencias->estilo_vida === $animal->nivel_energia) {
-                $score += 25;
-            }
-            if ($usuario->preferencias->espaco_casa === $animal->ambiente_ideal) {
-                $score += 25;
-            }
-
-            return [
-                'animal' => $animal,
-                'afinidade' => $score
-            ];
-        });
-
-        $ordenados = $resultados->sortByDesc('afinidade')->values();
-
-        return response()->json($ordenados);
     }
 }
