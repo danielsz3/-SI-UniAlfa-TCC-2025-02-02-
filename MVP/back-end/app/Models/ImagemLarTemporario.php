@@ -3,15 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ImagemLarTemporario extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $table = 'imagens_lar_temporario'; // tabela no plural
     protected $primaryKey = 'id_imagem_lar_temp';
 
     protected $fillable = [
         'id_lar_temporario',
-        'url_imagem'
+        'url_imagem',
+        'width',
+        'height',
     ];
 
     public function larTemporario()

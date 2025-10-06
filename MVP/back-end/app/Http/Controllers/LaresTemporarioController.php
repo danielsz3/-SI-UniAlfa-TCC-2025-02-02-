@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use App\Traits\SearchIndex;
 
 class LaresTemporarioController extends Controller
@@ -38,10 +39,8 @@ class LaresTemporarioController extends Controller
     */
     public function store(Request $request): JsonResponse
     {
-
-        // Decodifica o campo 'endereco' (string JSON) para array, pois foi enviado via FormData
+        // Decodifica o campo 'endereco' (string JSON) para array, pois pode vir via FormData
         if ($request->has('endereco') && is_string($request->input('endereco'))) {
-            // 'true' garante que o JSON vire um array associativo PHP
             $request->merge(['endereco' => json_decode($request->input('endereco'), true)]);
         }
 
@@ -64,6 +63,36 @@ class LaresTemporarioController extends Controller
             // Imagens (até 10MB cada)
             'imagens'   => 'nullable|array',
             'imagens.*' => 'file|image|mimes:jpeg,png,jpg,gif|max:10240',
+        ], [
+            'nome.required' => 'O nome é obrigatório.',
+            'nome.min' => 'O nome deve ter no mínimo 2 caracteres.',
+            'nome.max' => 'O nome deve ter no máximo 150 caracteres.',
+
+            'data_nascimento.required' => 'A data de nascimento é obrigatória.',
+            'data_nascimento.date' => 'A data de nascimento deve ser válida.',
+            'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje.',
+            'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+
+            'telefone.required' => 'O telefone é obrigatório.',
+            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
+            'telefone.regex' => 'O telefone deve conter apenas números.',
+
+            'situacao.required' => 'A situação é obrigatória.',
+            'situacao.in' => 'A situação deve ser "ativo" ou "inativo".',
+
+            'experiencia.max' => 'A experiência deve ter no máximo 1000 caracteres.',
+
+            'endereco.cep.max' => 'O CEP deve ter no máximo 9 caracteres.',
+            'endereco.logradouro.max' => 'O logradouro deve ter no máximo 255 caracteres.',
+            'endereco.numero.max' => 'O número deve ter no máximo 10 caracteres.',
+            'endereco.complemento.max' => 'O complemento deve ter no máximo 100 caracteres.',
+            'endereco.bairro.max' => 'O bairro deve ter no máximo 100 caracteres.',
+            'endereco.cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
+            'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
+
+            'imagens.*.image' => 'Cada arquivo enviado em imagens deve ser uma imagem válida.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo: jpeg, png, jpg ou gif.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -91,9 +120,12 @@ class LaresTemporarioController extends Controller
                 if ($request->hasFile('imagens')) {
                     foreach ($request->file('imagens') as $file) {
                         $path = $file->store('lares_temporarios', 'public');
+                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
                             'id_lar_temporario' => $lar->id,
-                            'url_imagem' => '/storage/' . $path
+                            'url_imagem' => '/storage/' . $path,
+                            'width' => $width,
+                            'height' => $height,
                         ]);
                     }
                 }
@@ -101,7 +133,9 @@ class LaresTemporarioController extends Controller
                 return response()->json($lar->load(['endereco', 'imagens']), 201);
             });
         } catch (\Exception $e) {
-            Log::error('Erro ao criar lar temporário: ' . $e->getMessage());
+            Log::error('Erro ao criar lar temporário: ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
             return response()->json(['error' => 'Erro ao criar lar temporário'], 500);
         }
     }
@@ -135,6 +169,11 @@ class LaresTemporarioController extends Controller
             return response()->json(['error' => 'Lar temporário não encontrado'], 404);
         }
 
+        // Decodifica o campo 'endereco' (string JSON) para array, caso venha por FormData
+        if ($request->has('endereco') && is_string($request->input('endereco'))) {
+            $request->merge(['endereco' => json_decode($request->input('endereco'), true)]);
+        }
+
         $validator = Validator::make($request->all(), [
             'nome'            => 'sometimes|required|string|min:2|max:150',
             'data_nascimento' => 'sometimes|required|date|before:today|after:1900-01-01',
@@ -155,6 +194,34 @@ class LaresTemporarioController extends Controller
             // Imagens
             'imagens'   => 'nullable|array',
             'imagens.*' => 'file|image|mimes:jpeg,png,jpg,gif|max:10240',
+        ], [
+            'nome.required' => 'O nome é obrigatório.',
+            'nome.min' => 'O nome deve ter no mínimo 2 caracteres.',
+            'nome.max' => 'O nome deve ter no máximo 150 caracteres.',
+
+            'data_nascimento.date' => 'A data de nascimento deve ser válida.',
+            'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje.',
+            'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+
+            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
+            'telefone.regex' => 'O telefone deve conter apenas números.',
+
+            'situacao.in' => 'A situação deve ser "ativo" ou "inativo".',
+
+            'experiencia.max' => 'A experiência deve ter no máximo 1000 caracteres.',
+
+            'endereco.id.exists' => 'O endereço informado não existe.',
+            'endereco.cep.max' => 'O CEP deve ter no máximo 9 caracteres.',
+            'endereco.logradouro.max' => 'O logradouro deve ter no máximo 255 caracteres.',
+            'endereco.numero.max' => 'O número deve ter no máximo 10 caracteres.',
+            'endereco.complemento.max' => 'O complemento deve ter no máximo 100 caracteres.',
+            'endereco.bairro.max' => 'O bairro deve ter no máximo 100 caracteres.',
+            'endereco.cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
+            'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
+
+            'imagens.*.image' => 'Cada arquivo enviado em imagens deve ser uma imagem válida.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo: jpeg, png, jpg ou gif.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -181,8 +248,13 @@ class LaresTemporarioController extends Controller
                             ->first();
                         if ($endereco) {
                             $endereco->update($enderecoData);
+                        } else {
+                            // se id informado não pertence a este lar, criamos um novo endereço vinculado
+                            $enderecoData['lar_temporario_id'] = $lar->id;
+                            Endereco::create($enderecoData);
                         }
                     } else {
+                        // remove endereços anteriores e cria novo (mantendo seu comportamento original)
                         Endereco::where('lar_temporario_id', $lar->id)->delete();
                         $enderecoData['lar_temporario_id'] = $lar->id;
                         Endereco::create($enderecoData);
@@ -191,13 +263,28 @@ class LaresTemporarioController extends Controller
 
                 // Substitui todas as imagens se enviadas
                 if ($request->hasFile('imagens')) {
+                    // Apagar arquivos antigos do storage
+                    $oldImagens = ImagemLarTemporario::where('id_lar_temporario', $lar->id)->get();
+                    foreach ($oldImagens as $imagem) {
+                        if ($imagem->url_imagem) {
+                            $oldPath = ltrim(str_replace('/storage/', '', $imagem->url_imagem), '/');
+                            if (Storage::disk('public')->exists($oldPath)) {
+                                Storage::disk('public')->delete($oldPath);
+                            }
+                        }
+                    }
+                    // Apagar registros antigos
                     ImagemLarTemporario::where('id_lar_temporario', $lar->id)->delete();
 
+                    // Salvar novas imagens
                     foreach ($request->file('imagens') as $file) {
                         $path = $file->store('lares_temporarios', 'public');
+                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
                             'id_lar_temporario' => $lar->id,
-                            'url_imagem' => '/storage/' . $path
+                            'url_imagem' => '/storage/' . $path,
+                            'width' => $width,
+                            'height' => $height,
                         ]);
                     }
                 }
@@ -205,7 +292,9 @@ class LaresTemporarioController extends Controller
                 return response()->json($lar->fresh(['endereco', 'imagens']), 200);
             });
         } catch (\Exception $e) {
-            Log::error('Erro ao atualizar lar temporário: ' . $e->getMessage());
+            Log::error('Erro ao atualizar lar temporário: ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
             return response()->json(['error' => 'Erro ao atualizar lar temporário'], 500);
         }
     }
@@ -217,14 +306,32 @@ class LaresTemporarioController extends Controller
     */
     public function destroy($id): JsonResponse
     {
-        $lar = LarTemporario::find($id);
+        $lar = LarTemporario::with(['imagens'])->find($id);
 
         if (!$lar) {
             return response()->json(['error' => 'Lar temporário não encontrado'], 404);
         }
 
-        $lar->delete(); // SoftDelete
-        return response()->json(null, 204);
+        try {
+            // remover arquivos do storage (caso existam)
+            foreach ($lar->imagens as $imagem) {
+                if ($imagem->url_imagem) {
+                    $oldPath = ltrim(str_replace('/storage/', '', $imagem->url_imagem), '/');
+                    if (Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                }
+            }
+
+            $lar->delete(); // SoftDelete
+
+            return response()->json(null, 204);
+        } catch (\Exception $e) {
+            Log::error('Erro ao deletar lar temporário: ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
+            return response()->json(['error' => 'Erro ao deletar lar temporário'], 500);
+        }
     }
 
     /*
@@ -244,7 +351,14 @@ class LaresTemporarioController extends Controller
             return response()->json(['error' => 'Lar já está ativo'], 400);
         }
 
-        $lar->restore();
-        return response()->json($lar->load(['endereco', 'imagens']), 200);
+        try {
+            $lar->restore();
+            return response()->json($lar->load(['endereco', 'imagens']), 200);
+        } catch (\Exception $e) {
+            Log::error('Erro ao restaurar lar temporário: ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
+            return response()->json(['error' => 'Erro ao restaurar lar temporário'], 500);
+        }
     }
 }

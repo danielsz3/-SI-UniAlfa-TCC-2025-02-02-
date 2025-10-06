@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class OngController extends Controller
 {
@@ -18,7 +20,7 @@ class OngController extends Controller
         try {
             $perPage = $request->input('_limit', 10);
             $page    = $request->input('_page', 1);
-            $sort    = $request->input('_sort', 'id');
+            $sort    = $request->input('_sort', 'id_ong');
             $order   = $request->input('_order', 'asc');
             $filter  = json_decode($request->input('filter', '{}'), true);
 
@@ -62,12 +64,20 @@ class OngController extends Controller
     }
 
     /**
-     * Criar ONG
+     * Criar ONG com relacionamentos
      */
     public function store(Request $request): JsonResponse
     {
+        // Decodifica JSON enviado como string para arrays
+        if ($request->has('enderecos_ids') && is_string($request->input('enderecos_ids'))) {
+            $request->merge(['enderecos_ids' => json_decode($request->input('enderecos_ids'), true)]);
+        }
+
+        if ($request->has('contatos') && is_string($request->input('contatos'))) {
+            $request->merge(['contatos' => json_decode($request->input('contatos'), true)]);
+        }
+
         $validator = Validator::make($request->all(), [
-            'usuario_id'    => 'required|exists:usuarios,id',
             'nome_ong'      => 'required|string|min:3|max:255',
             'cnpj'          => 'required|string|size:14|regex:/^[0-9]+$/|unique:ongs,cnpj',
             'descricao'     => 'nullable|string|max:1000',
@@ -77,7 +87,57 @@ class OngController extends Controller
             'pix'           => 'nullable|string|max:255',
             'banco'         => 'nullable|string|max:100',
             'agencia'       => 'nullable|string|max:10',
+            'numero_conta'  => 'nullable|string|max:20',
             'conta'         => 'nullable|string|max:20',
+
+            // Relacionamentos
+            'enderecos_ids' => 'nullable|array',
+            'enderecos_ids.*' => 'exists:enderecos,id',
+
+            'contatos' => 'nullable|array',
+            'contatos.*.tipo' => 'nullable|in:telefone,email,whatsapp,instagram,facebook,site,outro',
+            'contatos.*.contato' => 'nullable|string|max:255',
+            'contatos.*.link' => 'nullable|url|max:255',
+            'contatos.*.descricao' => 'nullable|string|max:1000',
+
+            'imagens' => 'nullable|array',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
+        ], [
+            // Mensagens personalizadas para validações
+            'nome_ong.required' => 'O nome da ONG é obrigatório.',
+            'nome_ong.min' => 'O nome da ONG deve ter no mínimo 3 caracteres.',
+            'nome_ong.max' => 'O nome da ONG deve ter no máximo 255 caracteres.',
+
+            'cnpj.required' => 'O CNPJ é obrigatório.',
+            'cnpj.size' => 'O CNPJ deve ter exatamente 14 números.',
+            'cnpj.regex' => 'O CNPJ deve conter apenas números.',
+            'cnpj.unique' => 'Este CNPJ já está em uso.',
+
+            'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
+
+            'url_logo.url' => 'A URL do logo deve ser válida.',
+            'url_banner.url' => 'A URL do banner deve ser válida.',
+
+            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
+            'telefone.regex' => 'O telefone deve conter apenas números.',
+
+            'pix.max' => 'O PIX deve ter no máximo 255 caracteres.',
+            'banco.max' => 'O banco deve ter no máximo 100 caracteres.',
+            'agencia.max' => 'A agência deve ter no máximo 10 caracteres.',
+            'numero_conta.max' => 'O número da conta deve ter no máximo 20 caracteres.',
+            'conta.max' => 'A conta deve ter no máximo 20 caracteres.',
+
+            'enderecos_ids.*.exists' => 'Um ou mais endereços selecionados não existem.',
+
+            'contatos.*.tipo.in' => 'O tipo de contato deve ser telefone, email, whatsapp, instagram, facebook, site ou outro.',
+            'contatos.*.contato.max' => 'O contato deve ter no máximo 255 caracteres.',
+            'contatos.*.link.url' => 'O link do contato deve ser uma URL válida.',
+            'contatos.*.link.max' => 'O link do contato deve ter no máximo 255 caracteres.',
+            'contatos.*.descricao.max' => 'A descrição do contato deve ter no máximo 1000 caracteres.',
+
+            'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -85,23 +145,54 @@ class OngController extends Controller
         }
 
         try {
-            $ong = Ong::create($request->only([
-                'usuario_id', 'nome_ong', 'cnpj', 'descricao', 'url_logo',
-                'url_banner', 'telefone', 'pix', 'banco', 'agencia', 'conta'
-            ]));
+            return DB::transaction(function () use ($request) {
+                $ong = Ong::create($request->only([
+                    'nome_ong', 'cnpj', 'descricao', 'url_logo',
+                    'url_banner', 'telefone', 'pix', 'banco', 'agencia', 'numero_conta', 'conta'
+                ]));
 
-            return response()->json($ong, 201);
+                // Associar endereços via pivot
+                if ($request->filled('enderecos_ids')) {
+                    $ong->enderecos()->sync($request->input('enderecos_ids'));
+                }
+
+                // Criar contatos
+                if ($request->filled('contatos')) {
+                    foreach ($request->input('contatos') as $contato) {
+                        $ong->contatos()->create($contato);
+                    }
+                }
+
+                // Upload e salvar imagens
+                if ($request->hasFile('imagens')) {
+                    foreach ($request->file('imagens') as $file) {
+                        $path = $file->store('ongs', 'public');
+                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+                        $ong->imagens()->create([
+                            'caminho' => '/storage/' . $path,
+                            'width' => $width,
+                            'height' => $height,
+                        ]);
+                    }
+                }
+
+                return response()->json($ong->load(['enderecos', 'contatos', 'imagens']), 201);
+            });
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível criar a ONG'], 500);
+            return response()->json([
+                'error' => 'Erro ao criar ONG',
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
         }
     }
 
     /**
-     * Exibir ONG
+     * Exibir ONG com relacionamentos
      */
     public function show($id): JsonResponse
     {
-        $ong = Ong::find($id);
+        $ong = Ong::with(['enderecos', 'contatos', 'imagens'])->find($id);
 
         if (!$ong) {
             return response()->json(['error' => 'ONG não encontrada'], 404);
@@ -111,7 +202,7 @@ class OngController extends Controller
     }
 
     /**
-     * Atualizar ONG
+     * Atualizar ONG com relacionamentos
      */
     public function update(Request $request, $id): JsonResponse
     {
@@ -121,8 +212,16 @@ class OngController extends Controller
             return response()->json(['error' => 'ONG não encontrada'], 404);
         }
 
+        // Decodifica JSON enviado como string para arrays
+        if ($request->has('enderecos_ids') && is_string($request->input('enderecos_ids'))) {
+            $request->merge(['enderecos_ids' => json_decode($request->input('enderecos_ids'), true)]);
+        }
+
+        if ($request->has('contatos') && is_string($request->input('contatos'))) {
+            $request->merge(['contatos' => json_decode($request->input('contatos'), true)]);
+        }
+
         $validator = Validator::make($request->all(), [
-            'usuario_id' => 'sometimes|required|exists:usuarios,id',
             'nome_ong'   => 'sometimes|required|string|min:3|max:255',
             'cnpj'       => [
                 'sometimes',
@@ -130,7 +229,7 @@ class OngController extends Controller
                 'string',
                 'size:14',
                 'regex:/^[0-9]+$/',
-                Rule::unique('ongs')->ignore($ong->id)
+                Rule::unique('ongs')->ignore($ong->id_ong, 'id_ong')
             ],
             'descricao'  => 'nullable|string|max:1000',
             'url_logo'   => 'nullable|url',
@@ -139,7 +238,57 @@ class OngController extends Controller
             'pix'        => 'nullable|string|max:255',
             'banco'      => 'nullable|string|max:100',
             'agencia'    => 'nullable|string|max:10',
+            'numero_conta' => 'nullable|string|max:20',
             'conta'      => 'nullable|string|max:20',
+
+            // Relacionamentos
+            'enderecos_ids' => 'nullable|array',
+            'enderecos_ids.*' => 'exists:enderecos,id',
+
+            'contatos' => 'nullable|array',
+            'contatos.*.tipo' => 'nullable|in:telefone,email,whatsapp,instagram,facebook,site,outro',
+            'contatos.*.contato' => 'nullable|string|max:255',
+            'contatos.*.link' => 'nullable|url|max:255',
+            'contatos.*.descricao' => 'nullable|string|max:1000',
+
+            'imagens' => 'nullable|array',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
+        ], [
+            // Mensagens personalizadas para validações
+            'nome_ong.required' => 'O nome da ONG é obrigatório.',
+            'nome_ong.min' => 'O nome da ONG deve ter no mínimo 3 caracteres.',
+            'nome_ong.max' => 'O nome da ONG deve ter no máximo 255 caracteres.',
+
+            'cnpj.required' => 'O CNPJ é obrigatório.',
+            'cnpj.size' => 'O CNPJ deve ter exatamente 14 números.',
+            'cnpj.regex' => 'O CNPJ deve conter apenas números.',
+            'cnpj.unique' => 'Este CNPJ já está em uso.',
+
+            'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
+
+            'url_logo.url' => 'A URL do logo deve ser válida.',
+            'url_banner.url' => 'A URL do banner deve ser válida.',
+
+            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
+            'telefone.regex' => 'O telefone deve conter apenas números.',
+
+            'pix.max' => 'O PIX deve ter no máximo 255 caracteres.',
+            'banco.max' => 'O banco deve ter no máximo 100 caracteres.',
+            'agencia.max' => 'A agência deve ter no máximo 10 caracteres.',
+            'numero_conta.max' => 'O número da conta deve ter no máximo 20 caracteres.',
+            'conta.max' => 'A conta deve ter no máximo 20 caracteres.',
+
+            'enderecos_ids.*.exists' => 'Um ou mais endereços selecionados não existem.',
+
+            'contatos.*.tipo.in' => 'O tipo de contato deve ser telefone, email, whatsapp, instagram, facebook, site ou outro.',
+            'contatos.*.contato.max' => 'O contato deve ter no máximo 255 caracteres.',
+            'contatos.*.link.url' => 'O link do contato deve ser uma URL válida.',
+            'contatos.*.link.max' => 'O link do contato deve ter no máximo 255 caracteres.',
+            'contatos.*.descricao.max' => 'A descrição do contato deve ter no máximo 1000 caracteres.',
+
+            'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -147,12 +296,49 @@ class OngController extends Controller
         }
 
         try {
-            $ong->update($request->only([
-                'usuario_id', 'nome_ong', 'cnpj', 'descricao', 'url_logo',
-                'url_banner', 'telefone', 'pix', 'banco', 'agencia', 'conta'
-            ]));
+            return DB::transaction(function () use ($request, $ong) {
+                $ong->update($request->only([
+                    'nome_ong', 'cnpj', 'descricao', 'url_logo',
+                    'url_banner', 'telefone', 'pix', 'banco', 'agencia', 'numero_conta', 'conta'
+                ]));
 
-            return response()->json($ong->fresh(), 200);
+                // Atualizar endereços via pivot
+                if ($request->filled('enderecos_ids')) {
+                    $ong->enderecos()->sync($request->input('enderecos_ids'));
+                }
+
+                // Atualizar contatos: apagar todos e recriar (simplificado)
+                $ong->contatos()->delete();
+                if ($request->filled('contatos')) {
+                    foreach ($request->input('contatos') as $contato) {
+                        $ong->contatos()->create($contato);
+                    }
+                }
+
+                // Substitui todas as imagens se enviadas
+                if ($request->hasFile('imagens')) {
+                    // Apagar arquivos antigos do storage
+                    foreach ($ong->imagens as $imagem) {
+                        $oldPath = str_replace('/storage/', '', $imagem->caminho);
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                    // Apagar registros antigos
+                    $ong->imagens()->delete();
+
+                    // Salvar novas imagens
+                    foreach ($request->file('imagens') as $file) {
+                        $path = $file->store('ongs', 'public');
+                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+                        $ong->imagens()->create([
+                            'caminho' => '/storage/' . $path,
+                            'width' => $width,
+                            'height' => $height,
+                        ]);
+                    }
+                }
+
+                return response()->json($ong->fresh(['enderecos', 'contatos', 'imagens']), 200);
+            });
         } catch (\Exception $e) {
             return response()->json(['error' => 'Não foi possível atualizar a ONG'], 500);
         }

@@ -39,6 +39,16 @@ class TransacaoController extends Controller
             'forma_pagamento' => 'required|string',
             'situacao'        => 'required|in:pendente,concluido,cancelado',
             'observacao'      => 'nullable|string|max:1000',
+        ], [
+            'tipo.in' => 'O tipo deve ser receita ou despesa.',
+            'valor.min' => 'O valor deve ser no mínimo 0.01.',
+            'data.before_or_equal' => 'A data não pode ser futura.',
+            'categoria.min' => 'A categoria deve ter no mínimo 2 caracteres.',
+            'categoria.max' => 'A categoria deve ter no máximo 100 caracteres.',
+            'descricao.min' => 'A descrição deve ter no mínimo 3 caracteres.',
+            'descricao.max' => 'A descrição deve ter no máximo 255 caracteres.',
+            'situacao.in' => 'A situação deve ser pendente, concluido ou cancelado.',
+            'observacao.max' => 'A observação deve ter no máximo 1000 caracteres.',
         ]);
 
         if ($validator->fails()) {
@@ -82,14 +92,24 @@ class TransacaoController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'tipo'            => 'sometimes|required|in:Receita,Despesa',
+            'tipo'            => 'sometimes|required|in:receita,despesa',
             'valor'           => 'sometimes|required|numeric|min:0.01',
             'data'            => 'sometimes|required|date|before_or_equal:today',
             'categoria'       => 'sometimes|required|string|min:2|max:100',
             'descricao'       => 'sometimes|required|string|min:3|max:255',
-            'forma_pagamento' => 'required|string',
-            'situacao'        => 'sometimes|required|in:Pendente,Concluída,Cancelada',
+            'forma_pagamento' => 'sometimes|required|string',
+            'situacao'        => 'sometimes|required|in:pendente,concluido,cancelado',
             'observacao'      => 'nullable|string|max:1000',
+        ], [
+            'tipo.in' => 'O tipo deve ser receita ou despesa.',
+            'valor.min' => 'O valor deve ser no mínimo 0.01.',
+            'data.before_or_equal' => 'A data não pode ser futura.',
+            'categoria.min' => 'A categoria deve ter no mínimo 2 caracteres.',
+            'categoria.max' => 'A categoria deve ter no máximo 100 caracteres.',
+            'descricao.min' => 'A descrição deve ter no mínimo 3 caracteres.',
+            'descricao.max' => 'A descrição deve ter no máximo 255 caracteres.',
+            'situacao.in' => 'A situação deve ser pendente, concluido ou cancelado.',
+            'observacao.max' => 'A observação deve ter no máximo 1000 caracteres.',
         ]);
 
         if ($validator->fails()) {

@@ -4,14 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ImagemAnimal extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'imagens_animais';
 
-    protected $fillable = ['animal_id', 'caminho'];
+    protected $primaryKey = 'id';
+
+
+    protected $fillable = ['animal_id', 'caminho', 'width', 'height'];
 
     public function animal()
     {

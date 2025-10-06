@@ -37,7 +37,6 @@ class UsuarioController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            // Validações do usuário
             'nome' => 'required|string|min:2|max:150',
             'email' => 'required|email|max:150|unique:usuarios,email',
             'password' => 'required|min:8|confirmed',
@@ -45,8 +44,7 @@ class UsuarioController extends Controller
             'data_nascimento' => 'required|date|before:today|after:1900-01-01',
             'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
             'role' => 'nullable|string|in:user,admin',
-            
-            // Validações do endereço (opcionais)
+
             'endereco.cep' => 'nullable|string|max:9',
             'endereco.logradouro' => 'nullable|string|max:255',
             'endereco.numero' => 'nullable|string|max:10',
@@ -54,12 +52,52 @@ class UsuarioController extends Controller
             'endereco.bairro' => 'nullable|string|max:100',
             'endereco.cidade' => 'nullable|string|max:100',
             'endereco.uf' => 'nullable|string|max:2',
-            
-            // Validações das preferências (opcionais)
+
             'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
             'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
             'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
             'preferencias.espaco_casa' => 'nullable|string|in:area_pequena,area_media,area_externa',
+        ], [
+            'nome.required' => 'O nome é obrigatório.',
+            'nome.min' => 'O nome deve ter pelo menos 2 caracteres.',
+            'nome.max' => 'O nome deve ter no máximo 150 caracteres.',
+
+            'email.required' => 'O e-mail é obrigatório.',
+            'email.email' => 'O e-mail deve ser válido.',
+            'email.max' => 'O e-mail deve ter no máximo 150 caracteres.',
+            'email.unique' => 'Este e-mail já está em uso.',
+
+            'password.required' => 'A senha é obrigatória.',
+            'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
+            'password.confirmed' => 'A confirmação da senha não confere.',
+
+            'cpf.required' => 'O CPF é obrigatório.',
+            'cpf.size' => 'O CPF deve ter exatamente 11 números.',
+            'cpf.regex' => 'O CPF deve conter apenas números.',
+            'cpf.unique' => 'Este CPF já está em uso.',
+
+            'data_nascimento.required' => 'A data de nascimento é obrigatória.',
+            'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
+            'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje.',
+            'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+
+            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
+            'telefone.regex' => 'O telefone deve conter apenas números.',
+
+            'role.in' => 'O papel do usuário deve ser "user" ou "admin".',
+
+            'endereco.cep.max' => 'O CEP deve ter no máximo 9 caracteres.',
+            'endereco.logradouro.max' => 'O logradouro deve ter no máximo 255 caracteres.',
+            'endereco.numero.max' => 'O número deve ter no máximo 10 caracteres.',
+            'endereco.complemento.max' => 'O complemento deve ter no máximo 100 caracteres.',
+            'endereco.bairro.max' => 'O bairro deve ter no máximo 100 caracteres.',
+            'endereco.cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
+            'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
+
+            'preferencias.tamanho_pet.in' => 'O tamanho do pet deve ser pequeno, medio ou grande.',
+            'preferencias.tempo_disponivel.in' => 'O tempo disponível deve ser pouco_tempo, tempo_moderado ou muito_tempo.',
+            'preferencias.estilo_vida.in' => 'O estilo de vida deve ser vida_tranquila, ritmo_equilibrado ou sempre_em_acao.',
+            'preferencias.espaco_casa.in' => 'O espaço da casa deve ser area_pequena, area_media ou area_externa.',
         ]);
 
         if ($validator->fails()) {
@@ -68,7 +106,6 @@ class UsuarioController extends Controller
 
         try {
             return DB::transaction(function () use ($request) {
-                // Criar o usuário
                 $usuario = Usuario::create([
                     'nome' => $request->nome,
                     'email' => $request->email,
@@ -79,23 +116,18 @@ class UsuarioController extends Controller
                     'role' => $request->role ?? 'user',
                 ]);
 
-                // Se foi enviado dados de endereço, criar o endereço
                 if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
                     $enderecoData = $request->endereco;
                     $enderecoData['id_usuario'] = $usuario->id;
-                    
                     Endereco::create($enderecoData);
                 }
 
-                // Se foi enviado dados de preferências, criar as preferências
                 if ($request->has('preferencias') && !empty(array_filter($request->preferencias))) {
                     $prefsData = $request->preferencias;
                     $prefsData['usuario_id'] = $usuario->id;
-                    
                     PreferenciaUsuario::create($prefsData);
                 }
 
-                // Recarregar usuário com endereço e preferências
                 $usuario->load(['endereco', 'preferencias']);
 
                 return response()->json($usuario, 201);
@@ -139,7 +171,6 @@ class UsuarioController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                // Validações do usuário
                 'nome' => 'sometimes|required|string|min:2|max:150',
                 'email' => [
                     'sometimes',
@@ -160,8 +191,7 @@ class UsuarioController extends Controller
                 'data_nascimento' => 'sometimes|required|date|before:today|after:1900-01-01',
                 'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
                 'role' => 'nullable|string|in:user,admin',
-                
-                // Validações do endereço (opcionais)
+
                 'endereco.cep' => 'nullable|string|max:9',
                 'endereco.logradouro' => 'nullable|string|max:255',
                 'endereco.numero' => 'nullable|string|max:10',
@@ -169,12 +199,52 @@ class UsuarioController extends Controller
                 'endereco.bairro' => 'nullable|string|max:100',
                 'endereco.cidade' => 'nullable|string|max:100',
                 'endereco.uf' => 'nullable|string|max:2',
-                
-                // Validações das preferências (opcionais)
+
                 'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
                 'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
                 'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
                 'preferencias.espaco_casa' => 'nullable|string|in:area_pequena,area_media,area_externa',
+            ], [
+                'nome.required' => 'O nome é obrigatório.',
+                'nome.min' => 'O nome deve ter pelo menos 2 caracteres.',
+                'nome.max' => 'O nome deve ter no máximo 150 caracteres.',
+
+                'email.required' => 'O e-mail é obrigatório.',
+                'email.email' => 'O e-mail deve ser válido.',
+                'email.max' => 'O e-mail deve ter no máximo 150 caracteres.',
+                'email.unique' => 'Este e-mail já está em uso.',
+
+                'password.required' => 'A senha é obrigatória.',
+                'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
+                'password.confirmed' => 'A confirmação da senha não confere.',
+
+                'cpf.required' => 'O CPF é obrigatório.',
+                'cpf.size' => 'O CPF deve ter exatamente 11 números.',
+                'cpf.regex' => 'O CPF deve conter apenas números.',
+                'cpf.unique' => 'Este CPF já está em uso.',
+
+                'data_nascimento.required' => 'A data de nascimento é obrigatória.',
+                'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
+                'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje.',
+                'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+
+                'telefone.size' => 'O telefone deve ter exatamente 11 números.',
+                'telefone.regex' => 'O telefone deve conter apenas números.',
+
+                'role.in' => 'O papel do usuário deve ser "user" ou "admin".',
+
+                'endereco.cep.max' => 'O CEP deve ter no máximo 9 caracteres.',
+                'endereco.logradouro.max' => 'O logradouro deve ter no máximo 255 caracteres.',
+                'endereco.numero.max' => 'O número deve ter no máximo 10 caracteres.',
+                'endereco.complemento.max' => 'O complemento deve ter no máximo 100 caracteres.',
+                'endereco.bairro.max' => 'O bairro deve ter no máximo 100 caracteres.',
+                'endereco.cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
+                'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
+
+                'preferencias.tamanho_pet.in' => 'O tamanho do pet deve ser pequeno, medio ou grande.',
+                'preferencias.tempo_disponivel.in' => 'O tempo disponível deve ser pouco_tempo, tempo_moderado ou muito_tempo.',
+                'preferencias.estilo_vida.in' => 'O estilo de vida deve ser vida_tranquila, ritmo_equilibrado ou sempre_em_acao.',
+                'preferencias.espaco_casa.in' => 'O espaço da casa deve ser area_pequena, area_media ou area_externa.',
             ]);
 
             if ($validator->fails()) {
@@ -182,7 +252,6 @@ class UsuarioController extends Controller
             }
 
             return DB::transaction(function () use ($request, $usuario) {
-                // Atualizar dados do usuário
                 $userData = $request->only([
                     'nome',
                     'email',
@@ -198,29 +267,23 @@ class UsuarioController extends Controller
 
                 $usuario->update($userData);
 
-                // Atualizar ou criar endereço se enviado
                 if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
                     $enderecoData = $request->endereco;
-                    
+
                     if ($usuario->endereco) {
-                        // Atualizar endereço existente
                         $usuario->endereco->update($enderecoData);
                     } else {
-                        // Criar novo endereço
                         $enderecoData['id_usuario'] = $usuario->id;
                         Endereco::create($enderecoData);
                     }
                 }
 
-                // Atualizar ou criar preferências se enviadas
                 if ($request->has('preferencias') && !empty(array_filter($request->preferencias))) {
                     $prefsData = $request->preferencias;
-                    
+
                     if ($usuario->preferencias) {
-                        // Atualizar preferências existentes
                         $usuario->preferencias->update($prefsData);
                     } else {
-                        // Criar novas preferências
                         $prefsData['usuario_id'] = $usuario->id;
                         PreferenciaUsuario::create($prefsData);
                     }
@@ -248,7 +311,6 @@ class UsuarioController extends Controller
                 return response()->json(['error' => 'Usuário não encontrado'], 404);
             }
 
-            // Soft delete do usuário (o endereço também será soft deleted se configurado)
             $usuario->delete();
 
             return response()->json(null, 204);
