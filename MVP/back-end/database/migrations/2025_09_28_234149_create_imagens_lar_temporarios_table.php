@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreign('id_lar_temporario')
                   ->references('id')->on('lares_temporarios')
                   ->onDelete('cascade'); // se deletar lar → remove imagens
+            $table->softDeletes();
         });
     }
 

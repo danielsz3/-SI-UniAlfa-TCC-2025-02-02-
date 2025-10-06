@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Animal;
 use App\Models\ImagemAnimal;
 use App\Models\Usuario;
+use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -14,54 +15,22 @@ use Illuminate\Support\Facades\Log;
 
 class AnimalController extends Controller
 {
+    use SearchIndex;
     /**
      * Listar animais (suporta paginação, filtros e ordenação)
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            $perPage = (int) $request->input('_limit', 10);
-            $page    = (int) $request->input('_page', 1);
-            $sort    = $request->input('_sort', 'id');
-            $order   = $request->input('_order', 'desc');
-            $filter  = json_decode($request->input('filter', '{}'), true);
-
-            // Validar campos de ordenação mínimos
-            if (!in_array($order, ['asc', 'desc'])) {
-                $order = 'desc';
-            }
-
-            $query = Animal::with(['ong', 'imagens']);
-
-            // Filtros permitidos (evita injeção via campo)
-            $allowedFilters = ['nome', 'tipo_animal', 'sexo', 'idade'];
-            if (is_array($filter) && !empty($filter)) {
-                foreach ($filter as $field => $value) {
-                    if (in_array($field, $allowedFilters) && $value !== null && $value !== '') {
-                        $query->where($field, 'like', "%{$value}%");
-                    }
-                }
-            }
-
-            // Ordenar por coluna permitida (fallback para id)
-            $allowedSorts = ['id', 'nome', 'idade', 'created_at'];
-            if (!in_array($sort, $allowedSorts)) {
-                $sort = 'id';
-            }
-
-            $paginated = $query->orderBy($sort, $order)
-                ->paginate($perPage, ['*'], 'page', $page);
-
-            return response()
-                ->json($paginated->items(), 200)
-                ->header('X-Total-Count', $paginated->total())
-                ->header('Access-Control-Expose-Headers', 'X-Total-Count');
+       try {
+            return $this->SearchIndex(
+                $request,
+                Animal::query(),
+                'animais',
+                ['nome', 'descricao']
+            );
         } catch (\Exception $e) {
-            Log::error('Erro ao listar animais: '.$e->getMessage(), ['exception' => $e, 'request' => $request->all()]);
-            return response()->json([
-                'error' => 'Não foi possível carregar os animais',
-                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
-            ], 500);
+            Log::error('Erro ao listar documentos: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Não foi possível carregar os documentos'], 500);
         }
     }
 
