@@ -17,7 +17,7 @@ import PetsIcon from '@mui/icons-material/Pets';
 import { i18nProvider, myTheme } from './theme';
 import UserCreate from './components/users/UsuarioCreate';
 import { UsuarioList } from './components/users/UsuarioList';
-import { ParceiroList } from './components/parceiros/ParceiroList';
+import ParceiroList from './components/parceiros/ParceiroList';
 import ParceiroCreate from './components/parceiros/ParceiroCreate';
 import { dataProvider } from './dataProvider/dataProvider';
 import UserEdit from './components/users/UsuarioEdit';
@@ -32,7 +32,6 @@ import { LarTempList } from './components/lar_temporarios/LarTempList';
 import ArquivoEdit from './components/arquivos/ArquivoEdit';
 import LarTempEdit from './components/lar_temporarios/LarTempEdit';
 import { Loading } from './components/Loading';
-import IntegracoesPage from './components/integracoes/IntegracoesPage';
 import { IntegracaoList } from './components/integracoes/IntegracoesList';
 import AnimalCreate from './components/animais/AnimalCreate';
 
