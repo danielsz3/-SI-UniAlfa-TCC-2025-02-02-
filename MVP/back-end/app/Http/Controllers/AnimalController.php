@@ -55,7 +55,7 @@ class AnimalController extends Controller
             'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
 
             'imagens' => 'nullable|array|max:10',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
         ], [
             'id_ong.required' => 'A ONG responsável é obrigatória.',
             'id_ong.exists' => 'A ONG informada não existe.',
@@ -75,7 +75,7 @@ class AnimalController extends Controller
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
             'imagens.*.image' => 'Cada arquivo enviado deve ser uma imagem válida.',
-            'imagens.*.max' => 'Cada imagem deve ter no máximo 4MB.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -170,7 +170,7 @@ class AnimalController extends Controller
             'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
 
             'imagens' => 'nullable|array|max:10',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
         ]);
 
         if ($validator->fails()) {
