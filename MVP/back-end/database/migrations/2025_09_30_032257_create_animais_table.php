@@ -9,14 +9,13 @@ return new class extends Migration {
     {
         Schema::create('animais', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_ong'); // relacionamento com ONG
-
             $table->string('nome');
             $table->enum('sexo', ['macho', 'femea']);
-            $table->integer('idade');
+            $table->date('data_nascimento');
             $table->boolean('castrado')->default(false);
             $table->boolean('vale_castracao')->default(false);
             $table->text('descricao')->nullable();
+             $table->enum('situacao', ['disponivel','adotado','em_adocao','em_aprovação'])->default('disponivel');
 
             // tipo de animal
             $table->enum('tipo_animal', ['cao','gato','outro']);
@@ -29,9 +28,6 @@ return new class extends Migration {
 
             $table->timestamps();
             $table->softDeletes();
-
-            // foreign key correta
-            $table->foreign('id_ong')->references('id_ong')->on('ongs')->onDelete('cascade');
         });
     }
 

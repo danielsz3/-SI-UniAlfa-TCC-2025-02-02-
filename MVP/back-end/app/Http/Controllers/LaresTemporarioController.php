@@ -122,7 +122,7 @@ class LaresTemporarioController extends Controller
                         $path = $file->store('lares_temporarios', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
-                            'id_lar_temporario' => $lar->id,
+                            'id' => $lar->id,
                             'url_imagem' => '/storage/' . $path,
                             'width' => $width,
                             'height' => $height,
@@ -264,7 +264,7 @@ class LaresTemporarioController extends Controller
                 // Substitui todas as imagens se enviadas
                 if ($request->hasFile('imagens')) {
                     // Apagar arquivos antigos do storage
-                    $oldImagens = ImagemLarTemporario::where('id_lar_temporario', $lar->id)->get();
+                    $oldImagens = ImagemLarTemporario::where('id', $lar->id)->get();
                     foreach ($oldImagens as $imagem) {
                         if ($imagem->url_imagem) {
                             $oldPath = ltrim(str_replace('/storage/', '', $imagem->url_imagem), '/');
@@ -274,14 +274,14 @@ class LaresTemporarioController extends Controller
                         }
                     }
                     // Apagar registros antigos
-                    ImagemLarTemporario::where('id_lar_temporario', $lar->id)->delete();
+                    ImagemLarTemporario::where('id', $lar->id)->delete();
 
                     // Salvar novas imagens
                     foreach ($request->file('imagens') as $file) {
                         $path = $file->store('lares_temporarios', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
-                            'id_lar_temporario' => $lar->id,
+                            'id' => $lar->id,
                             'url_imagem' => '/storage/' . $path,
                             'width' => $width,
                             'height' => $height,
