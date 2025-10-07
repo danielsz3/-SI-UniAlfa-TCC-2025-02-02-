@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import React from 'react';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import EditSquareIcon from '@mui/icons-material/EditSquare';
 
 // --- Variáveis de Estilo ---
 
@@ -100,8 +101,6 @@ const ArquivoGrid = () => {
                                 color: 'inherit',
                                 pr: 1,
                             }}
-                            component={Link}
-                            to={`/documentos/${record.id}`}
                         >
                             <Box
                                 sx={{
@@ -125,15 +124,25 @@ const ArquivoGrid = () => {
                                     {formatFileSize(record?.tamanho)}
                                 </Typography>
                             </CardContent>
-                            <CardActions sx={{ p: 0 }}>
-                                <IconButton aria-label="download" onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-
-
-                                    
-                                    console.log(`Baixar arquivo: ${record?.arquivo}`);
-                                }}>
+                            <CardActions sx={{
+                                p: 0, flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                '& > :not(style) + :not(style)': {
+                                    marginLeft: 0,
+                                },
+                            }}>
+                                <IconButton
+                                    component={Link}
+                                    to={`/documentos/${record.id}`}
+                                >
+                                    <EditSquareIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                    aria-label="download"
+                                    to={`${import.meta.env.VITE_API_URL}/documentos/${record.id}/download`}
+                                    component={Link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
                                     <FileDownloadOutlinedIcon fontSize="small" />
                                 </IconButton>
                             </CardActions>

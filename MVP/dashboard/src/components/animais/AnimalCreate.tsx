@@ -1,4 +1,4 @@
-import { BooleanInput, Create, FormTab, ImageField, ImageInput, RadioButtonGroupInput, required, SelectInput, TabbedForm, TextInput, useRecordContext } from "react-admin";
+import { BooleanInput, Create, FormDataConsumer, FormTab, ImageField, ImageInput, RadioButtonGroupInput, required, SelectInput, TabbedForm, TextInput } from "react-admin";
 import { FilePlaceholder } from "../FilePlaceHolder";
 
 const AnimalCreate = () => (
@@ -9,11 +9,24 @@ const AnimalCreate = () => (
     >
         <TabbedForm>
             <FormTab label="Informações">
+
                 <TextInput
                     source="nome"
                     label="Nome"
                     validate={required('O nome é obrigatório')}
                 />
+
+                <SelectInput
+                    source="tipo_animal"
+                    label="Tipo"
+                    choices={[
+                        { id: 'gato', name: 'Gato' },
+                        { id: 'cao', name: 'Cachorro' },
+                        { id: 'outro', name: 'Outro' },
+                    ]}
+                    validate={required('O tamanho é obrigatório')}
+                />
+
                 <RadioButtonGroupInput
                     label="Sexo"
                     source="sexo"
@@ -24,19 +37,40 @@ const AnimalCreate = () => (
                     defaultValue={'ativo'}
                     validate={required('A situação é obrigatório')}
                 />
+
                 <TextInput
                     source="idade"
                     label="Idade"
                     validate={required('A idade é obrigatória')}
                 />
-                <BooleanInput
-                    label="O Animal é castrado?"
-                    source="castrado"
-                />
-                <BooleanInput
-                    label="Tem Vale castração?"
-                    source="vale_castracao"
-                />
+
+                <FormDataConsumer>
+                    {({ formData, ...rest }) => (
+                        <BooleanInput
+                            label="O Animal é castrado?"
+                            source="castrado"
+                            readOnly={formData.vale_castracao === true}
+                            {...rest}
+                        />
+                    )}
+                </FormDataConsumer>
+
+                <FormDataConsumer>
+                    {({ formData, ...rest }) => {
+                        if (formData.castrado && formData.vale_castracao) {
+                            formData.vale_castracao = false; // limpa o valor
+                        }
+                        return (
+                            <BooleanInput
+                                label="Tem Vale castração?"
+                                source="vale_castracao"
+                                readOnly={formData.castrado === true}
+                                {...rest}
+                            />
+                        );
+                    }}
+                </FormDataConsumer>
+
                 <TextInput
                     source="descricao"
                     label="Descrição"
@@ -72,7 +106,7 @@ const AnimalCreate = () => (
             </FormTab>
 
             <FormTab label="Perfil">
-                <RadioButtonGroupInput
+                <SelectInput
                     source="nivel_energia"
                     label="Nível de Energia"
                     choices={[
@@ -81,9 +115,20 @@ const AnimalCreate = () => (
                         { id: 'alta', name: 'Muito Energético' },
                     ]}
                     validate={required('O nível é obrigatório')}
+                    optionText={(choice) => (
+                        <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.3 }}>
+                            {choice.name}
+                        </span>
+                    )}
+                    sx={{
+                        '& .MuiSelect-select': {
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
+                        },
+                    }}
                 />
 
-                <RadioButtonGroupInput
+                <SelectInput
                     source="tamanho"
                     label="Tamanho/Porte"
                     choices={[
@@ -92,20 +137,42 @@ const AnimalCreate = () => (
                         { id: 'grande', name: 'Grande (acima de 25kg)' },
                     ]}
                     validate={required('O tamanho é obrigatório')}
+                    optionText={(choice) => (
+                        <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.3 }}>
+                            {choice.name}
+                        </span>
+                    )}
+                    sx={{
+                        '& .MuiSelect-select': {
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
+                        },
+                    }}
                 />
 
                 <SelectInput
                     source="tempo_necessario"
-                    label="Necessidade de tempo e cuidado do animal"
+                    label="Necessidade de tempo e cuidado"
                     choices={[
                         { id: 'pouco_tempo', name: 'Pouco tempo (independente, se adapta bem sozinho)' },
                         { id: 'tempo_moderado', name: 'Tempo moderado (gosta de companhia e passeios diários)' },
                         { id: 'muito_tempo', name: 'Muito tempo (precisa de atenção constante e interação frequente)' },
                     ]}
                     validate={required('O tempo é obrigatório')}
+                    optionText={(choice) => (
+                        <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.3 }}>
+                            {choice.name}
+                        </span>
+                    )}
+                    sx={{
+                        '& .MuiSelect-select': {
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
+                        },
+                    }}
                 />
 
-                <RadioButtonGroupInput
+                <SelectInput
                     source="ambiente_ideal"
                     label="Ambiente Ideal"
                     choices={[
@@ -114,6 +181,17 @@ const AnimalCreate = () => (
                         { id: 'area_externa', name: 'Área externa ampla (quintal grande, sítio ou espaço aberto)' },
                     ]}
                     validate={required('O ambiente é obrigatório')}
+                    optionText={(choice) => (
+                        <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.3 }}>
+                            {choice.name}
+                        </span>
+                    )}
+                    sx={{
+                        '& .MuiSelect-select': {
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
+                        },
+                    }}
                 />
 
             </FormTab>
