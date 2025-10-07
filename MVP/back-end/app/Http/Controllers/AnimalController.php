@@ -16,12 +16,13 @@ use Illuminate\Support\Facades\Log;
 class AnimalController extends Controller
 {
     use SearchIndex;
+
     /**
      * Listar animais (suporta paginação, filtros e ordenação)
      */
     public function index(Request $request): JsonResponse
     {
-       try {
+        try {
             return $this->SearchIndex(
                 $request,
                 Animal::query(),
@@ -29,8 +30,8 @@ class AnimalController extends Controller
                 ['nome', 'descricao']
             );
         } catch (\Exception $e) {
-            Log::error('Erro ao listar documentos: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json(['error' => 'Não foi possível carregar os documentos'], 500);
+            Log::error('Erro ao listar animais: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Não foi possível carregar os animais'], 500);
         }
     }
 
@@ -40,7 +41,6 @@ class AnimalController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_ong' => 'required|exists:ongs,id_ong',
             'nome' => 'required|string|max:100',
             'sexo' => 'required|in:macho,femea',
             'idade' => 'required|integer|min:0',
@@ -57,9 +57,6 @@ class AnimalController extends Controller
             'imagens' => 'nullable|array|max:10',
             'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
         ], [
-            'id_ong.required' => 'A ONG responsável é obrigatória.',
-            'id_ong.exists' => 'A ONG informada não existe.',
-
             'nome.required' => 'O nome do animal é obrigatório.',
             'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
 
@@ -85,7 +82,6 @@ class AnimalController extends Controller
         try {
             return DB::transaction(function () use ($request) {
                 $animal = Animal::create($request->only([
-                    'id_ong',
                     'nome',
                     'sexo',
                     'idade',
@@ -131,7 +127,7 @@ class AnimalController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $animal = Animal::with(['ong', 'imagens'])->find($id);
+            $animal = Animal::with('imagens')->find($id);
 
             if (!$animal) {
                 return response()->json(['error' => 'Animal não encontrado'], 404);
@@ -282,7 +278,7 @@ class AnimalController extends Controller
             }
 
             $animal->restore();
-            return response()->json($animal->fresh(['ong', 'imagens']), 200);
+            return response()->json($animal->fresh('imagens'), 200);
         } catch (\Exception $e) {
             Log::error('Erro ao restaurar animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e]);
             return response()->json([

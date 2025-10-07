@@ -16,10 +16,9 @@ class Animal extends Model
 
 
     protected $fillable = [
-        'id_ong',
         'nome',
         'sexo',
-        'idade',
+        'data_nascimento',
         'castrado',
         'vale_castracao',
         'descricao',
@@ -28,13 +27,8 @@ class Animal extends Model
         'tamanho',
         'tempo_necessario',
         'ambiente_ideal',
+        'situacao',
     ];
-
-    // ✅ Relacionamentos
-    public function ong()
-    {
-        return $this->belongsTo(Ong::class, 'id_ong');
-    }
 
     public function imagens()
     {
