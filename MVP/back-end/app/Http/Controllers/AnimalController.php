@@ -25,7 +25,7 @@ class AnimalController extends Controller
         try {
             return $this->SearchIndex(
                 $request,
-                Animal::query(),
+                Animal::with('imagens'),
                 'animais',
                 ['nome', 'descricao']
             );

@@ -122,7 +122,7 @@ class LaresTemporarioController extends Controller
                         $path = $file->store('lares_temporarios', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
-                            'id' => $lar->id,
+                            'id_lar_temporario' => $lar->id,
                             'url_imagem' => $path,
                             'width' => $width,
                             'height' => $height,
@@ -281,7 +281,7 @@ class LaresTemporarioController extends Controller
                         $path = $file->store('lares_temporarios', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
-                            'id' => $lar->id,
+                            'id_lar_temporario' => $lar->id,
                             'url_imagem' => $path,
                             'width' => $width,
                             'height' => $height,
