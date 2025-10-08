@@ -34,6 +34,7 @@ import LarTempEdit from './components/lar_temporarios/LarTempEdit';
 import { Loading } from './components/Loading';
 import { IntegracaoList } from './components/integracoes/IntegracoesList';
 import AnimalCreate from './components/animais/AnimalCreate';
+import AnimalList from './components/animais/AnimalList';
 
 function App() {
   return (
@@ -64,7 +65,7 @@ function App() {
         options={{ label: "Animais" }}
         name="animais"
         icon={PetsIcon}
-        list={ListGuesser}
+        list={AnimalList}
         create={AnimalCreate}
       />
       <Resource
