@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class DocumentoController extends Controller
 {
@@ -47,10 +47,10 @@ class DocumentoController extends Controller
         ], [
             'titulo.required' => 'O título é obrigatório.',
             'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
-            
+
             'categoria.max' => 'A categoria deve ter no máximo 255 caracteres.',
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-            
+
             'arquivo.required' => 'O arquivo é obrigatório.',
             'arquivo.file' => 'O arquivo deve ser um arquivo válido.',
             'arquivo.mimes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, png, xls, xlsx ou csv.',
@@ -63,6 +63,7 @@ class DocumentoController extends Controller
 
         try {
             $file = $request->file('arquivo');
+            // Salva em storage/app/public/documentos/
             $path = $file->store('documentos', 'public');
 
             $documento = Documento::create([
@@ -72,7 +73,7 @@ class DocumentoController extends Controller
                 'arquivo'      => $path,
                 'tipo'         => $file->getClientMimeType(),
                 'tamanho'      => $file->getSize(),
-                'nome_original'=> $file->getClientOriginalName(),
+                'nome_original' => $file->getClientOriginalName(),
             ]);
 
             return response()->json($documento, 201);
@@ -81,12 +82,12 @@ class DocumentoController extends Controller
                 'payload' => $request->except('arquivo'),
                 'exception' => $e
             ]);
-            
+
             // Em caso de erro após upload, tenta remover o arquivo órfão
             if (isset($path) && Storage::disk('public')->exists($path)) {
                 Storage::disk('public')->delete($path);
             }
-            
+
             return response()->json([
                 'error' => 'Não foi possível criar o documento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -133,10 +134,10 @@ class DocumentoController extends Controller
             ], [
                 'titulo.required' => 'O título é obrigatório.',
                 'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
-                
+
                 'categoria.max' => 'A categoria deve ter no máximo 255 caracteres.',
                 'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-                
+
                 'arquivo.file' => 'O arquivo deve ser um arquivo válido.',
                 'arquivo.mimes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, png, xls, xlsx ou csv.',
                 'arquivo.max' => 'O arquivo deve ter no máximo 8MB.',
@@ -153,6 +154,7 @@ class DocumentoController extends Controller
                 }
 
                 $file = $request->file('arquivo');
+                // Salva em storage/app/public/documentos/
                 $documento->arquivo = $file->store('documentos', 'public');
                 $documento->tipo    = $file->getClientMimeType();
                 $documento->tamanho = $file->getSize();
@@ -176,7 +178,7 @@ class DocumentoController extends Controller
                 'payload' => $request->except('arquivo'),
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível atualizar o documento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -205,7 +207,7 @@ class DocumentoController extends Controller
             return response()->json(null, 204);
         } catch (\Exception $e) {
             Log::error('Erro ao deletar documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível excluir o documento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -234,7 +236,7 @@ class DocumentoController extends Controller
             return response()->json($documento->fresh(), 200);
         } catch (\Exception $e) {
             Log::error('Erro ao restaurar documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível restaurar o documento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -251,31 +253,42 @@ class DocumentoController extends Controller
     {
         try {
             $documento = Documento::find($id);
-
             if (!$documento) {
                 return response()->json(['error' => 'Documento não encontrado'], 404);
             }
 
             $path = $documento->arquivo;
+            if (!$path) {
+                return response()->json(['error' => 'Arquivo não informado'], 404);
+            }
 
-            if (!$path || !Storage::disk('public')->exists($path)) {
+            // Se for URL externa, redireciona (ou você pode proxy/stream)
+            if (preg_match('#^https?://#i', $path)) {
+                return redirect()->away($path);
+            }
+
+            // Normaliza se o path armazenado tem prefixo "/storage/" ou "storage/"
+            if (Str::startsWith($path, '/storage/')) {
+                $path = ltrim(substr($path, 8), '/'); // remove "/storage/"
+            } elseif (Str::startsWith($path, 'storage/')) {
+                $path = ltrim(substr($path, 7), '/'); // remove "storage/"
+            } elseif (Str::startsWith($path, '/')) {
+                $path = ltrim($path, '/'); // remove leading slash
+            }
+
+            $disk = Storage::disk('public');
+
+            if (!$disk->exists($path)) {
                 return response()->json(['error' => 'Arquivo não encontrado no armazenamento'], 404);
             }
 
-            // Nome do arquivo para download
-            $fileName = $documento->nome_original ?? 
-                (pathinfo($path, PATHINFO_BASENAME) ?: 'documento');
+            $fileName = $documento->nome_original ?? pathinfo($path, PATHINFO_BASENAME);
+            $mime = $documento->tipo ?: ($disk->mimeType($path) ?? 'application/octet-stream');
 
-            // Content-Type
-            $mime = $documento->tipo ?: 
-                (Storage::disk('public')->mimeType($path) ?? 'application/octet-stream');
-
-            return Storage::disk('public')->download($path, $fileName, [
-                'Content-Type' => $mime,
-            ]);
+            return $disk->download($path, $fileName, ['Content-Type' => $mime]);
         } catch (\Exception $e) {
             Log::error('Erro ao fazer download do documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível realizar o download',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
