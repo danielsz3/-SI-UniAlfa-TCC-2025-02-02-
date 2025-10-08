@@ -20,7 +20,7 @@ const filters = [
     <TextInput label="Nome" source="nome" size="small" alwaysOn />,
 ];
 
-const ParceiroGrid = () => {
+const AnimalGrid = () => {
     const { data, isLoading } = useListContext()
     const createPath = useCreatePath()
 
@@ -36,7 +36,7 @@ const ParceiroGrid = () => {
             {data.map((record) => (
                 <Grid key={record.id} size={{ xs: 12, lg: 3, md: 4, sm: 6 }}>
                     <Link
-                        to={createPath({ resource: 'parceiros', id: record.id, type: 'edit' })}
+                        to={createPath({ resource: 'animais', id: record.id, type: 'edit' })}
                         style={{ textDecoration: 'none' }}
                     >
                         <Card sx={{ position: 'relative', height: 150, overflow: 'hidden', borderRadius: 2 }}>
@@ -47,7 +47,7 @@ const ParceiroGrid = () => {
                                     left: 0,
                                     width: '100%',
                                     height: '100%',
-                                    backgroundImage: `url(${import.meta.env.VITE_API_URL}/imagens/${record.url_logo})`,
+                                    backgroundImage: `url(${import.meta.env.VITE_API_URL}/imagens/${record.imagens[0]?.caminho})`,
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
                                 }}
@@ -74,7 +74,7 @@ const ParceiroGrid = () => {
     )
 }
 
-const ParceiroList = () => {
+const AnimalList = () => {
     const theme = useTheme()
     const isSmall = useMediaQuery(theme.breakpoints.down('sm'))
 
@@ -88,15 +88,15 @@ const ParceiroList = () => {
         >
             {isSmall ? (
                 <SimpleList
-                    leftAvatar={(record) => import.meta.env.VITE_API_URL+'/imagens/'+record.url_logo}
+                    leftAvatar={(record) => import.meta.env.VITE_API_URL+'/imagens/'+record.imagens[0]?.caminho}
                     primaryText={(record) => record.nome}
-                    secondaryText={(record) => record.url_site}
+                    secondaryText={(record) => record.tipo}
                 />
             ) : (
-                <ParceiroGrid />
+                <AnimalGrid />
             )}
         </List>
     )
 }
 
-export default ParceiroList
+export default AnimalList

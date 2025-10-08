@@ -69,7 +69,7 @@ class EventoController extends Controller
                 // Upload imagem capa
                 if ($request->hasFile('imagem_capa')) {
                     $path = $request->file('imagem_capa')->store('eventos/capa', 'public');
-                    $data['imagem_capa'] = '/storage/' . $path;
+                    $data['imagem_capa'] = $path;
                 }
 
                 $evento = Evento::create($data);
@@ -81,7 +81,7 @@ class EventoController extends Controller
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemEvento::create([
                             'evento_id' => $evento->id,
-                            'caminho' => '/storage/' . $path,
+                            'caminho' => $path,
                             'width' => $width,
                             'height' => $height,
                         ]);
@@ -177,7 +177,7 @@ class EventoController extends Controller
                         }
                     }
                     $path = $request->file('imagem_capa')->store('eventos/capa', 'public');
-                    $data['imagem_capa'] = '/storage/' . $path;
+                    $data['imagem_capa'] = $path;
                 }
 
                 $evento->update($data);
@@ -199,7 +199,7 @@ class EventoController extends Controller
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemEvento::create([
                             'evento_id' => $evento->id,
-                            'caminho' => '/storage/' . $path,
+                            'caminho' => $path,
                             'width' => $width,
                             'height' => $height,
                         ]);

@@ -1,11 +1,16 @@
 import { BooleanInput, Create, FormDataConsumer, FormTab, ImageField, ImageInput, RadioButtonGroupInput, required, SelectInput, TabbedForm, TextInput } from "react-admin";
 import { FilePlaceholder } from "../FilePlaceHolder";
+import CustomDatePicker from "../datepicker/customDatePicker";
 
 const AnimalCreate = () => (
     <Create
         title="Cadastrar Animal"
         sx={{ width: '100%', maxWidth: 600, margin: '0 auto', mb: 10 }}
         redirect="list"
+        transform={data => ({...data,
+            castrado: data.castrado === true ? 1 : 0,
+            vale_castracao: data.vale_castracao === true ? 1 : 0
+        })}
     >
         <TabbedForm>
             <FormTab label="Informações">
@@ -14,6 +19,12 @@ const AnimalCreate = () => (
                     source="nome"
                     label="Nome"
                     validate={required('O nome é obrigatório')}
+                />
+
+                <CustomDatePicker
+                    source='data_nascimento'
+                    label="Data de Nascimento *"
+                    validate={required('A data de nascimento é obrigatória')}
                 />
 
                 <SelectInput
