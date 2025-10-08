@@ -27,9 +27,9 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 /**
  * REDEFINIÇÃO DE SENHA 
  */
-Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLink']);
-Route::post('reset-password', [ResetPasswordController::class, 'reset']);
-Route::post('validate-token', [ResetPasswordController::class, 'validateToken']);
+//Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLink']);
+//Route::post('reset-password', [ResetPasswordController::class, 'reset']);
+//Route::post('validate-token', [ResetPasswordController::class, 'validateToken']);
 
 /**
  * RECURSOS PÚBLICOS (somente leitura: index, show)
@@ -44,6 +44,13 @@ Route::apiResource('documentos', DocumentoController::class)->only(['index', 'sh
 Route::apiResource('transacoes', TransacaoController::class)->only(['index', 'show']);
 Route::apiResource('animais', AnimalController::class)->only(['index', 'show']);
 Route::apiResource('eventos', EventoController::class)->only(['index', 'show']);
+Route::get('documentos/{id}/download', [DocumentoController::class, 'download']);
+Route::get('/imagem/{filename}', [AnimalController::class, 'showImage']);
+Route::get('/imagem/{filename}', [EventoController::class, 'showImage']);
+Route::get('/lares-temporarios/imagem/{filename}', [LaresTemporarioController::class, 'showImage']);
+Route::get('/parceiros/imagem/{filename}', [ParceiroController::class, 'showImage']);
+Route::get('/ongs/imagem/{filename}', [OngController::class, 'showImage']);
+
 //Route::apiResource('posts', PostController::class)->only(['index', 'show']);
 
 /**
@@ -86,7 +93,6 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('documentos', DocumentoController::class)->except(['index', 'show']);
         Route::post('documentos/{id}/restore', [DocumentoController::class, 'restore'])->name('documentos.restore');
-        Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
         Route::apiResource('transacoes', TransacaoController::class)->except(['index', 'show']);
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');

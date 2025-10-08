@@ -27,6 +27,20 @@ class ParceiroController extends Controller
     }
 
     /**
+     * Exibir imagem do parceiro
+     */
+    public function showImage($filename)
+    {
+        $filePath = "parceiros/{$filename}";
+
+        if (Storage::disk('public')->exists($filePath)) {
+            return response()->file(Storage::disk('public')->path($filePath));
+        }
+
+        return response()->json(['error' => 'Imagem não encontrada'], 404);
+    }
+
+    /**
      * Criar parceiro
      */
     public function store(Request $request): JsonResponse

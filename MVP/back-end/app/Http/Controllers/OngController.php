@@ -50,18 +50,17 @@ class OngController extends Controller
         }
     }
 
-    /**
-     * Listar ONGs incluindo deletadas
-     */
-    public function indexWithTrashed(): JsonResponse
+    public function showImage($filename)
     {
-        $ongs = Ong::withTrashed()->get();
+        $filePath = "lares_temporarios/{$filename}";
 
-        return response()->json([
-            'data'  => $ongs,
-            'total' => $ongs->count()
-        ], 200);
+        if (Storage::disk('public')->exists($filePath)) {
+            return response()->file(Storage::disk('public')->path($filePath));
+        }
+
+        return response()->json(['error' => 'Imagem não encontrada'], 404);
     }
+
 
     /**
      * Criar ONG com relacionamentos
@@ -147,8 +146,17 @@ class OngController extends Controller
         try {
             return DB::transaction(function () use ($request) {
                 $ong = Ong::create($request->only([
-                    'nome_ong', 'cnpj', 'descricao', 'url_logo',
-                    'url_banner', 'telefone', 'pix', 'banco', 'agencia', 'numero_conta', 'conta'
+                    'nome_ong',
+                    'cnpj',
+                    'descricao',
+                    'url_logo',
+                    'url_banner',
+                    'telefone',
+                    'pix',
+                    'banco',
+                    'agencia',
+                    'numero_conta',
+                    'conta'
                 ]));
 
                 // Associar endereços via pivot
@@ -298,8 +306,17 @@ class OngController extends Controller
         try {
             return DB::transaction(function () use ($request, $ong) {
                 $ong->update($request->only([
-                    'nome_ong', 'cnpj', 'descricao', 'url_logo',
-                    'url_banner', 'telefone', 'pix', 'banco', 'agencia', 'numero_conta', 'conta'
+                    'nome_ong',
+                    'cnpj',
+                    'descricao',
+                    'url_logo',
+                    'url_banner',
+                    'telefone',
+                    'pix',
+                    'banco',
+                    'agencia',
+                    'numero_conta',
+                    'conta'
                 ]));
 
                 // Atualizar endereços via pivot

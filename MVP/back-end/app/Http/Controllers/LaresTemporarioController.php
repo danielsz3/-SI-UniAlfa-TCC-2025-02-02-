@@ -32,6 +32,20 @@ class LaresTemporarioController extends Controller
         );
     }
 
+    /**
+     * Exibir imagem de um lar temporário
+     */
+    public function showImage($filename)
+    {
+        $filePath = "lares_temporarios/{$filename}";
+
+        if (Storage::disk('public')->exists($filePath)) {
+            return response()->file(Storage::disk('public')->path($filePath));
+        }
+
+        return response()->json(['error' => 'Imagem não encontrada'], 404);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Criação

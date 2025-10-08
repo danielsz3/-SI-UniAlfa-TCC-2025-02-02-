@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
+
 
 class DocumentoController extends Controller
 {
@@ -249,45 +249,33 @@ class DocumentoController extends Controller
      *
      * @return \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\JsonResponse
      */
-    public function download($id): StreamedResponse|JsonResponse
+    /**
+     * Fazer download do arquivo do documento
+     */
+    public function download($id)
     {
         try {
             $documento = Documento::find($id);
+
             if (!$documento) {
                 return response()->json(['error' => 'Documento não encontrado'], 404);
             }
 
-            $path = $documento->arquivo;
-            if (!$path) {
-                return response()->json(['error' => 'Arquivo não informado'], 404);
+            // Verifica se o arquivo realmente existe no storage
+            if (!$documento->arquivo || !Storage::disk('public')->exists($documento->arquivo)) {
+                return response()->json(['error' => 'Arquivo não encontrado no servidor'], 404);
             }
 
-            // Se for URL externa, redireciona (ou você pode proxy/stream)
-            if (preg_match('#^https?://#i', $path)) {
-                return redirect()->away($path);
-            }
-
-            // Normaliza se o path armazenado tem prefixo "/storage/" ou "storage/"
-            if (Str::startsWith($path, '/storage/')) {
-                $path = ltrim(substr($path, 8), '/'); // remove "/storage/"
-            } elseif (Str::startsWith($path, 'storage/')) {
-                $path = ltrim(substr($path, 7), '/'); // remove "storage/"
-            } elseif (Str::startsWith($path, '/')) {
-                $path = ltrim($path, '/'); // remove leading slash
-            }
-
-            $disk = Storage::disk('public');
-
-            if (!$disk->exists($path)) {
-                return response()->json(['error' => 'Arquivo não encontrado no armazenamento'], 404);
-            }
-
-            $fileName = $documento->nome_original ?? pathinfo($path, PATHINFO_BASENAME);
-            $mime = $documento->tipo ?: ($disk->mimeType($path) ?? 'application/octet-stream');
-
-            return $disk->download($path, $fileName, ['Content-Type' => $mime]);
+            // Retorna o download com nome original (ou nome padrão se não tiver)
+            return Storage::disk('public')->download(
+                $documento->arquivo,
+                $documento->nome_original ?? basename($documento->arquivo)
+            );
         } catch (\Exception $e) {
-            Log::error('Erro ao fazer download do documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
+            Log::error('Erro ao fazer download do documento: ' . $e->getMessage(), [
+                'id' => $id,
+                'exception' => $e
+            ]);
 
             return response()->json([
                 'error' => 'Não foi possível realizar o download',

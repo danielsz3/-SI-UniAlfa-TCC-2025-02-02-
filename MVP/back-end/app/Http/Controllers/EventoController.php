@@ -33,24 +33,24 @@ class EventoController extends Controller
         ], [
             'titulo.required' => 'O título do evento é obrigatório.',
             'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
-            
+
             'data_inicio.required' => 'A data de início é obrigatória.',
             'data_inicio.date' => 'A data de início deve ser uma data válida.',
             'data_inicio.after' => 'A data de início deve ser uma data futura.',
-            
+
             'data_fim.required' => 'A data de fim é obrigatória.',
             'data_fim.date' => 'A data de fim deve ser uma data válida.',
             'data_fim.after_or_equal' => 'A data de fim deve ser igual ou posterior à data de início.',
-            
+
             'local.required' => 'O local do evento é obrigatório.',
             'local.max' => 'O local deve ter no máximo 255 caracteres.',
-            
+
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-            
+
             'imagem_capa.image' => 'A imagem de capa deve ser uma imagem válida.',
             'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg, gif ou webp.',
             'imagem_capa.max' => 'A imagem de capa deve ter no máximo 10MB.',
-            
+
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
             'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem válido.',
@@ -95,12 +95,34 @@ class EventoController extends Controller
                 'request_data' => $request->except(['imagem_capa', 'imagens']),
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível criar o evento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }
+    }
+
+    /**
+     * Exibir imagem de um evento
+     */
+    public function showImage($filename)
+    {
+        // Verificar primeiro no diretório de capa
+        $filePath = "eventos/capa/{$filename}";
+
+        if (Storage::disk('public')->exists($filePath)) {
+            return response()->file(Storage::disk('public')->path($filePath));
+        }
+
+        // Verificar no diretório geral de eventos
+        $filePath = "eventos/{$filename}";
+
+        if (Storage::disk('public')->exists($filePath)) {
+            return response()->file(Storage::disk('public')->path($filePath));
+        }
+
+        return response()->json(['error' => 'Imagem não encontrada'], 404);
     }
 
     public function show($id): JsonResponse
@@ -134,24 +156,24 @@ class EventoController extends Controller
         ], [
             'titulo.required' => 'O título do evento é obrigatório.',
             'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
-            
+
             'data_inicio.required' => 'A data de início é obrigatória.',
             'data_inicio.date' => 'A data de início deve ser uma data válida.',
             'data_inicio.after' => 'A data de início deve ser uma data futura.',
-            
+
             'data_fim.required' => 'A data de fim é obrigatória.',
             'data_fim.date' => 'A data de fim deve ser uma data válida.',
             'data_fim.after_or_equal' => 'A data de fim deve ser igual ou posterior à data de início.',
-            
+
             'local.required' => 'O local do evento é obrigatório.',
             'local.max' => 'O local deve ter no máximo 255 caracteres.',
-            
+
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-            
+
             'imagem_capa.image' => 'A imagem de capa deve ser uma imagem válida.',
             'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg, gif ou webp.',
             'imagem_capa.max' => 'A imagem de capa deve ter no máximo 10MB.',
-            
+
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
             'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem válido.',
@@ -214,7 +236,7 @@ class EventoController extends Controller
                 'request_data' => $request->except(['imagem_capa', 'imagens']),
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível atualizar o evento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -254,7 +276,7 @@ class EventoController extends Controller
                 'evento_id' => $id,
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível deletar o evento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -282,7 +304,7 @@ class EventoController extends Controller
                 'evento_id' => $id,
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível restaurar o evento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'

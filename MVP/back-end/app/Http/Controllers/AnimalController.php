@@ -36,6 +36,20 @@ class AnimalController extends Controller
     }
 
     /**
+     * Exibir imagem de um animal
+     */
+    public function showImage($filename)
+    {
+        $filePath = "animais/{$filename}";
+
+        if (Storage::disk('public')->exists($filePath)) {
+            return response()->file(Storage::disk('public')->path($filePath));
+        }
+
+        return response()->json(['error' => 'Imagem não encontrada'], 404);
+    }
+
+    /**
      * Criar animal
      */
     public function store(Request $request): JsonResponse
@@ -103,7 +117,7 @@ class AnimalController extends Controller
 
                         ImagemAnimal::create([
                             'animal_id' => $animal->id,
-                            'caminho' => '/storage/'.$path,
+                            'caminho' => '/storage/' . $path,
                             'width' => $width,
                             'height' => $height,
                         ]);
@@ -113,7 +127,7 @@ class AnimalController extends Controller
                 return response()->json($animal->load('imagens'), 201);
             });
         } catch (\Exception $e) {
-            Log::error('Erro ao criar animal: '.$e->getMessage(), ['exception' => $e, 'payload' => $request->except('imagens')]);
+            Log::error('Erro ao criar animal: ' . $e->getMessage(), ['exception' => $e, 'payload' => $request->except('imagens')]);
             return response()->json([
                 'error' => 'Não foi possível criar o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -135,7 +149,7 @@ class AnimalController extends Controller
 
             return response()->json($animal, 200);
         } catch (\Exception $e) {
-            Log::error('Erro ao exibir animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e]);
+            Log::error('Erro ao exibir animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
             return response()->json(['error' => 'Não foi possível carregar o animal'], 500);
         }
     }
@@ -211,7 +225,7 @@ class AnimalController extends Controller
 
                         ImagemAnimal::create([
                             'animal_id' => $animal->id,
-                            'caminho' => '/storage/'.$path,
+                            'caminho' => '/storage/' . $path,
                             'width' => $width,
                             'height' => $height,
                         ]);
@@ -221,7 +235,7 @@ class AnimalController extends Controller
                 return response()->json($animal->fresh('imagens'), 200);
             });
         } catch (\Exception $e) {
-            Log::error('Erro ao atualizar animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e, 'payload' => $request->except('imagens')]);
+            Log::error('Erro ao atualizar animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e, 'payload' => $request->except('imagens')]);
             return response()->json([
                 'error' => 'Não foi possível atualizar o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -253,7 +267,7 @@ class AnimalController extends Controller
             $animal->delete(); // soft delete
             return response()->json(null, 204);
         } catch (\Exception $e) {
-            Log::error('Erro ao deletar animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e]);
+            Log::error('Erro ao deletar animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
             return response()->json([
                 'error' => 'Não foi possível excluir o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -280,7 +294,7 @@ class AnimalController extends Controller
             $animal->restore();
             return response()->json($animal->fresh('imagens'), 200);
         } catch (\Exception $e) {
-            Log::error('Erro ao restaurar animal: '.$e->getMessage(), ['id' => $id, 'exception' => $e]);
+            Log::error('Erro ao restaurar animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
             return response()->json([
                 'error' => 'Não foi possível restaurar o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -338,7 +352,7 @@ class AnimalController extends Controller
 
             return response()->json($ordenados, 200);
         } catch (\Exception $e) {
-            Log::error('Erro ao recomendar animais: '.$e->getMessage(), ['usuario_id' => $usuarioId, 'exception' => $e]);
+            Log::error('Erro ao recomendar animais: ' . $e->getMessage(), ['usuario_id' => $usuarioId, 'exception' => $e]);
             return response()->json([
                 'error' => 'Não foi possível gerar recomendações',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'

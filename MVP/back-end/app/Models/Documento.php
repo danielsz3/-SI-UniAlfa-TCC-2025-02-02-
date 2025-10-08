@@ -20,6 +20,5 @@ class Documento extends Model
     'arquivo',   // caminho no storage
     'tipo',      // mime-type
     'tamanho',   // tamanho em bytes
-    'url_arquivo' // <-- precisa estar aqui!
 ];
 }
