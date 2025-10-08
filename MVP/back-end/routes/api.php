@@ -15,14 +15,15 @@ use App\Http\Controllers\ContatoOngController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\EventoController;
 use App\Http\Controllers\TransacaoController;
-use App\Http\Controllers\InstagramAuthController;
 use App\Http\Controllers\IntegracaoController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\ImageController;
 
 /**
  * AUTENTICAÇÃO PÚBLICA
  */
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/imagens/{folder}/{filename}', [ImageController::class, 'show']);
 
 /**
  * REDEFINIÇÃO DE SENHA 

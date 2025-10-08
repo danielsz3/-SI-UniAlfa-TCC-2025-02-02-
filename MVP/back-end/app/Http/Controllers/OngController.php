@@ -169,7 +169,7 @@ class OngController extends Controller
                         $path = $file->store('ongs', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         $ong->imagens()->create([
-                            'caminho' => '/storage/' . $path,
+                            'caminho' => $path,
                             'width' => $width,
                             'height' => $height,
                         ]);
@@ -330,7 +330,7 @@ class OngController extends Controller
                         $path = $file->store('ongs', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         $ong->imagens()->create([
-                            'caminho' => '/storage/' . $path,
+                            'caminho' => $path,
                             'width' => $width,
                             'height' => $height,
                         ]);
