@@ -52,7 +52,7 @@ class PostController extends Controller
                     [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                     ImagemPost::create([
                         'post_id' => $post->id,
-                        'caminho' => '/storage/' . $path,
+                        'caminho' => $path,
                         'width' => $width,
                         'height' => $height,
                     ]);
@@ -121,7 +121,7 @@ class PostController extends Controller
                     [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                     ImagemPost::create([
                         'post_id' => $post->id,
-                        'caminho' => '/storage/' . $path,
+                        'caminho' => $path,
                         'width' => $width,
                         'height' => $height,
                     ]);

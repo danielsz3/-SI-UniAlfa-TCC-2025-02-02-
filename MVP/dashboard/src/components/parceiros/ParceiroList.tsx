@@ -7,12 +7,10 @@ import {
 import {
     Grid,
     Card,
-    CardMedia,
     CardContent,
     Typography,
     useTheme,
     useMediaQuery,
-    rgbToHex,
     Box,
 } from '@mui/material'
 import { Link } from 'react-router-dom'
@@ -49,10 +47,9 @@ const ParceiroGrid = () => {
                                     left: 0,
                                     width: '100%',
                                     height: '100%',
-                                    backgroundImage: `url(${import.meta.env.VITE_API_URL}/${record.url_logo})`,
+                                    backgroundImage: `url(${import.meta.env.VITE_API_URL}/imagens/${record.url_logo})`,
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
-                                    filter: 'brightness(0.8)',
                                 }}
                             />
                             <CardContent
@@ -91,7 +88,7 @@ const ParceiroList = () => {
         >
             {isSmall ? (
                 <SimpleList
-                    leftAvatar={(record) => import.meta.env.VITE_API_URL+'/'+record.url_logo}
+                    leftAvatar={(record) => import.meta.env.VITE_API_URL+'/imagens/'+record.url_logo}
                     primaryText={(record) => record.nome}
                     secondaryText={(record) => record.url_site}
                 />

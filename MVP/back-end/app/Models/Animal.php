@@ -30,6 +30,10 @@ class Animal extends Model
         'situacao',
     ];
 
+    protected $casts = [
+        'data_nascimento' => 'date',
+    ];
+
     public function imagens()
     {
         return $this->hasMany(ImagemAnimal::class, 'animal_id');
