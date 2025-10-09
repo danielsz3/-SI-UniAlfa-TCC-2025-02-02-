@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('parceiros', function (Blueprint $table) {
-            $table->id('id'); 
+            $table->id('id');
 
-            $table->string('nome'); 
-            $table->string('url_site')->nullable(); 
-            $table->string('url_logo')->nullable(); 
-            $table->text('descricao')->nullable(); 
+            $table->string('nome');
+            $table->string('url_site')->nullable();
+            $table->string('imagem')->nullable();
+            $table->text('descricao')->nullable();
 
-            $table->timestamps(); 
-            $table->softDeletes(); 
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

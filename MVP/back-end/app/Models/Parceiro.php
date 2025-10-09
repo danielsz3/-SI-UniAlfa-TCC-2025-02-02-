@@ -14,11 +14,11 @@ class Parceiro extends Model
 
     protected $primaryKey = 'id';
 
-    
+
     protected $fillable = [
         'nome',
         'url_site',
-        'url_logo',
+        'imagem',
         'descricao',
     ];
 }

@@ -35,14 +35,14 @@ class ParceiroController extends Controller
             'nome'      => 'required|string|max:255',
             'url_site'  => 'nullable|url',
             'descricao' => 'nullable|string|max:500',
-            'url_logo'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'imagem'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
         ], [
             'nome.required' => 'O nome do parceiro é obrigatório.',
             'nome.max' => 'O nome do parceiro deve ter no máximo 255 caracteres.',
             'url_site.url' => 'A URL do site deve ser válida.',
             'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
-            'url_logo.mimes' => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
-            'url_logo.max' => 'A logo deve ter no máximo 4MB.',
+            'imagem.mimes' => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
+            'imagem.max' => 'A logo deve ter no máximo 4MB.',
         ]);
 
         if ($validator->fails()) {
@@ -56,9 +56,9 @@ class ParceiroController extends Controller
                 'descricao' => $request->descricao,
             ];
 
-            if ($request->hasFile('url_logo')) {
-                $path = $request->file('url_logo')->store('parceiros', 'public');
-                $data['url_logo'] = $path; // salva o caminho do arquivo
+            if ($request->hasFile('imagem')) {
+                $path = $request->file('imagem')->store('parceiros', 'public');
+                $data['imagem'] = $path; // salva o caminho do arquivo
             }
 
             $parceiro = Parceiro::create($data);
@@ -103,14 +103,14 @@ class ParceiroController extends Controller
                 'nome'      => 'sometimes|required|string|max:255',
                 'url_site'  => 'nullable|url',
                 'descricao' => 'nullable|string|max:500',
-                'url_logo'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+                'imagem'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
             ], [
                 'nome.required' => 'O nome do parceiro é obrigatório.',
                 'nome.max' => 'O nome do parceiro deve ter no máximo 255 caracteres.',
                 'url_site.url' => 'A URL do site deve ser válida.',
                 'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
-                'url_logo.mimes' => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
-                'url_logo.max' => 'A logo deve ter no máximo 4MB.',
+                'imagem.mimes' => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
+                'imagem.max' => 'A logo deve ter no máximo 4MB.',
             ]);
 
             if ($validator->fails()) {
@@ -118,12 +118,12 @@ class ParceiroController extends Controller
             }
 
             // Só depois da validação, manipule a imagem
-            if ($request->hasFile('url_logo')) {
-                if ($parceiro->url_logo && Storage::disk('public')->exists($parceiro->url_logo)) {
-                    Storage::disk('public')->delete($parceiro->url_logo);
+            if ($request->hasFile('imagem')) {
+                if ($parceiro->imagem && Storage::disk('public')->exists($parceiro->imagem)) {
+                    Storage::disk('public')->delete($parceiro->imagem);
                 }
 
-                $parceiro->url_logo = $request->file('url_logo')->store('parceiros', 'public');
+                $parceiro->imagem = $request->file('imagem')->store('parceiros', 'public');
             }
 
             $parceiro->nome      = $request->nome      ?? $parceiro->nome;
@@ -150,8 +150,8 @@ class ParceiroController extends Controller
                 return response()->json(['error' => 'Parceiro não encontrado'], 404);
             }
 
-            if ($parceiro->url_logo && Storage::disk('public')->exists($parceiro->url_logo)) {
-                Storage::disk('public')->delete($parceiro->url_logo);
+            if ($parceiro->imagem && Storage::disk('public')->exists($parceiro->imagem)) {
+                Storage::disk('public')->delete($parceiro->imagem);
             }
 
             $parceiro->delete();

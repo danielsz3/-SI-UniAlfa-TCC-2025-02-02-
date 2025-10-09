@@ -23,7 +23,7 @@ class Ong extends Model
         'nome_ong',
         'cnpj',
         'descricao',
-        'url_logo',
+        'imagem',
         'url_banner',
         'telefone',
         'pix',
