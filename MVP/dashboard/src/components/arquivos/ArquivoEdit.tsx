@@ -47,7 +47,7 @@ const ArquivoEdit = () => (
                     },
                 }}
             >
-                <FileField source="src" title="title" />
+                <FileField source="src" title="title" target='_blank'/>
             </FileInput>
 
         </SimpleForm>

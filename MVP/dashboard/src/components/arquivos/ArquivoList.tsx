@@ -38,22 +38,23 @@ const filters = [
 
 /**
  * Retorna o ícone e a cor de fundo com base na extensão do arquivo.
- * @param {string} filename - O nome do arquivo (ex: "relatorio.pdf").
+ * @param {string | { src: string }} filename - O nome do arquivo (ex: "relatorio.pdf") ou um objeto com a propriedade "src".
  * @returns {{ icon: React.ReactElement, bgColor: string }} - O componente do ícone e a cor de fundo.
  */
-const getIconAndBackgroundForFileType = (filename: string) => {
+const getIconAndBackgroundForFileType = (filename: string | { src: string }): { icon: React.ReactElement, bgColor: string } => {
     const defaultStyle = fileTypeStyles.default;
     let style = defaultStyle;
 
-    if (filename) {
-        const extension = filename.split('.').pop()?.toLowerCase();
-        style = fileTypeStyles[extension as keyof typeof fileTypeStyles] || defaultStyle;
-    }
+    const extension = typeof filename === 'string' 
+    ? filename.split('.').pop()?.toLowerCase() 
+    : filename.src.split('.').pop()?.toLowerCase();
+
+    style = fileTypeStyles[extension as keyof typeof fileTypeStyles] || defaultStyle;
 
     const IconComponent = style.icon;
 
     return {
-        iconComponent: <IconComponent sx={{ fontSize: 40, color: style.color }} />,
+        icon: <IconComponent sx={{ fontSize: 40, color: style.color }} />,
         bgColor: style.bgColor,
     };
 };
@@ -87,7 +88,7 @@ const ArquivoGrid = () => {
             }}
         >
             {data?.map((record) => {
-                const { iconComponent, bgColor } = getIconAndBackgroundForFileType(record?.arquivo);
+                const { icon, bgColor } = getIconAndBackgroundForFileType(record?.arquivo);
 
                 return (
                     <Grid key={record.id} size={{ xs: 12, md: 4, sm: 6, lg: 3 }}>
@@ -111,10 +112,10 @@ const ArquivoGrid = () => {
                                     backgroundColor: bgColor,
                                 }}
                             >
-                                {iconComponent}
+                                {icon}
                             </Box>
                             <CardContent sx={{ flexGrow: 1, p: 1, '&:last-child': { pb: 1 } }}>
-                                <Typography variant="subtitle1" component="div" noWrap title={record?.titulo}>
+                                <Typography variant="subtitle1" component="div" title={record?.titulo}>
                                     {record?.titulo || 'Sem título'}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" noWrap>
@@ -142,6 +143,7 @@ const ArquivoGrid = () => {
                                     component={Link}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    download
                                 >
                                     <FileDownloadOutlinedIcon fontSize="small" />
                                 </IconButton>

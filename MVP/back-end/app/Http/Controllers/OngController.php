@@ -81,7 +81,7 @@ class OngController extends Controller
             'nome_ong'      => 'required|string|min:3|max:255',
             'cnpj'          => 'required|string|size:14|regex:/^[0-9]+$/|unique:ongs,cnpj',
             'descricao'     => 'nullable|string|max:1000',
-            'url_logo'      => 'nullable|url',
+            'imagem'      => 'nullable|url',
             'url_banner'    => 'nullable|url',
             'telefone'      => 'nullable|string|size:11|regex:/^[0-9]+$/',
             'pix'           => 'nullable|string|max:255',
@@ -115,7 +115,7 @@ class OngController extends Controller
 
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
 
-            'url_logo.url' => 'A URL do logo deve ser válida.',
+            'imagem.url' => 'A URL do logo deve ser válida.',
             'url_banner.url' => 'A URL do banner deve ser válida.',
 
             'telefone.size' => 'O telefone deve ter exatamente 11 números.',
@@ -147,7 +147,7 @@ class OngController extends Controller
         try {
             return DB::transaction(function () use ($request) {
                 $ong = Ong::create($request->only([
-                    'nome_ong', 'cnpj', 'descricao', 'url_logo',
+                    'nome_ong', 'cnpj', 'descricao', 'imagem',
                     'url_banner', 'telefone', 'pix', 'banco', 'agencia', 'numero_conta', 'conta'
                 ]));
 
@@ -232,7 +232,7 @@ class OngController extends Controller
                 Rule::unique('ongs')->ignore($ong->id_ong, 'id_ong')
             ],
             'descricao'  => 'nullable|string|max:1000',
-            'url_logo'   => 'nullable|url',
+            'imagem'   => 'nullable|url',
             'url_banner' => 'nullable|url',
             'telefone'   => 'nullable|string|size:11|regex:/^[0-9]+$/',
             'pix'        => 'nullable|string|max:255',
@@ -266,7 +266,7 @@ class OngController extends Controller
 
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
 
-            'url_logo.url' => 'A URL do logo deve ser válida.',
+            'imagem.url' => 'A URL do logo deve ser válida.',
             'url_banner.url' => 'A URL do banner deve ser válida.',
 
             'telefone.size' => 'O telefone deve ter exatamente 11 números.',
@@ -298,7 +298,7 @@ class OngController extends Controller
         try {
             return DB::transaction(function () use ($request, $ong) {
                 $ong->update($request->only([
-                    'nome_ong', 'cnpj', 'descricao', 'url_logo',
+                    'nome_ong', 'cnpj', 'descricao', 'imagem',
                     'url_banner', 'telefone', 'pix', 'banco', 'agencia', 'numero_conta', 'conta'
                 ]));
 

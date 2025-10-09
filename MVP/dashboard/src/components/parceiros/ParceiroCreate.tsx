@@ -27,7 +27,7 @@ const ParceiroCreate = () => (
             />
 
             <ImageInput
-                source="url_logo"
+                source="imagem"
                 label="Imagem"
                 accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
                 maxSize={10_500_000}
