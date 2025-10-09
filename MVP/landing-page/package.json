@@ -19,9 +19,12 @@
     "lucide-react": "^0.544.0",
     "next": "15.5.3",
     "next-themes": "^0.4.6",
+    "pix-payload": "^1.0.4",
+    "qrcode": "^1.5.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "tailwind": "^4.0.0",
+    "react-qr-code": "^2.0.18",
+    "tailwind": "^2.3.1",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
