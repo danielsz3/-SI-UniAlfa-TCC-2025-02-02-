@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Traits\SearchIndex;
+use Carbon\Carbon;
 
 class LaresTemporarioController extends Controller
 {
@@ -44,9 +45,22 @@ class LaresTemporarioController extends Controller
             $request->merge(['endereco' => json_decode($request->input('endereco'), true)]);
         }
 
+        // Normaliza data_nascimento para Y-m-d quando vier como ISO com T/Z
+        if ($request->filled('data_nascimento') && is_string($request->input('data_nascimento'))) {
+            try {
+                $dt = Carbon::parse($request->input('data_nascimento'))->startOfDay();
+                $request->merge(['data_nascimento' => $dt->toDateString()]);
+            } catch (\Throwable $e) {
+                // deixa o validator acusar caso inválida
+            }
+        }
+
         $validator = Validator::make($request->all(), [
             'nome'            => 'required|string|min:2|max:150',
-            'data_nascimento' => 'required|date|before:today|after:1900-01-01',
+
+            // Idade mínima de 18 anos
+            'data_nascimento' => 'required|date|after:1900-01-01|before_or_equal:-18 years',
+
             'telefone'        => 'required|string|size:11|regex:/^[0-9]+$/',
             'situacao'        => 'required|in:ativo,inativo',
             'experiencia'     => 'nullable|string|max:1000',
@@ -70,8 +84,8 @@ class LaresTemporarioController extends Controller
 
             'data_nascimento.required' => 'A data de nascimento é obrigatória.',
             'data_nascimento.date' => 'A data de nascimento deve ser válida.',
-            'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje.',
             'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+            'data_nascimento.before_or_equal' => 'Você deve ter pelo menos 18 anos.',
 
             'telefone.required' => 'O telefone é obrigatório.',
             'telefone.size' => 'O telefone deve ter exatamente 11 números.',
@@ -110,7 +124,7 @@ class LaresTemporarioController extends Controller
                 ]));
 
                 // Endereço
-                if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
+                if ($request->has('endereco') && is_array($request->endereco) && !empty(array_filter($request->endereco))) {
                     $enderecoData = $request->endereco;
                     $enderecoData['lar_temporario_id'] = $lar->id;
                     Endereco::create($enderecoData);
@@ -120,7 +134,7 @@ class LaresTemporarioController extends Controller
                 if ($request->hasFile('imagens')) {
                     foreach ($request->file('imagens') as $file) {
                         $path = $file->store('lares_temporarios', 'public');
-                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+                        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
                             'id_lar_temporario' => $lar->id,
                             'url_imagem' => $path,
@@ -134,9 +148,13 @@ class LaresTemporarioController extends Controller
             });
         } catch (\Exception $e) {
             Log::error('Erro ao criar lar temporário: ' . $e->getMessage(), [
-                'exception' => $e
+                'exception' => $e,
+                'payload' => $request->except('imagens'),
             ]);
-            return response()->json(['error' => 'Erro ao criar lar temporário'], 500);
+            return response()->json([
+                'error' => 'Erro ao criar lar temporário',
+                'message' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 
@@ -174,9 +192,22 @@ class LaresTemporarioController extends Controller
             $request->merge(['endereco' => json_decode($request->input('endereco'), true)]);
         }
 
+        // Normaliza data_nascimento para Y-m-d quando vier como ISO com T/Z
+        if ($request->filled('data_nascimento') && is_string($request->input('data_nascimento'))) {
+            try {
+                $dt = Carbon::parse($request->input('data_nascimento'))->startOfDay();
+                $request->merge(['data_nascimento' => $dt->toDateString()]);
+            } catch (\Throwable $e) {
+                // deixa o validator acusar caso inválida
+            }
+        }
+
         $validator = Validator::make($request->all(), [
             'nome'            => 'sometimes|required|string|min:2|max:150',
-            'data_nascimento' => 'sometimes|required|date|before:today|after:1900-01-01',
+
+            // Idade mínima de 18 anos
+            'data_nascimento' => 'sometimes|required|date|after:1900-01-01|before_or_equal:-18 years',
+
             'telefone'        => 'sometimes|required|string|size:11|regex:/^[0-9]+$/',
             'situacao'        => 'sometimes|required|in:ativo,inativo',
             'experiencia'     => 'nullable|string|max:1000',
@@ -200,8 +231,8 @@ class LaresTemporarioController extends Controller
             'nome.max' => 'O nome deve ter no máximo 150 caracteres.',
 
             'data_nascimento.date' => 'A data de nascimento deve ser válida.',
-            'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje.',
             'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+            'data_nascimento.before_or_equal' => 'Você deve ter pelo menos 18 anos.',
 
             'telefone.size' => 'O telefone deve ter exatamente 11 números.',
             'telefone.regex' => 'O telefone deve conter apenas números.',
@@ -239,7 +270,7 @@ class LaresTemporarioController extends Controller
                 ]));
 
                 // Endereço
-                if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
+                if ($request->has('endereco') && is_array($request->endereco) && !empty(array_filter($request->endereco))) {
                     $enderecoData = $request->endereco;
 
                     if (isset($enderecoData['id'])) {
@@ -264,7 +295,7 @@ class LaresTemporarioController extends Controller
                 // Substitui todas as imagens se enviadas
                 if ($request->hasFile('imagens')) {
                     // Apagar arquivos antigos do storage
-                    $oldImagens = ImagemLarTemporario::where('id', $lar->id)->get();
+                    $oldImagens = ImagemLarTemporario::where('id_lar_temporario', $lar->id)->get();
                     foreach ($oldImagens as $imagem) {
                         if ($imagem->url_imagem) {
                             $oldPath = ltrim(str_replace('/storage/', '', $imagem->url_imagem), '/');
@@ -274,12 +305,12 @@ class LaresTemporarioController extends Controller
                         }
                     }
                     // Apagar registros antigos
-                    ImagemLarTemporario::where('id', $lar->id)->delete();
+                    ImagemLarTemporario::where('id_lar_temporario', $lar->id)->delete();
 
                     // Salvar novas imagens
                     foreach ($request->file('imagens') as $file) {
                         $path = $file->store('lares_temporarios', 'public');
-                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+                        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemLarTemporario::create([
                             'id_lar_temporario' => $lar->id,
                             'url_imagem' => $path,
@@ -293,9 +324,13 @@ class LaresTemporarioController extends Controller
             });
         } catch (\Exception $e) {
             Log::error('Erro ao atualizar lar temporário: ' . $e->getMessage(), [
-                'exception' => $e
+                'exception' => $e,
+                'payload' => $request->except('imagens'),
             ]);
-            return response()->json(['error' => 'Erro ao atualizar lar temporário'], 500);
+            return response()->json([
+                'error' => 'Erro ao atualizar lar temporário',
+                'message' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 

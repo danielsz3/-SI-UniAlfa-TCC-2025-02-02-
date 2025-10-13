@@ -35,14 +35,14 @@ class ParceiroController extends Controller
             'nome'      => 'required|string|max:255',
             'url_site'  => 'nullable|url',
             'descricao' => 'nullable|string|max:500',
-            'imagem'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
         ], [
             'nome.required' => 'O nome do parceiro é obrigatório.',
-            'nome.max' => 'O nome do parceiro deve ter no máximo 255 caracteres.',
-            'url_site.url' => 'A URL do site deve ser válida.',
+            'nome.max'      => 'O nome do parceiro deve ter no máximo 255 caracteres.',
+            'url_site.url'  => 'A URL do site deve ser válida.',
             'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
-            'imagem.mimes' => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
-            'imagem.max' => 'A logo deve ter no máximo 4MB.',
+            'imagem.mimes'  => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
+            'imagem.max'    => 'A logo deve ter no máximo 4MB.',
         ]);
 
         if ($validator->fails()) {
@@ -56,16 +56,20 @@ class ParceiroController extends Controller
                 'descricao' => $request->descricao,
             ];
 
+            // Upload opcional da logo
             if ($request->hasFile('imagem')) {
                 $path = $request->file('imagem')->store('parceiros', 'public');
-                $data['imagem'] = $path; // salva o caminho do arquivo
+                $data['url_logo'] = $path; // coluna existente no banco
             }
 
             $parceiro = Parceiro::create($data);
 
             return response()->json($parceiro, 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível criar o parceiro'], 500);
+            return response()->json([
+                'error'   => 'Não foi possível criar o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
     }
 
@@ -83,7 +87,10 @@ class ParceiroController extends Controller
 
             return response()->json($parceiro, 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível carregar o parceiro'], 500);
+            return response()->json([
+                'error'   => 'Não foi possível carregar o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
     }
 
@@ -103,38 +110,44 @@ class ParceiroController extends Controller
                 'nome'      => 'sometimes|required|string|max:255',
                 'url_site'  => 'nullable|url',
                 'descricao' => 'nullable|string|max:500',
-                'imagem'  => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+                'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
             ], [
                 'nome.required' => 'O nome do parceiro é obrigatório.',
-                'nome.max' => 'O nome do parceiro deve ter no máximo 255 caracteres.',
-                'url_site.url' => 'A URL do site deve ser válida.',
+                'nome.max'      => 'O nome do parceiro deve ter no máximo 255 caracteres.',
+                'url_site.url'  => 'A URL do site deve ser válida.',
                 'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
-                'imagem.mimes' => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
-                'imagem.max' => 'A logo deve ter no máximo 4MB.',
+                'imagem.mimes'  => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
+                'imagem.max'    => 'A logo deve ter no máximo 4MB.',
             ]);
 
             if ($validator->fails()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            // Só depois da validação, manipule a imagem
-            if ($request->hasFile('imagem')) {
-                if ($parceiro->imagem && Storage::disk('public')->exists($parceiro->imagem)) {
-                    Storage::disk('public')->delete($parceiro->imagem);
-                }
-
-                $parceiro->imagem = $request->file('imagem')->store('parceiros', 'public');
-            }
-
+            // Atualiza campos simples
             $parceiro->nome      = $request->nome      ?? $parceiro->nome;
             $parceiro->url_site  = $request->url_site  ?? $parceiro->url_site;
             $parceiro->descricao = $request->descricao ?? $parceiro->descricao;
+
+            // Atualiza logo (se nova imagem enviada)
+            if ($request->hasFile('imagem')) {
+                // remove arquivo antigo
+                if ($parceiro->url_logo && Storage::disk('public')->exists($parceiro->url_logo)) {
+                    Storage::disk('public')->delete($parceiro->url_logo);
+                }
+
+                // salva novo arquivo
+                $parceiro->url_logo = $request->file('imagem')->store('parceiros', 'public');
+            }
 
             $parceiro->save();
 
             return response()->json($parceiro->fresh(), 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível atualizar o parceiro'], 500);
+            return response()->json([
+                'error'   => 'Não foi possível atualizar o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
     }
 
@@ -150,22 +163,23 @@ class ParceiroController extends Controller
                 return response()->json(['error' => 'Parceiro não encontrado'], 404);
             }
 
-            if ($parceiro->imagem && Storage::disk('public')->exists($parceiro->imagem)) {
-                Storage::disk('public')->delete($parceiro->imagem);
+            if ($parceiro->url_logo && Storage::disk('public')->exists($parceiro->url_logo)) {
+                Storage::disk('public')->delete($parceiro->url_logo);
             }
 
             $parceiro->delete();
 
             return response()->json(null, 204);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível excluir o parceiro'], 500);
+            return response()->json([
+                'error'   => 'Não foi possível excluir o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
     }
 
     /**
      * Restaurar parceiro deletado
-     * Observação: se a imagem foi removida no destroy, ao restaurar o registro
-     * o arquivo não estará mais disponível (mesmo comportamento do DocumentoController).
      */
     public function restore($id): JsonResponse
     {
@@ -182,9 +196,12 @@ class ParceiroController extends Controller
 
             $parceiro->restore();
 
-            return response()->json($parceiro, 200);
+            return response()->json($parceiro->fresh(), 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível restaurar o parceiro'], 500);
+            return response()->json([
+                'error'   => 'Não foi possível restaurar o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
     }
 }

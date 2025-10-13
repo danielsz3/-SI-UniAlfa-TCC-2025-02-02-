@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class AnimalController extends Controller
 {
@@ -43,7 +44,11 @@ class AnimalController extends Controller
         $validator = Validator::make($request->all(), [
             'nome' => 'required|string|max:100',
             'sexo' => 'required|in:macho,femea',
-            'idade' => 'required|integer|min:0',
+
+            // Idade e Data de Nascimento
+            'idade' => 'required|integer|min:0|max:30',
+            'data_nascimento' => 'nullable|date|after:1900-01-01|before_or_equal:today',
+
             'castrado' => 'nullable|boolean',
             'vale_castracao' => 'nullable|boolean',
             'descricao' => 'nullable|string|max:2000',
@@ -65,6 +70,12 @@ class AnimalController extends Controller
 
             'idade.required' => 'A idade é obrigatória.',
             'idade.integer' => 'A idade deve ser um número inteiro.',
+            'idade.min' => 'A idade não pode ser negativa.',
+            'idade.max' => 'A idade máxima permitida é 30 anos.',
+
+            'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
+            'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
 
             'tipo_animal.required' => 'O tipo do animal é obrigatório.',
             'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
@@ -74,6 +85,34 @@ class AnimalController extends Controller
             'imagens.*.image' => 'Cada arquivo enviado deve ser uma imagem válida.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
+
+        // Validação pós-regra: coerência idade x data_nascimento
+        $validator->after(function ($v) use ($request) {
+            $idade = $request->input('idade');
+            $dn = $request->input('data_nascimento');
+
+            if ($dn) {
+                try {
+                    $nasc = Carbon::parse($dn)->startOfDay();
+                    $hoje = Carbon::now()->startOfDay();
+
+                    if ($nasc->greaterThan($hoje)) {
+                        $v->errors()->add('data_nascimento', 'A data de nascimento não pode ser no futuro.');
+                        return;
+                    }
+
+                    $idadeCalculada = $nasc->diffInYears($hoje); // anos completos
+
+                    // Permite diferença de até 1 ano devido a arredondamentos (meses)
+                    if (abs($idadeCalculada - (int)$idade) > 1) {
+                        $v->errors()->add('data_nascimento', 'A idade informada não confere com a data de nascimento.');
+                        $v->errors()->add('idade', 'A idade informada não confere com a data de nascimento.');
+                    }
+                } catch (\Throwable $e) {
+                    // Se o parse falhar, a validação base já cobre formato inválido
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -155,7 +194,11 @@ class AnimalController extends Controller
         $validator = Validator::make($request->all(), [
             'nome' => 'sometimes|required|string|max:100',
             'sexo' => 'sometimes|required|in:macho,femea',
-            'idade' => 'sometimes|required|integer|min:0',
+
+            // No update, idade e data_nascimento são opcionais, mas se vierem precisam ser válidos
+            'idade' => 'sometimes|required|integer|min:0|max:30',
+            'data_nascimento' => 'nullable|date|after:1900-01-01|before_or_equal:today',
+
             'castrado' => 'nullable|boolean',
             'vale_castracao' => 'nullable|boolean',
             'descricao' => 'nullable|string|max:2000',
@@ -168,7 +211,50 @@ class AnimalController extends Controller
 
             'imagens' => 'nullable|array|max:10',
             'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+        ], [
+            'nome.required' => 'O nome do animal é obrigatório.',
+            'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
+
+            'sexo.in' => 'O sexo deve ser "macho" ou "femea".',
+
+            'idade.integer' => 'A idade deve ser um número inteiro.',
+            'idade.min' => 'A idade não pode ser negativa.',
+            'idade.max' => 'A idade máxima permitida é 30 anos.',
+
+            'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
+            'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
+
+            'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
         ]);
+
+        // Validação pós-regra no update
+        $validator->after(function ($v) use ($request, $animal) {
+            // Se algum não vier no request, usamos o atual do banco para comparar
+            $idade = $request->has('idade') ? $request->input('idade') : $animal->idade;
+            $dn = $request->has('data_nascimento') ? $request->input('data_nascimento') : $animal->data_nascimento;
+
+            if ($dn !== null && $idade !== null) {
+                try {
+                    $nasc = Carbon::parse($dn)->startOfDay();
+                    $hoje = Carbon::now()->startOfDay();
+
+                    if ($nasc->greaterThan($hoje)) {
+                        $v->errors()->add('data_nascimento', 'A data de nascimento não pode ser no futuro.');
+                        return;
+                    }
+
+                    $idadeCalculada = $nasc->diffInYears($hoje);
+
+                    if (abs($idadeCalculada - (int)$idade) > 1) {
+                        $v->errors()->add('data_nascimento', 'A idade informada não confere com a data de nascimento.');
+                        $v->errors()->add('idade', 'A idade informada não confere com a data de nascimento.');
+                    }
+                } catch (\Throwable $e) {
+                    // validação base cobre formato inválido
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);

@@ -12,14 +12,13 @@ class Documento extends Model
 
     protected $table = 'documentos';
     protected $primaryKey = 'id';
-    
+
     protected $fillable = [
-    'titulo',
-    'categoria',
-    'descricao',
-    'arquivo',   // caminho no storage
-    'tipo',      // mime-type
-    'tamanho',   // tamanho em bytes
-    'url_arquivo' // <-- precisa estar aqui!
-];
+        'titulo',
+        'categoria',
+        'descricao',
+        'arquivo',   // caminho relativo no storage (ex: documentos/abc123.pdf)
+        'tipo',      // mime-type
+        'tamanho',   // bytes
+    ];
 }

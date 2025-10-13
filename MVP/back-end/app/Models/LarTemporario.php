@@ -32,7 +32,7 @@ class LarTemporario extends Model
 
     public function imagens()
     {
-        return $this->hasMany(ImagemLarTemporario::class, 'id_lar_temporario', 'id');
+        return $this->hasMany(ImagemLarTemporario::class, 'id_lar_temporario', 'id_lar_temporario');
     }
 
     public function getIdadeAttribute(): ?int
