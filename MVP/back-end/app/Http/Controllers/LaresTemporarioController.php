@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Traits\SearchIndex;
+use Illuminate\Support\Arr;
 use Carbon\Carbon;
 
 class LaresTemporarioController extends Controller
@@ -75,7 +76,6 @@ class LaresTemporarioController extends Controller
             'endereco.uf'           => 'nullable|string|max:2',
 
             // Imagens (até 10MB cada)
-            'imagens'   => 'nullable|array',
             'imagens.*' => 'file|image|mimes:jpeg,png,jpg,gif|max:10240',
         ], [
             'nome.required' => 'O nome é obrigatório.',
@@ -130,16 +130,18 @@ class LaresTemporarioController extends Controller
                     Endereco::create($enderecoData);
                 }
 
-                // Upload de imagens
-                if ($request->hasFile('imagens')) {
-                    foreach ($request->file('imagens') as $file) {
+                $files = Arr::wrap($request->file('imagens', []));
+
+                foreach ($files as $file) {
+                    if ($file && $file->isValid()) {
                         $path = $file->store('lares_temporarios', 'public');
                         [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+
                         ImagemLarTemporario::create([
                             'id_lar_temporario' => $lar->id,
-                            'url_imagem' => $path,
-                            'width' => $width,
-                            'height' => $height,
+                            'caminho'        => $path,
+                            'width'             => $width,
+                            'height'            => $height,
                         ]);
                     }
                 }
@@ -202,12 +204,10 @@ class LaresTemporarioController extends Controller
             }
         }
 
-        $validator = Validator::make($request->all(), [
+        // Validação condicional: só aplica file|image se houver arquivos de fato
+        $rules = [
             'nome'            => 'sometimes|required|string|min:2|max:150',
-
-            // Idade mínima de 18 anos
             'data_nascimento' => 'sometimes|required|date|after:1900-01-01|before_or_equal:-18 years',
-
             'telefone'        => 'sometimes|required|string|size:11|regex:/^[0-9]+$/',
             'situacao'        => 'sometimes|required|in:ativo,inativo',
             'experiencia'     => 'nullable|string|max:1000',
@@ -222,10 +222,16 @@ class LaresTemporarioController extends Controller
             'endereco.cidade'       => 'nullable|string|max:100',
             'endereco.uf'           => 'nullable|string|max:2',
 
-            // Imagens
-            'imagens'   => 'nullable|array',
-            'imagens.*' => 'file|image|mimes:jpeg,png,jpg,gif|max:10240',
-        ], [
+            // Imagens - validação condicional
+            'imagens' => 'nullable|array',
+        ];
+
+        // Só valida como file se houver arquivos enviados
+        if ($request->hasFile('imagens')) {
+            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg,gif|max:10240';
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
             'nome.required' => 'O nome é obrigatório.',
             'nome.min' => 'O nome deve ter no mínimo 2 caracteres.',
             'nome.max' => 'O nome deve ter no máximo 150 caracteres.',
@@ -292,31 +298,62 @@ class LaresTemporarioController extends Controller
                     }
                 }
 
-                // Substitui todas as imagens se enviadas
-                if ($request->hasFile('imagens')) {
-                    // Apagar arquivos antigos do storage
-                    $oldImagens = ImagemLarTemporario::where('id_lar_temporario', $lar->id)->get();
-                    foreach ($oldImagens as $imagem) {
-                        if ($imagem->url_imagem) {
-                            $oldPath = ltrim(str_replace('/storage/', '', $imagem->url_imagem), '/');
-                            if (Storage::disk('public')->exists($oldPath)) {
-                                Storage::disk('public')->delete($oldPath);
+                // === Tratamento de imagens ===
+                if ($request->has('imagens') || $request->hasFile('imagens')) {
+                    // 🔹 1. Capturar arquivos novos
+                    $arquivosNovos = [];
+                    if ($request->hasFile('imagens')) {
+                        $arquivosNovos = Arr::wrap($request->file('imagens'));
+                    }
+
+                    // 🔹 2. Processar imagens mantidas
+                    $imagensMantidas = [];
+                    $imagensInput = $request->input('imagens', []);
+
+                    if (is_array($imagensInput)) {
+                        foreach ($imagensInput as $item) {
+                            // Se for string JSON, decodifica
+                            if (is_string($item)) {
+                                $decoded = json_decode($item, true);
+                                if ($decoded && isset($decoded['src'])) {
+                                    $imagensMantidas[] = basename(parse_url($decoded['src'], PHP_URL_PATH));
+                                }
+                            }
+                            // Se já vier como array com 'src'
+                            elseif (is_array($item) && isset($item['src'])) {
+                                $imagensMantidas[] = basename(parse_url($item['src'], PHP_URL_PATH));
                             }
                         }
                     }
-                    // Apagar registros antigos
-                    ImagemLarTemporario::where('id_lar_temporario', $lar->id)->delete();
 
-                    // Salvar novas imagens
-                    foreach ($request->file('imagens') as $file) {
-                        $path = $file->store('lares_temporarios', 'public');
-                        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
-                        ImagemLarTemporario::create([
-                            'id_lar_temporario' => $lar->id,
-                            'url_imagem' => $path,
-                            'width' => $width,
-                            'height' => $height,
-                        ]);
+                    // 🔹 3. Buscar imagens atuais do banco
+                    $imagensAtuais = ImagemLarTemporario::where('id_lar_temporario', $lar->id)->get();
+
+                    // 🔹 4. Excluir as removidas
+                    foreach ($imagensAtuais as $imagem) {
+                        $arquivoAtual = basename($imagem->caminho);
+
+                        if (!in_array($arquivoAtual, $imagensMantidas)) {
+                            if (Storage::disk('public')->exists($imagem->caminho)) {
+                                Storage::disk('public')->delete($imagem->caminho);
+                            }
+                            $imagem->delete();
+                        }
+                    }
+
+                    // 🔹 5. Salvar novas imagens
+                    foreach ($arquivosNovos as $file) {
+                        if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                            $path = $file->store('lares_temporarios', 'public');
+                            [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+
+                            ImagemLarTemporario::create([
+                                'id_lar_temporario' => $lar->id,
+                                'caminho' => $path,
+                                'width' => $width,
+                                'height' => $height,
+                            ]);
+                        }
                     }
                 }
 
@@ -350,8 +387,8 @@ class LaresTemporarioController extends Controller
         try {
             // remover arquivos do storage (caso existam)
             foreach ($lar->imagens as $imagem) {
-                if ($imagem->url_imagem) {
-                    $oldPath = ltrim(str_replace('/storage/', '', $imagem->url_imagem), '/');
+                if ($imagem->caminho) {
+                    $oldPath = ltrim(str_replace('/storage/', '', $imagem->caminho), '/');
                     if (Storage::disk('public')->exists($oldPath)) {
                         Storage::disk('public')->delete($oldPath);
                     }

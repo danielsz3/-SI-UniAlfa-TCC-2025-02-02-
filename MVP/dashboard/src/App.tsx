@@ -35,6 +35,7 @@ import { Loading } from './components/Loading';
 import { IntegracaoList } from './components/integracoes/IntegracoesList';
 import AnimalCreate from './components/animais/AnimalCreate';
 import AnimalList from './components/animais/AnimalList';
+import AnimalEdit from './components/animais/AnimalEdit';
 
 function App() {
   return (
@@ -66,6 +67,7 @@ function App() {
         name="animais"
         icon={PetsIcon}
         list={AnimalList}
+        edit={AnimalEdit}
         create={AnimalCreate}
       />
       <Resource

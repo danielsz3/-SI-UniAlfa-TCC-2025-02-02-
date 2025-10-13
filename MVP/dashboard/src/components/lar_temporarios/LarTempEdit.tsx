@@ -13,6 +13,7 @@ import {
 import CustomDatePicker from '../datepicker/customDatePicker';
 import { useFormContext } from 'react-hook-form';
 import { useEffect, useState } from 'react';
+import { FilePlaceholder } from '../FilePlaceHolder';
 
 const CepInput = () => {
     const { setValue, watch } = useFormContext();
@@ -125,7 +126,21 @@ const LarTempEdit = (props: EditProps) => {
                         source="imagens"
                         label="Imagens do Lar Temporário"
                         multiple
+                        accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
+                        maxSize={10_500_000}
                         validate={required('Pelo menos uma imagem é obrigatória')}
+                        placeholder={
+                            <FilePlaceholder
+                                maxSize={10_500_000}
+                                accept={['.png', '.jpg', '.jpeg', '.gif']}
+                                multiple
+                            />
+                        }
+                        sx={{
+                            '& .RaFileInput-dropZone': {
+                                p: 0,
+                            },
+                        }}
                     >
                         <ImageField source="src" title="title" />
                     </ImageInput>

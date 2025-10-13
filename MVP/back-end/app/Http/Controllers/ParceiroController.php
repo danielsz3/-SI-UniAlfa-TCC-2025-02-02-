@@ -59,7 +59,7 @@ class ParceiroController extends Controller
             // Upload opcional da logo
             if ($request->hasFile('imagem')) {
                 $path = $request->file('imagem')->store('parceiros', 'public');
-                $data['url_logo'] = $path; // coluna existente no banco
+                $data['imagem'] = $path; // coluna existente no banco
             }
 
             $parceiro = Parceiro::create($data);
@@ -132,12 +132,12 @@ class ParceiroController extends Controller
             // Atualiza logo (se nova imagem enviada)
             if ($request->hasFile('imagem')) {
                 // remove arquivo antigo
-                if ($parceiro->url_logo && Storage::disk('public')->exists($parceiro->url_logo)) {
-                    Storage::disk('public')->delete($parceiro->url_logo);
+                if ($parceiro->imagem && Storage::disk('public')->exists($parceiro->imagem)) {
+                    Storage::disk('public')->delete($parceiro->imagem);
                 }
 
                 // salva novo arquivo
-                $parceiro->url_logo = $request->file('imagem')->store('parceiros', 'public');
+                $parceiro->imagem = $request->file('imagem')->store('parceiros', 'public');
             }
 
             $parceiro->save();
@@ -163,8 +163,8 @@ class ParceiroController extends Controller
                 return response()->json(['error' => 'Parceiro não encontrado'], 404);
             }
 
-            if ($parceiro->url_logo && Storage::disk('public')->exists($parceiro->url_logo)) {
-                Storage::disk('public')->delete($parceiro->url_logo);
+            if ($parceiro->imagem && Storage::disk('public')->exists($parceiro->imagem)) {
+                Storage::disk('public')->delete($parceiro->imagem);
             }
 
             $parceiro->delete();
