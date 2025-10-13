@@ -28,7 +28,7 @@ const baseTheme = deepmerge(defaultTheme, {
         RaLayout: {
             styleOverrides: {
                 root: {
-                    width: '98vw',
+                    width: '100vw',
                 }
             }
         },

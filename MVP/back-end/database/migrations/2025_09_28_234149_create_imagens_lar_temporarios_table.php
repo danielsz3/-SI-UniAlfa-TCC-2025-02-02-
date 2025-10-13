@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('imagens_lar_temporario', function (Blueprint $table) {
             $table->id('id');
             $table->unsignedBigInteger('id_lar_temporario');
-            $table->string('url_imagem');
+            $table->string('caminho');
             $table->timestamps();
 
             $table->foreign('id_lar_temporario')

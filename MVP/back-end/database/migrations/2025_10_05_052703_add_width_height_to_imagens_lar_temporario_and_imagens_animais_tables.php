@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('imagens_lar_temporario', function (Blueprint $table) {
-            $table->integer('width')->nullable()->after('url_imagem');
+            $table->integer('width')->nullable()->after('caminho');
             $table->integer('height')->nullable()->after('width');
         });
 

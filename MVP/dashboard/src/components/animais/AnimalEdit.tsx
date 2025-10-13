@@ -1,13 +1,53 @@
-import { BooleanInput, Create, FormDataConsumer, FormTab, ImageField, ImageInput, RadioButtonGroupInput, required, SelectInput, TabbedForm, TextInput } from "react-admin";
+import { BooleanInput, Edit, FormTab, ImageField, ImageInput, RadioButtonGroupInput, required, SelectInput, TabbedForm, TextInput, useRecordContext } from "react-admin";
 import { FilePlaceholder } from "../FilePlaceHolder";
 import CustomDatePicker from "../datepicker/customDatePicker";
+import { useFormContext } from "react-hook-form";
+import { useEffect } from "react";
 
-const AnimalCreate = () => (
-    <Create
-        title="Cadastrar Animal"
+const CastracaoInputs = () => {
+    const { watch, setValue } = useFormContext();
+    const record = useRecordContext();
+
+    const castrado = watch("castrado");
+    const vale_castracao = watch("vale_castracao");
+
+    useEffect(() => {
+        if (record) {
+            setValue("castrado", !!record.castrado);
+            setValue("vale_castracao", !!record.vale_castracao);
+        }
+    }, [record, setValue]);
+
+    useEffect(() => {
+        if (castrado && vale_castracao) {
+            setValue("vale_castracao", false);
+        }
+    }, [castrado, vale_castracao, setValue]);
+
+    return (
+        <>
+            <BooleanInput
+                label="O Animal é castrado?"
+                source="castrado"
+                readOnly={vale_castracao === true}
+            />
+
+            <BooleanInput
+                label="Tem Vale castração?"
+                source="vale_castracao"
+                readOnly={castrado === true}
+            />
+        </>
+    );
+};
+
+const AnimalEdit = () => (
+    <Edit
+        title="Editar Animal"
         sx={{ width: '100%', maxWidth: 600, margin: '0 auto', mb: 10 }}
         redirect="list"
-        transform={data => ({...data,
+        transform={data => ({
+            ...data,
             castrado: data.castrado === true ? 1 : 0,
             vale_castracao: data.vale_castracao === true ? 1 : 0
         })}
@@ -49,33 +89,8 @@ const AnimalCreate = () => (
                     defaultValue={'ativo'}
                     validate={required('A situação é obrigatório')}
                 />
-
-                <FormDataConsumer>
-                    {({ formData, ...rest }) => (
-                        <BooleanInput
-                            label="O Animal é castrado?"
-                            source="castrado"
-                            readOnly={formData.vale_castracao === true}
-                            {...rest}
-                        />
-                    )}
-                </FormDataConsumer>
-
-                <FormDataConsumer>
-                    {({ formData, ...rest }) => {
-                        if (formData.castrado && formData.vale_castracao) {
-                            formData.vale_castracao = false; // limpa o valor
-                        }
-                        return (
-                            <BooleanInput
-                                label="Tem Vale castração?"
-                                source="vale_castracao"
-                                readOnly={formData.castrado === true}
-                                {...rest}
-                            />
-                        );
-                    }}
-                </FormDataConsumer>
+                
+                <CastracaoInputs />
 
                 <TextInput
                     source="descricao"
@@ -202,7 +217,7 @@ const AnimalCreate = () => (
 
             </FormTab>
         </TabbedForm>
-    </Create>
+    </Edit>
 )
 
-export default AnimalCreate;
+export default AnimalEdit;

@@ -16,7 +16,7 @@ class ImagemLarTemporario extends Model
 
     protected $fillable = [
         'id_lar_temporario',
-        'url_imagem',
+        'caminho',
         'width',
         'height',
     ];

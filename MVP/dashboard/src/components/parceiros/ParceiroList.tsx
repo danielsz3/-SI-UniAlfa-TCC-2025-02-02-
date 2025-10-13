@@ -39,7 +39,7 @@ const ParceiroGrid = () => {
                         to={createPath({ resource: 'parceiros', id: record.id, type: 'edit' })}
                         style={{ textDecoration: 'none' }}
                     >
-                        <Card sx={{ position: 'relative', height: 150, overflow: 'hidden', borderRadius: 2 }}>
+                        <Card sx={{ position: 'relative', height: 200, overflow: 'hidden', borderRadius: 2 }}>
                             <Box
                                 sx={{
                                     position: 'absolute',
@@ -47,7 +47,7 @@ const ParceiroGrid = () => {
                                     left: 0,
                                     width: '100%',
                                     height: '100%',
-                                    backgroundImage: `url(${import.meta.env.VITE_API_URL}/imagens/${record.imagem})`,
+                                    backgroundImage: `url(${record.imagem.src || import.meta.env.VITE_API_URL + '/imagens/' + record.imagem})`,
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
                                 }}
@@ -88,7 +88,7 @@ const ParceiroList = () => {
         >
             {isSmall ? (
                 <SimpleList
-                    leftAvatar={(record) => import.meta.env.VITE_API_URL+'/imagens/'+record.imagem}
+                    leftAvatar={(record) => import.meta.env.VITE_API_URL + '/imagens/' + record.imagem}
                     primaryText={(record) => record.nome}
                     secondaryText={(record) => record.url_site}
                 />

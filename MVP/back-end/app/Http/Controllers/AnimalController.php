@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Arr;
 use Carbon\Carbon;
 
 class AnimalController extends Controller
@@ -45,8 +46,6 @@ class AnimalController extends Controller
             'nome' => 'required|string|max:100',
             'sexo' => 'required|in:macho,femea',
 
-            // Idade e Data de Nascimento
-            'idade' => 'required|integer|min:0|max:30',
             'data_nascimento' => 'nullable|date|after:1900-01-01|before_or_equal:today',
 
             'castrado' => 'nullable|boolean',
@@ -68,11 +67,6 @@ class AnimalController extends Controller
             'sexo.required' => 'O sexo é obrigatório.',
             'sexo.in' => 'O sexo deve ser "macho" ou "femea".',
 
-            'idade.required' => 'A idade é obrigatória.',
-            'idade.integer' => 'A idade deve ser um número inteiro.',
-            'idade.min' => 'A idade não pode ser negativa.',
-            'idade.max' => 'A idade máxima permitida é 30 anos.',
-
             'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
             'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
             'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
@@ -86,34 +80,6 @@ class AnimalController extends Controller
             'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
-        // Validação pós-regra: coerência idade x data_nascimento
-        $validator->after(function ($v) use ($request) {
-            $idade = $request->input('idade');
-            $dn = $request->input('data_nascimento');
-
-            if ($dn) {
-                try {
-                    $nasc = Carbon::parse($dn)->startOfDay();
-                    $hoje = Carbon::now()->startOfDay();
-
-                    if ($nasc->greaterThan($hoje)) {
-                        $v->errors()->add('data_nascimento', 'A data de nascimento não pode ser no futuro.');
-                        return;
-                    }
-
-                    $idadeCalculada = $nasc->diffInYears($hoje); // anos completos
-
-                    // Permite diferença de até 1 ano devido a arredondamentos (meses)
-                    if (abs($idadeCalculada - (int)$idade) > 1) {
-                        $v->errors()->add('data_nascimento', 'A idade informada não confere com a data de nascimento.');
-                        $v->errors()->add('idade', 'A idade informada não confere com a data de nascimento.');
-                    }
-                } catch (\Throwable $e) {
-                    // Se o parse falhar, a validação base já cobre formato inválido
-                }
-            }
-        });
-
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
@@ -124,7 +90,6 @@ class AnimalController extends Controller
                     'nome',
                     'sexo',
                     'data_nascimento',
-                    'idade',
                     'castrado',
                     'vale_castracao',
                     'descricao',
@@ -135,11 +100,12 @@ class AnimalController extends Controller
                     'ambiente_ideal'
                 ]));
 
-                // Upload de imagens (se houver)
-                if ($request->hasFile('imagens')) {
-                    foreach ($request->file('imagens') as $file) {
+                $files = Arr::wrap($request->file('imagens', []));
+
+                foreach ($files as $file) {
+                    if ($file && $file->isValid()) {
                         $path = $file->store('animais', 'public');
-                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+                        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
                         ImagemAnimal::create([
                             'animal_id' => $animal->id,
@@ -191,12 +157,10 @@ class AnimalController extends Controller
             return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'nome' => 'sometimes|required|string|max:100',
             'sexo' => 'sometimes|required|in:macho,femea',
 
-            // No update, idade e data_nascimento são opcionais, mas se vierem precisam ser válidos
-            'idade' => 'sometimes|required|integer|min:0|max:30',
             'data_nascimento' => 'nullable|date|after:1900-01-01|before_or_equal:today',
 
             'castrado' => 'nullable|boolean',
@@ -210,51 +174,25 @@ class AnimalController extends Controller
             'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
 
             'imagens' => 'nullable|array|max:10',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
-        ], [
+        ];
+
+        // Só valida como file se houver arquivos enviados
+        if ($request->hasFile('imagens')) {
+            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg,gif|max:10240';
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
             'nome.required' => 'O nome do animal é obrigatório.',
             'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
 
             'sexo.in' => 'O sexo deve ser "macho" ou "femea".',
-
-            'idade.integer' => 'A idade deve ser um número inteiro.',
-            'idade.min' => 'A idade não pode ser negativa.',
-            'idade.max' => 'A idade máxima permitida é 30 anos.',
 
             'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
             'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
             'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
 
             'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
-        ]);
-
-        // Validação pós-regra no update
-        $validator->after(function ($v) use ($request, $animal) {
-            // Se algum não vier no request, usamos o atual do banco para comparar
-            $idade = $request->has('idade') ? $request->input('idade') : $animal->idade;
-            $dn = $request->has('data_nascimento') ? $request->input('data_nascimento') : $animal->data_nascimento;
-
-            if ($dn !== null && $idade !== null) {
-                try {
-                    $nasc = Carbon::parse($dn)->startOfDay();
-                    $hoje = Carbon::now()->startOfDay();
-
-                    if ($nasc->greaterThan($hoje)) {
-                        $v->errors()->add('data_nascimento', 'A data de nascimento não pode ser no futuro.');
-                        return;
-                    }
-
-                    $idadeCalculada = $nasc->diffInYears($hoje);
-
-                    if (abs($idadeCalculada - (int)$idade) > 1) {
-                        $v->errors()->add('data_nascimento', 'A idade informada não confere com a data de nascimento.');
-                        $v->errors()->add('idade', 'A idade informada não confere com a data de nascimento.');
-                    }
-                } catch (\Throwable $e) {
-                    // validação base cobre formato inválido
-                }
-            }
-        });
+        ]);      
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -266,7 +204,6 @@ class AnimalController extends Controller
                     'nome',
                     'data_nascimento',
                     'sexo',
-                    'idade',
                     'castrado',
                     'vale_castracao',
                     'descricao',
@@ -277,32 +214,62 @@ class AnimalController extends Controller
                     'ambiente_ideal'
                 ]));
 
-                if ($request->hasFile('imagens')) {
-                    // Apagar arquivos antigos do storage
-                    $oldImagens = $animal->imagens()->get();
-                    foreach ($oldImagens as $img) {
-                        if ($img->caminho) {
-                            $oldPath = ltrim(str_replace('/storage/', '', $img->caminho), '/');
-                            if (Storage::disk('public')->exists($oldPath)) {
-                                Storage::disk('public')->delete($oldPath);
+                // === Tratamento de imagens ===
+                if ($request->has('imagens') || $request->hasFile('imagens')) {
+                    // 🔹 1. Capturar arquivos novos
+                    $arquivosNovos = [];
+                    if ($request->hasFile('imagens')) {
+                        $arquivosNovos = Arr::wrap($request->file('imagens'));
+                    }
+
+                    // 🔹 2. Processar imagens mantidas
+                    $imagensMantidas = [];
+                    $imagensInput = $request->input('imagens', []);
+
+                    if (is_array($imagensInput)) {
+                        foreach ($imagensInput as $item) {
+                            // Se for string JSON, decodifica
+                            if (is_string($item)) {
+                                $decoded = json_decode($item, true);
+                                if ($decoded && isset($decoded['src'])) {
+                                    $imagensMantidas[] = basename(parse_url($decoded['src'], PHP_URL_PATH));
+                                }
+                            }
+                            // Se já vier como array com 'src'
+                            elseif (is_array($item) && isset($item['src'])) {
+                                $imagensMantidas[] = basename(parse_url($item['src'], PHP_URL_PATH));
                             }
                         }
                     }
 
-                    // Remover registros antigos
-                    $animal->imagens()->delete();
+                    // 🔹 3. Buscar imagens atuais do banco
+                    $imagensAtuais = ImagemAnimal::where('animal_id', $animal->id)->get();
 
-                    // Salvar novas imagens
-                    foreach ($request->file('imagens') as $file) {
-                        $path = $file->store('animais', 'public');
-                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+                    // 🔹 4. Excluir as removidas
+                    foreach ($imagensAtuais as $imagem) {
+                        $arquivoAtual = basename($imagem->caminho);
 
-                        ImagemAnimal::create([
-                            'animal_id' => $animal->id,
-                            'caminho' => $path,
-                            'width' => $width,
-                            'height' => $height,
-                        ]);
+                        if (!in_array($arquivoAtual, $imagensMantidas)) {
+                            if (Storage::disk('public')->exists($imagem->caminho)) {
+                                Storage::disk('public')->delete($imagem->caminho);
+                            }
+                            $imagem->delete();
+                        }
+                    }
+
+                    // 🔹 5. Salvar novas imagens
+                    foreach ($arquivosNovos as $file) {
+                        if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                            $path = $file->store('animais', 'public');
+                            [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+
+                            ImagemAnimal::create([
+                                'animal_id' => $animal->id,
+                                'caminho' => $path,
+                                'width' => $width,
+                                'height' => $height,
+                            ]);
+                        }
                     }
                 }
 
