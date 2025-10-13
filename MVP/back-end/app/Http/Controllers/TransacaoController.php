@@ -7,6 +7,7 @@ use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class TransacaoController extends Controller
 {
@@ -22,12 +23,75 @@ class TransacaoController extends Controller
         );
     }
 
+    /**
+     * Normaliza os campos vindos do front
+     * - data: aceita DD/MM/YYYY HH:mm, DD/MM/YYYY HH:mm:ss, ISO e converte para Y-m-d H:i:s
+     * - valor: troca vírgula por ponto e converte para float
+     * - tipo: já está vindo como 'receita' | 'despesa' no front, mas mapeamos por segurança
+     */
+    private function normalizePayload(array $input): array
+    {
+        $data = $input;
+
+        // tipo
+        if (!empty($data['tipo'])) {
+            if ($data['tipo'] === 'entrada') $data['tipo'] = 'receita';
+            if ($data['tipo'] === 'saida')   $data['tipo'] = 'despesa';
+        }
+
+        // valor
+        if (isset($data['valor'])) {
+            if (is_string($data['valor'])) {
+                $data['valor'] = str_replace(',', '.', $data['valor']);
+            }
+            $data['valor'] = (float) $data['valor'];
+        }
+
+        // data
+        if (!empty($data['data'])) {
+            $formats = [
+                'd/m/Y H:i',
+                'd/m/Y H:i:s',
+                'Y-m-d\TH:i',
+                'Y-m-d\TH:i:s',
+                'Y-m-d H:i',
+                'Y-m-d H:i:s',
+            ];
+
+            $parsed = null;
+            foreach ($formats as $fmt) {
+                try {
+                    $dt = Carbon::createFromFormat($fmt, $data['data']);
+                    if ($dt !== false) { $parsed = $dt; break; }
+                } catch (\Throwable $e) {
+                    // tenta próximo formato
+                }
+            }
+
+            if (!$parsed) {
+                // última tentativa: parse livre do Carbon
+                try {
+                    $tmp = Carbon::parse($data['data']);
+                    if ($tmp) $parsed = $tmp;
+                } catch (\Throwable $e) {}
+            }
+
+            if ($parsed) {
+                $data['data'] = $parsed->format('Y-m-d H:i:s');
+            }
+        }
+
+        return $data;
+    }
+
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'tipo'            => 'required|in:entrada,saida',
+        $input = $this->normalizePayload($request->all());
+
+        $validator = Validator::make($input, [
+            'tipo'            => 'required|in:receita,despesa',
             'valor'           => 'required|numeric|min:0.01',
-            'data'            => 'required|date|after:1900-01-01|before_or_equal:today',
+            'data'            => 'required|date|after:1900-01-01|before_or_equal:today', // para permitir futuro, remova "before_or_equal:today"
             'categoria'       => 'required|string|min:2|max:100',
             'descricao'       => 'required|string|min:3|max:255',
             'forma_pagamento' => 'required|string|max:255',
@@ -40,9 +104,9 @@ class TransacaoController extends Controller
         }
 
         try {
-            $payload = $request->only([
+            $payload = collect($input)->only([
                 'tipo','valor','data','categoria','descricao','forma_pagamento','situacao','observacao'
-            ]);
+            ])->toArray();
 
             $transacao = Transacao::create($payload);
 
@@ -71,10 +135,12 @@ class TransacaoController extends Controller
             return response()->json(['error' => 'Transação não encontrada'], 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'tipo'            => 'sometimes|required|in:entrada,saida',
+        $input = $this->normalizePayload($request->all());
+
+        $validator = Validator::make($input, [
+            'tipo'            => 'sometimes|required|in:receita,despesa',
             'valor'           => 'sometimes|required|numeric|min:0.01',
-            'data'            => 'sometimes|required|date|after:1900-01-01|before_or_equal:today',
+            'data'            => 'sometimes|required|date|after:1900-01-01|before_or_equal:today', // para permitir futuro, remova "before_or_equal:today"
             'categoria'       => 'sometimes|required|string|min:2|max:100',
             'descricao'       => 'sometimes|required|string|min:3|max:255',
             'forma_pagamento' => 'sometimes|required|string|max:255',
@@ -87,9 +153,9 @@ class TransacaoController extends Controller
         }
 
         try {
-            $transacao->update($request->only([
+            $transacao->update(collect($input)->only([
                 'tipo','valor','data','categoria','descricao','forma_pagamento','situacao','observacao'
-            ]));
+            ])->toArray());
 
             return response()->json($transacao->fresh(), 200);
         } catch (\Exception $e) {

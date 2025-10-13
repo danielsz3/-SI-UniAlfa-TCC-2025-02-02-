@@ -35,7 +35,6 @@ Route::post('validate-token', [ResetPasswordController::class, 'validateToken'])
 /**
  * RECURSOS PÚBLICOS (somente leitura: index, show)
  */
-Route::apiResource('usuarios', UsuarioController::class)->only(['index', 'show']);
 Route::apiResource('enderecos', EnderecoController::class)->only(['index', 'show']);
 Route::apiResource('ongs', OngController::class)->only(['index', 'show']);
 Route::apiResource('parceiros', ParceiroController::class)->only(['index', 'show']);
@@ -66,10 +65,11 @@ Route::middleware(['jwt.auth'])->group(function () {
      */
     Route::middleware(['role:admin'])->group(function () {
         // USUÁRIOS: admin gerencia, mas store já é pública
-        Route::apiResource('usuarios', UsuarioController::class)->except(['index', 'show', 'store']);
+        Route::apiResource('usuarios', UsuarioController::class)->except(['store']);
         Route::post('usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
 
         // DEMAIS RECURSOS: admin pode criar/editar/excluir/restaurar
+
         Route::apiResource('enderecos', EnderecoController::class)->except(['index', 'show']);
         Route::post('enderecos/{id}/restore', [EnderecoController::class, 'restore'])->name('enderecos.restore');
 
@@ -87,7 +87,8 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('documentos', DocumentoController::class)->except(['index', 'show']);
         Route::post('documentos/{id}/restore', [DocumentoController::class, 'restore'])->name('documentos.restore');
-        Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
+        Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])
+    ->name('documentos.download');
 
         Route::apiResource('transacoes', TransacaoController::class)->except(['index', 'show']);
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');

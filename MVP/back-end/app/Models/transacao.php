@@ -14,14 +14,14 @@ class Transacao extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
-        'tipo',             // 'entrada' | 'saida'
-        'valor',            // decimal
-        'data',             // datetime
-        'categoria',        // varchar
-        'descricao',        // varchar
-        'forma_pagamento',  // varchar
-        'situacao',         // 'pendente' | 'concluido' | 'cancelado'
-        'observacao',       // text (nullable)
+        'tipo',             
+        'valor',
+        'data',
+        'categoria',
+        'descricao',
+        'forma_pagamento',
+        'situacao',
+        'observacao',
     ];
 
     protected $casts = [

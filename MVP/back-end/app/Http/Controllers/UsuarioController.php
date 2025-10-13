@@ -39,7 +39,16 @@ class UsuarioController extends Controller
         $validator = Validator::make($request->all(), [
             'nome' => 'required|string|min:2|max:150',
             'email' => 'required|email|max:150|unique:usuarios,email',
-            'password' => 'required|min:8|confirmed',
+
+            // Senha forte: mínimo 8, 1 maiúscula, 1 número, 1 caractere especial + confirmação
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/'
+            ],
+
             'cpf' => 'required|string|size:11|regex:/^[0-9]+$/|unique:usuarios,cpf',
             'data_nascimento' => 'required|date|before:today|after:1900-01-01',
             'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
@@ -70,6 +79,7 @@ class UsuarioController extends Controller
             'password.required' => 'A senha é obrigatória.',
             'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
             'password.confirmed' => 'A confirmação da senha não confere.',
+            'password.regex' => 'A senha deve ter no mínimo 8 caracteres, incluir pelo menos 1 letra maiúscula, 1 número e 1 caractere especial.',
 
             'cpf.required' => 'O CPF é obrigatório.',
             'cpf.size' => 'O CPF deve ter exatamente 11 números.',
@@ -179,7 +189,17 @@ class UsuarioController extends Controller
                     'max:150',
                     Rule::unique('usuarios')->ignore($usuario->id)
                 ],
-                'password' => 'sometimes|required|min:8|confirmed',
+
+                // Senha forte no update (apenas se enviada)
+                'password' => [
+                    'sometimes',
+                    'required',
+                    'string',
+                    'min:8',
+                    'confirmed',
+                    'regex:/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/'
+                ],
+
                 'cpf' => [
                     'sometimes',
                     'required',
@@ -217,6 +237,7 @@ class UsuarioController extends Controller
                 'password.required' => 'A senha é obrigatória.',
                 'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
                 'password.confirmed' => 'A confirmação da senha não confere.',
+                'password.regex' => 'A senha deve ter no mínimo 8 caracteres, incluir pelo menos 1 letra maiúscula, 1 número e 1 caractere especial.',
 
                 'cpf.required' => 'O CPF é obrigatório.',
                 'cpf.size' => 'O CPF deve ter exatamente 11 números.',

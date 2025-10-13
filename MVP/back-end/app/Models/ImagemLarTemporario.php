@@ -11,7 +11,7 @@ class ImagemLarTemporario extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'imagens_lar_temporario'; // tabela no plural
-    protected $primaryKey = 'id_imagem_lar_temp';
+    protected $primaryKey = 'id';
 
     protected $fillable = [
         'id_lar_temporario',
