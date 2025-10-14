@@ -21,7 +21,7 @@ class Evento extends Model
         'data_fim',
         'local',
         'descricao',
-        'imagem_capa' // caminho da imagem de capa
+        'imagem' // caminho da imagem de capa
     ];
 
     public function imagens()
