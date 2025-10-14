@@ -16,6 +16,8 @@ import {
 import { Link } from 'react-router-dom'
 import { useCreatePath } from 'react-admin'
 
+const CARD_HEIGHT = 250;
+
 const filters = [
     <TextInput label="Nome" source="nome" size="small" alwaysOn />,
 ];
@@ -34,12 +36,12 @@ const ParceiroGrid = () => {
             }}
         >
             {data.map((record) => (
-                <Grid key={record.id} size={{ xs: 12, lg: 3, md: 4, sm: 6 }}>
+                <Grid key={record.id} size={{ xs: 12, xl: 2, lg: 3, md: 4, sm: 6 }} >
                     <Link
                         to={createPath({ resource: 'parceiros', id: record.id, type: 'edit' })}
                         style={{ textDecoration: 'none' }}
                     >
-                        <Card sx={{ position: 'relative', height: 200, overflow: 'hidden', borderRadius: 2 }}>
+                        <Card sx={{ position: 'relative', height: CARD_HEIGHT, overflow: 'hidden', borderRadius: 2 }}>
                             <Box
                                 sx={{
                                     position: 'absolute',
