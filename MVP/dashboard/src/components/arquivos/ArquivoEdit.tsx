@@ -31,7 +31,6 @@ const ArquivoEdit = () => (
             <FileInput
                 source="arquivo"
                 label="Arquivo"
-                helperText="Deixe vazio para manter o arquivo atual"
                 accept={{ 'application/pdf': ['.pdf'], 'application/msword': ['.doc', '.docx'], 'application/vnd.ms-excel': ['.xls', '.xlsx'], 'text/csv': ['.csv'] }}
                 maxSize={5000000}
                 placeholder={

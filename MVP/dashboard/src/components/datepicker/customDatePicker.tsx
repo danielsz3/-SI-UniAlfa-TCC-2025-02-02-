@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale/pt-BR';
 
 type CustomDatePickerProps = InputProps & {
     label: string;
+    future?: boolean;
 };
 
 const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ source, label, ...props }) => {
@@ -17,8 +18,8 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ source, label, ...p
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
             <DatePicker
-                disableFuture
                 label={label}
+                disableFuture={!props.future}
                 value={field.value ? new Date(field.value) : null}
                 onChange={field.onChange}
                 sx={{ mb: 0}}
