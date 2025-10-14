@@ -30,20 +30,25 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Erro ao fazer login");
+        throw new Error(data.message || data.error || "Erro ao fazer login");
       }
 
       const data = await res.json();
 
-      // Supondo que o token JWT vem em data.token (ajuste conforme sua API)
-      const token = data.token;
+      // O token vem em data.access_token conforme seu AuthController
+      const token = data.access_token;
       if (!token) throw new Error("Token não recebido");
 
-      // Armazena token no localStorage (melhor usar cookie HttpOnly em produção)
+      // Armazena token no localStorage
       localStorage.setItem("token", token);
+      
+      // Opcional: armazenar dados do usuário
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
 
-      // Redireciona para página protegida (exemplo: dashboard)
-      router.push("/dashboard");
+      router.push("/");
+
     } catch (err: any) {
       setError(err.message);
     } finally {
