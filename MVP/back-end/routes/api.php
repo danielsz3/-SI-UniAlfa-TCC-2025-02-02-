@@ -1,11 +1,12 @@
 <?php
 
-use App\Http\Controllers\AnimalController;
-use App\Http\Controllers\Auth\ForgotPasswordController;
-use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+
+use App\Http\Controllers\ImageController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\EnderecoController;
 use App\Http\Controllers\OngController;
@@ -13,11 +14,13 @@ use App\Http\Controllers\ParceiroController;
 use App\Http\Controllers\LaresTemporarioController;
 use App\Http\Controllers\ContatoOngController;
 use App\Http\Controllers\DocumentoController;
-use App\Http\Controllers\EventoController;
 use App\Http\Controllers\TransacaoController;
-use App\Http\Controllers\IntegracaoController;
+use App\Http\Controllers\AnimalController;
+use App\Http\Controllers\EventoController;
 use App\Http\Controllers\PostController;
-use App\Http\Controllers\ImageController;
+use App\Http\Controllers\IntegracaoController;
+
+use App\Http\Controllers\AdocaoController;
 
 /**
  * AUTENTICAÇÃO PÚBLICA
@@ -44,7 +47,7 @@ Route::apiResource('documentos', DocumentoController::class)->only(['index', 'sh
 Route::apiResource('transacoes', TransacaoController::class)->only(['index', 'show']);
 Route::apiResource('animais', AnimalController::class)->only(['index', 'show']);
 Route::apiResource('eventos', EventoController::class)->only(['index', 'show']);
-//Route::apiResource('posts', PostController::class)->only(['index', 'show']);
+// Route::apiResource('posts', PostController::class)->only(['index', 'show']);
 
 /**
  * CADASTRO DE USUÁRIO (PÚBLICO)
@@ -59,7 +62,20 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
     Route::get('/me', [AuthController::class, 'me'])->name('me');
+
+    // recomendações
     Route::get('/usuarios/{id}/recomendar-animais', [AnimalController::class, 'recomendar']);
+
+    /**
+     * ADOÇÕES (qualquer logado) - sem validações de user no controller
+     * Observação: approve/restore ficam no bloco admin abaixo
+     */
+    Route::get('/adocoes', [AdocaoController::class, 'index'])->name('adocoes.index');
+    Route::get('/adocoes/{id}', [AdocaoController::class, 'show'])->name('adocoes.show');
+    Route::post('/adocoes', [AdocaoController::class, 'store'])->name('adocoes.store');
+    Route::put('/adocoes/{id}', [AdocaoController::class, 'update'])->name('adocoes.update');
+    Route::delete('/adocoes/{id}', [AdocaoController::class, 'destroy'])->name('adocoes.destroy');
+
     /**
      * ADMIN-ONLY: CRUD completo (exceto index/show que são públicos) + restore
      */
@@ -69,7 +85,6 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::post('usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
 
         // DEMAIS RECURSOS: admin pode criar/editar/excluir/restaurar
-
         Route::apiResource('enderecos', EnderecoController::class)->except(['index', 'show']);
         Route::post('enderecos/{id}/restore', [EnderecoController::class, 'restore'])->name('enderecos.restore');
 
@@ -87,22 +102,25 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('documentos', DocumentoController::class)->except(['index', 'show']);
         Route::post('documentos/{id}/restore', [DocumentoController::class, 'restore'])->name('documentos.restore');
-        Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])
-    ->name('documentos.download');
+        Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
         Route::apiResource('transacoes', TransacaoController::class)->except(['index', 'show']);
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');
 
         Route::apiResource('animais', AnimalController::class)->except(['index', 'show']);
-        Route::post('/animais/{id}/restore', [AnimalController::class, 'restore'])->name('animais.restore'); 
+        Route::post('/animais/{id}/restore', [AnimalController::class, 'restore'])->name('animais.restore');
         Route::get('/integracoes', [IntegracaoController::class, 'index'])->name('integracoes.index');
-        
+
         Route::apiResource('eventos', EventoController::class)->except(['index', 'show']);
         Route::post('/eventos/{id}/restore', [EventoController::class, 'restore'])->name('eventos.restore');
-    
+
         Route::apiResource('posts', PostController::class)->except(['index', 'show']);
         Route::post('/posts/{id}/restore', [PostController::class, 'restore'])->name('posts.restore');
-        
-    });
 
+        /**
+         * ADOÇÕES - ações administrativas
+         */
+        Route::post('/adocoes/{id}/restore', [AdocaoController::class, 'restore'])->name('adocoes.restore');
+        Route::post('/adocoes/{id}/aprovar', [AdocaoController::class, 'approve'])->name('adocoes.approve');
+    });
 });

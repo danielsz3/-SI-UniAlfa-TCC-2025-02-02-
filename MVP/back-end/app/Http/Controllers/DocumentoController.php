@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Log;
 
@@ -39,22 +38,48 @@ class DocumentoController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // Lista de mimetypes abrangente para evitar falsos negativos em CSV/XLS/XLSX e imagens
+        $mimetypeRules = implode(',', [
+            // PDF
+            'application/pdf',
+            // Word
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            // Imagens
+            'image/jpeg', // cobre .jpg e .jpeg
+            'image/png',
+            // Excel
+            'application/vnd.ms-excel', // xls e às vezes csv
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
+            'application/vnd.ms-excel.sheet.macroEnabled.12', // xlsm
+            // CSV (variações comuns)
+            'text/csv',
+            'application/csv',
+            'text/plain', // alguns CSV vêm assim
+            // Fallback (opcional; remova se quiser ser mais rígido)
+            'application/octet-stream',
+        ]);
+
         $validator = Validator::make($request->all(), [
             'titulo'    => 'required|string|max:255',
             'categoria' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:1000',
-            'arquivo'   => 'required|file|mimes:pdf,doc,docx,jpg,png,xls,xlsx,csv|max:8192',
+            // Opção A (recomendada): mimetypes abrangente
+            'arquivo'   => 'required|file|mimetypes:' . $mimetypeRules . '|max:10240',
+            // Opção B (por extensão; alternativa mais simples):
+            // 'arquivo'   => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx,csv|max:10240',
         ], [
             'titulo.required' => 'O título é obrigatório.',
             'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
-            
+
             'categoria.max' => 'A categoria deve ter no máximo 255 caracteres.',
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-            
+
             'arquivo.required' => 'O arquivo é obrigatório.',
             'arquivo.file' => 'O arquivo deve ser um arquivo válido.',
-            'arquivo.mimes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, png, xls, xlsx ou csv.',
-            'arquivo.max' => 'O arquivo deve ter no máximo 8MB.',
+            'arquivo.mimes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, jpeg, png, xls, xlsx ou csv.',
+            'arquivo.mimetypes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, jpeg, png, xls, xlsx ou csv.',
+            'arquivo.max' => 'O arquivo deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -66,13 +91,13 @@ class DocumentoController extends Controller
             $path = $file->store('documentos', 'public');
 
             $documento = Documento::create([
-                'titulo'       => $request->titulo,
-                'categoria'    => $request->categoria,
-                'descricao'    => $request->descricao,
-                'arquivo'      => $path,
-                'tipo'         => $file->getClientMimeType(),
-                'tamanho'      => $file->getSize(),
-                'nome_original'=> $file->getClientOriginalName(),
+                'titulo'         => $request->titulo,
+                'categoria'      => $request->categoria,
+                'descricao'      => $request->descricao,
+                'arquivo'        => $path,
+                'tipo'           => $file->getClientMimeType(),
+                'tamanho'        => $file->getSize(),
+                'nome_original'  => $file->getClientOriginalName(),
             ]);
 
             return response()->json($documento, 201);
@@ -81,12 +106,12 @@ class DocumentoController extends Controller
                 'payload' => $request->except('arquivo'),
                 'exception' => $e
             ]);
-            
+
             // Em caso de erro após upload, tenta remover o arquivo órfão
             if (isset($path) && Storage::disk('public')->exists($path)) {
                 Storage::disk('public')->delete($path);
             }
-            
+
             return response()->json([
                 'error' => 'Não foi possível criar o documento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -125,21 +150,40 @@ class DocumentoController extends Controller
                 return response()->json(['error' => 'Documento não encontrado'], 404);
             }
 
+            $mimetypeRules = implode(',', [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'image/jpeg',
+                'image/png',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel.sheet.macroEnabled.12',
+                'text/csv',
+                'application/csv',
+                'text/plain',
+                'application/octet-stream',
+            ]);
+
             $validator = Validator::make($request->all(), [
                 'titulo'    => 'sometimes|required|string|max:255',
                 'categoria' => 'nullable|string|max:255',
                 'descricao' => 'nullable|string|max:1000',
-                'arquivo'   => 'nullable|file|mimes:pdf,doc,docx,jpg,png,xls,xlsx,csv|max:8192',
+                // Opção A (mimetypes)
+                'arquivo'   => 'nullable|file|mimetypes:' . $mimetypeRules . '|max:10240',
+                // Opção B (mimes por extensão)
+                // 'arquivo'   => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx,csv|max:10240',
             ], [
                 'titulo.required' => 'O título é obrigatório.',
                 'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
-                
+
                 'categoria.max' => 'A categoria deve ter no máximo 255 caracteres.',
                 'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-                
+
                 'arquivo.file' => 'O arquivo deve ser um arquivo válido.',
-                'arquivo.mimes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, png, xls, xlsx ou csv.',
-                'arquivo.max' => 'O arquivo deve ter no máximo 8MB.',
+                'arquivo.mimes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, jpeg, png, xls, xlsx ou csv.',
+                'arquivo.mimetypes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, jpeg, png, xls, xlsx ou csv.',
+                'arquivo.max' => 'O arquivo deve ter no máximo 10MB.',
             ]);
 
             if ($validator->fails()) {
@@ -176,7 +220,7 @@ class DocumentoController extends Controller
                 'payload' => $request->except('arquivo'),
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível atualizar o documento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -205,7 +249,7 @@ class DocumentoController extends Controller
             return response()->json(null, 204);
         } catch (\Exception $e) {
             Log::error('Erro ao deletar documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível excluir o documento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -234,7 +278,7 @@ class DocumentoController extends Controller
             return response()->json($documento->fresh(), 200);
         } catch (\Exception $e) {
             Log::error('Erro ao restaurar documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível restaurar o documento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -263,19 +307,19 @@ class DocumentoController extends Controller
             }
 
             // Nome do arquivo para download
-            $fileName = $documento->nome_original ?? 
+            $fileName = $documento->nome_original ??
                 (pathinfo($path, PATHINFO_BASENAME) ?: 'documento');
 
             // Content-Type
-            $mime = $documento->tipo ?: 
-                (Storage::disk('public')->mimeType($path) ?? 'application/octet-stream');
+            $mime = $documento->tipo ??
+                (Storage::disk('public')->mimeType($path) ?: 'application/octet-stream');
 
             return Storage::disk('public')->download($path, $fileName, [
                 'Content-Type' => $mime,
             ]);
         } catch (\Exception $e) {
             Log::error('Erro ao fazer download do documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível realizar o download',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
