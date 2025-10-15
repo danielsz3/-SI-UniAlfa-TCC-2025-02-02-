@@ -26,7 +26,7 @@ use App\Http\Controllers\AdocaoController;
  * AUTENTICAÇÃO PÚBLICA
  */
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::get('/imagens/{folder}/{filename}', [ImageController::class, 'show']->name('imagens.show'));
+Route::get('/imagens/{folder}/{filename}', [ImageController::class, 'show'])->name('imagens.show');
 Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
 /**
