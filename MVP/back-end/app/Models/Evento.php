@@ -24,6 +24,11 @@ class Evento extends Model
         'imagem' // caminho da imagem de capa
     ];
 
+    protected $casts = [
+        'data_inicio' => 'date',
+        'data_fim' => 'date',
+    ];
+
     public function imagens()
     {
         return $this->hasMany(ImagemEvento::class, 'evento_id');

@@ -75,8 +75,8 @@ const convertDataRequestToHTTP = (
     const field = requestData[key];
     return Array.isArray(field)
       ? field.some(
-          (item) => item && typeof item === "object" && item.rawFile instanceof File
-        )
+        (item) => item && typeof item === "object" && item.rawFile instanceof File
+      )
       : field && typeof field === "object" && field.rawFile instanceof File;
   });
 
@@ -127,7 +127,7 @@ const convertDataRequestToHTTP = (
       let valueToAppend;
       if (field instanceof Date) {
         valueToAppend = field.toISOString();
-      } else if (key === "data_nascimento" || isIsoDateString(field)) {
+      } else if (key.startsWith("data_") || isIsoDateString(field)) {
         valueToAppend = String(field).replace(/^"|"$/g, "");
       } else {
         valueToAppend = JSON.stringify(field);
