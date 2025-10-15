@@ -2,22 +2,40 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use App\Models\Usuario;
+use App\Models\Integracao;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Cria apenas um usuário admin
+        Usuario::create([
+            'nome' => 'Admin',
+            'email' => 'admin@admin.com',
+            'password' => Hash::make('senha4@A'),
+            'role' => 'admin', // enum: 'user' | 'admin'
+            'cpf' => '00000000000',
+            'data_nascimento' => '2000-01-01',
+            'telefone' => '11999999999',
+        ]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        Integracao::create([
+            'service' => 'instagram',
+            'username' => '',
+            'access_token' => '',
+            'user_id' => '',
+            'status' => 'ativo',
+        ]);
+
+        Integracao::create([
+            'service' => 'whatsapp',
+            'username' => '',
+            'access_token' => '',
+            'user_id' => '',
+            'status' => 'inativo',
         ]);
     }
 }

@@ -1,10 +1,12 @@
-import { Create, SimpleForm, TextInput, NumberInput, required, minValue, ImageInput, DateInput, PasswordInput } from 'react-admin';
-import { InputAdornment } from '@mui/material';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import { Create, SimpleForm, TextInput, required, PasswordInput } from 'react-admin';
 import CustomDatePicker from '../datepicker/customDatePicker';
 
 const UserCreate = () => (
-    <Create title="Criar Novo Usuário" sx={{ width: 600, margin: '0 auto' }}>
+    <Create
+        title="Criar Novo Usuário"
+        sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
+        redirect="list"
+    >
         <SimpleForm>
             <TextInput
                 source="nome"

@@ -1,28 +1,17 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
+RUN npm install --no-audit --no-fund
 
-# Etapa Dev
-FROM base AS dev
-RUN npm install
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Copia .env.example -> .env se não existir
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
-
-EXPOSE 3000
-CMD ["npm", "run", "dev"]
-
-# Etapa Build
-FROM base AS build
-RUN npm install
-COPY . .
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
 RUN npm run build
 
-# Etapa Produção
-FROM node:18-alpine AS production
+FROM node:20-alpine AS runner
 WORKDIR /app
-COPY --from=build /app ./
+ENV NODE_ENV=production
+COPY --from=builder /app ./
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["npm","run","start","--","-p","3000","-H","0.0.0.0"]

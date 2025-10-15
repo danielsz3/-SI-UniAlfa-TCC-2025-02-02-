@@ -3,133 +3,205 @@
 namespace App\Http\Controllers;
 
 use App\Models\Parceiro;
+use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 
 class ParceiroController extends Controller
 {
-   
+    use SearchIndex;
+
+    /**
+     * Listar parceiros (com paginação + filtros dinâmicos)
+     */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->input('_limit', 10);
-        $page = $request->input('_page', 1);
-        $sort = $request->input('_sort', 'id_parceiro');
-        $order = $request->input('_order', 'asc');
-        $filter = json_decode($request->input('filter', '{}'), true);
-
-        $query = Parceiro::query();
-
-    
-        if (!empty($filter)) {
-            foreach ($filter as $field => $value) {
-                if ($value) {
-                    $query->where($field, 'like', "%{$value}%");
-                }
-            }
-        }
-
-        $query->orderBy($sort, $order);
-
-        $parceiros = $query->paginate($perPage, ['*'], 'page', $page);
-
-        return response()->json($parceiros->items())
-            ->header('X-Total-Count', $parceiros->total())
-            ->header('Access-Control-Expose-Headers', 'X-Total-Count');
+        return $this->SearchIndex(
+            $request,
+            Parceiro::query(),
+            'parceiros',
+            ['nome', 'url_site', 'descricao']
+        );
     }
 
-    public function indexWithTrashed(): JsonResponse
-    {
-        $parceiros = Parceiro::withTrashed()->get();
-
-        return response()->json([
-            'data' => $parceiros,
-            'total' => $parceiros->count()
-        ]);
-    }
-
-
+    /**
+     * Criar parceiro
+     */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nome_parceiro' => 'required|string|max:255',
-            'url_site' => 'nullable|string',
-            'url_logo' => 'nullable|string',
-            'descricao' => 'nullable|string',
+            'nome'      => 'required|string|max:255',
+            'url_site'  => 'nullable|url',
+            'descricao' => 'nullable|string|max:500',
+            'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+        ], [
+            'nome.required' => 'O nome do parceiro é obrigatório.',
+            'nome.max'      => 'O nome do parceiro deve ter no máximo 255 caracteres.',
+            'url_site.url'  => 'A URL do site deve ser válida.',
+            'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
+            'imagem.mimes'  => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
+            'imagem.max'    => 'A logo deve ter no máximo 4MB.',
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 400);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $parceiro = Parceiro::create($request->all());
+        try {
+            $data = [
+                'nome'      => $request->nome,
+                'url_site'  => $request->url_site,
+                'descricao' => $request->descricao,
+            ];
 
-        return response()->json(['data' => $parceiro], 201);
+            // Upload opcional da logo
+            if ($request->hasFile('imagem')) {
+                $path = $request->file('imagem')->store('parceiros', 'public');
+                $data['imagem'] = $path; // coluna existente no banco
+            }
+
+            $parceiro = Parceiro::create($data);
+
+            return response()->json($parceiro, 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error'   => 'Não foi possível criar o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
     }
 
-
+    /**
+     * Exibir parceiro
+     */
     public function show($id): JsonResponse
     {
-        $parceiro = Parceiro::find($id);
+        try {
+            $parceiro = Parceiro::find($id);
 
-        if (!$parceiro) {
-            return response()->json(['error' => 'Parceiro não encontrado'], 404);
+            if (!$parceiro) {
+                return response()->json(['error' => 'Parceiro não encontrado'], 404);
+            }
+
+            return response()->json($parceiro, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error'   => 'Não foi possível carregar o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        return response()->json(['data' => $parceiro]);
     }
 
- 
+    /**
+     * Atualizar parceiro
+     */
     public function update(Request $request, $id): JsonResponse
     {
-        $parceiro = Parceiro::find($id);
+        try {
+            $parceiro = Parceiro::find($id);
 
-        if (!$parceiro) {
-            return response()->json(['error' => 'Parceiro não encontrado'], 404);
+            if (!$parceiro) {
+                return response()->json(['error' => 'Parceiro não encontrado'], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'nome'      => 'sometimes|required|string|max:255',
+                'url_site'  => 'nullable|url',
+                'descricao' => 'nullable|string|max:500',
+                'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            ], [
+                'nome.required' => 'O nome do parceiro é obrigatório.',
+                'nome.max'      => 'O nome do parceiro deve ter no máximo 255 caracteres.',
+                'url_site.url'  => 'A URL do site deve ser válida.',
+                'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
+                'imagem.mimes'  => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
+                'imagem.max'    => 'A logo deve ter no máximo 4MB.',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            // Atualiza campos simples
+            $parceiro->nome      = $request->nome      ?? $parceiro->nome;
+            $parceiro->url_site  = $request->url_site  ?? $parceiro->url_site;
+            $parceiro->descricao = $request->descricao ?? $parceiro->descricao;
+
+            // Atualiza logo (se nova imagem enviada)
+            if ($request->hasFile('imagem')) {
+                // remove arquivo antigo
+                if ($parceiro->imagem && Storage::disk('public')->exists($parceiro->imagem)) {
+                    Storage::disk('public')->delete($parceiro->imagem);
+                }
+
+                // salva novo arquivo
+                $parceiro->imagem = $request->file('imagem')->store('parceiros', 'public');
+            }
+
+            $parceiro->save();
+
+            return response()->json($parceiro->fresh(), 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error'   => 'Não foi possível atualizar o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        $validator = Validator::make($request->all(), [
-            'nome_parceiro' => 'sometimes|required|string|max:255',
-            'url_site' => 'nullable|string',
-            'url_logo' => 'nullable|string',
-            'descricao' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 400);
-        }
-
-        $parceiro->fill($request->all());
-        $parceiro->save();
-
-        return response()->json(['data' => $parceiro]);
     }
 
-
+    /**
+     * Deletar parceiro (soft delete) — remove a imagem do disco antes
+     */
     public function destroy($id): JsonResponse
     {
-        $parceiro = Parceiro::find($id);
+        try {
+            $parceiro = Parceiro::find($id);
 
-        if (!$parceiro) {
-            return response()->json(['error' => 'Parceiro não encontrado'], 404);
+            if (!$parceiro) {
+                return response()->json(['error' => 'Parceiro não encontrado'], 404);
+            }
+
+            if ($parceiro->imagem && Storage::disk('public')->exists($parceiro->imagem)) {
+                Storage::disk('public')->delete($parceiro->imagem);
+            }
+
+            $parceiro->delete();
+
+            return response()->json(null, 204);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error'   => 'Não foi possível excluir o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        $parceiro->delete();
-
-        return response()->json(['data' => $parceiro]);
     }
 
-
+    /**
+     * Restaurar parceiro deletado
+     */
     public function restore($id): JsonResponse
     {
-        $parceiro = Parceiro::withTrashed()->find($id);
+        try {
+            $parceiro = Parceiro::withTrashed()->find($id);
 
-        if (!$parceiro) {
-            return response()->json(['error' => 'Parceiro não encontrado'], 404);
+            if (!$parceiro) {
+                return response()->json(['error' => 'Parceiro não encontrado'], 404);
+            }
+
+            if (!$parceiro->trashed()) {
+                return response()->json(['error' => 'Parceiro já está ativo'], 400);
+            }
+
+            $parceiro->restore();
+
+            return response()->json($parceiro->fresh(), 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error'   => 'Não foi possível restaurar o parceiro',
+                'message' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        $parceiro->restore();
-
-        return response()->json(['data' => $parceiro]);
     }
 }

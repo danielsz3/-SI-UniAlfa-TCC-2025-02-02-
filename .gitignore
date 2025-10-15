@@ -56,3 +56,11 @@ Thumbs.db
 coverage/
 *.tmp
 *.temp
+MVP/back-end/storage/app/public/documentos/
+MVP/back-end/storage/logs/laravel.log
+MVP/back-end/storage/logs/laravel.log
+/MVP/back-end/storage
+MVP/back-end/storage/logs/laravel.log
+/MVP/back-end/storage
+*.log
+MVP/back-end/storage/logs/laravel.log

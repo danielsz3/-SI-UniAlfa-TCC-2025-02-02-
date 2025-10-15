@@ -11,14 +11,12 @@ class Parceiro extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'parceiros';
+    protected $primaryKey = 'id';
 
-    protected $primaryKey = 'id_parceiro';
-
-    
     protected $fillable = [
-        'nome_parceiro',
+        'nome',
         'url_site',
-        'url_logo',
+        'imagem',   
         'descricao',
     ];
 }
