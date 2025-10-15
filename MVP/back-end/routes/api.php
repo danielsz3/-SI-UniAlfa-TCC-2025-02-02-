@@ -52,8 +52,9 @@ Route::apiResource('eventos', EventoController::class)->only(['index', 'show']);
 /**
  * CADASTRO DE USUÁRIO (PÚBLICO)
  */
+Route::get('/imagens/{folder}/{filename}', [ImageController::class, 'show']);
 Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store.public');
-
+Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 /**
  * ROTAS AUTENTICADAS (qualquer logado)
  */
@@ -102,7 +103,7 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('documentos', DocumentoController::class)->except(['index', 'show']);
         Route::post('documentos/{id}/restore', [DocumentoController::class, 'restore'])->name('documentos.restore');
-        Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
+
 
         Route::apiResource('transacoes', TransacaoController::class)->except(['index', 'show']);
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');
