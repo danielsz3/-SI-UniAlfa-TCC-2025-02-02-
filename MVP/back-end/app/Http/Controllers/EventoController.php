@@ -4,19 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Evento;
 use App\Models\ImagemEvento;
+use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Arr;
 
 class EventoController extends Controller
 {
-    public function index(): JsonResponse
+    use SearchIndex;
+    public function index(Request $request): JsonResponse
     {
-        $eventos = Evento::with('imagens')->paginate(10);
-        return response()->json($eventos);
+        try {
+            return $this->SearchIndex(
+                $request,
+                Evento::with('imagens'),
+                'eventos',
+                ['titulo']
+            );
+        } catch (\Exception $e) {
+            Log::error('Erro ao listar documentos: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Não foi possível carregar os documentos'], 500);
+        }
     }
 
     public function store(Request $request): JsonResponse
@@ -33,24 +45,24 @@ class EventoController extends Controller
         ], [
             'titulo.required' => 'O título do evento é obrigatório.',
             'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
-            
+
             'data_inicio.required' => 'A data de início é obrigatória.',
             'data_inicio.date' => 'A data de início deve ser uma data válida.',
             'data_inicio.after' => 'A data de início deve ser uma data futura.',
-            
+
             'data_fim.required' => 'A data de fim é obrigatória.',
             'data_fim.date' => 'A data de fim deve ser uma data válida.',
             'data_fim.after_or_equal' => 'A data de fim deve ser igual ou posterior à data de início.',
-            
+
             'local.required' => 'O local do evento é obrigatório.',
             'local.max' => 'O local deve ter no máximo 255 caracteres.',
-            
+
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-            
+
             'imagem_capa.image' => 'A imagem de capa deve ser uma imagem válida.',
             'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg, gif ou webp.',
             'imagem_capa.max' => 'A imagem de capa deve ter no máximo 10MB.',
-            
+
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
             'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem válido.',
@@ -67,9 +79,9 @@ class EventoController extends Controller
                 $data = $request->only(['titulo', 'data_inicio', 'data_fim', 'local', 'descricao']);
 
                 // Upload imagem capa
-                if ($request->hasFile('imagem_capa')) {
-                    $path = $request->file('imagem_capa')->store('eventos/capa', 'public');
-                    $data['imagem_capa'] = $path;
+                if ($request->hasFile('imagem')) {
+                    $path = $request->file('imagem')->store('eventos', 'public');
+                    $data['imagem'] = $path;
                 }
 
                 $evento = Evento::create($data);
@@ -95,7 +107,7 @@ class EventoController extends Controller
                 'request_data' => $request->except(['imagem_capa', 'imagens']),
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível criar o evento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -122,7 +134,7 @@ class EventoController extends Controller
             return response()->json(['error' => 'Evento não encontrado'], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'titulo' => 'sometimes|required|string|max:255',
             'data_inicio' => 'sometimes|required|date|after:now',
             'data_fim' => 'sometimes|required|date|after_or_equal:data_inicio',
@@ -130,28 +142,34 @@ class EventoController extends Controller
             'descricao' => 'nullable|string|max:1000',
             'imagem_capa' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
             'imagens' => 'nullable|array|max:10',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
-        ], [
+        ];
+
+        // Só valida como file se houver arquivos enviados
+        if ($request->hasFile('imagens')) {
+            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg,gif|max:10240';
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
             'titulo.required' => 'O título do evento é obrigatório.',
             'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
-            
+
             'data_inicio.required' => 'A data de início é obrigatória.',
             'data_inicio.date' => 'A data de início deve ser uma data válida.',
             'data_inicio.after' => 'A data de início deve ser uma data futura.',
-            
+
             'data_fim.required' => 'A data de fim é obrigatória.',
             'data_fim.date' => 'A data de fim deve ser uma data válida.',
             'data_fim.after_or_equal' => 'A data de fim deve ser igual ou posterior à data de início.',
-            
+
             'local.required' => 'O local do evento é obrigatório.',
             'local.max' => 'O local deve ter no máximo 255 caracteres.',
-            
+
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-            
+
             'imagem_capa.image' => 'A imagem de capa deve ser uma imagem válida.',
             'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg, gif ou webp.',
             'imagem_capa.max' => 'A imagem de capa deve ter no máximo 10MB.',
-            
+
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
             'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem válido.',
@@ -168,44 +186,77 @@ class EventoController extends Controller
                 $data = $request->only(['titulo', 'data_inicio', 'data_fim', 'local', 'descricao']);
 
                 // Atualizar imagem capa
-                if ($request->hasFile('imagem_capa')) {
+                if ($request->hasFile('imagem')) {
                     // Deletar imagem capa antiga
                     if ($evento->imagem_capa) {
-                        $oldPath = str_replace('/storage/', '', $evento->imagem_capa);
+                        $oldPath = str_replace('/storage/', '', $evento->imagem);
                         if (Storage::disk('public')->exists($oldPath)) {
                             Storage::disk('public')->delete($oldPath);
                         }
                     }
-                    $path = $request->file('imagem_capa')->store('eventos/capa', 'public');
-                    $data['imagem_capa'] = $path;
+                    $path = $request->file('imagem')->store('eventos', 'public');
+                    $data['imagem'] = $path;
                 }
 
                 $evento->update($data);
 
-                // Atualizar imagens adicionais
-                if ($request->hasFile('imagens')) {
-                    // Deletar imagens antigas
-                    foreach ($evento->imagens as $imagem) {
-                        $oldPath = str_replace('/storage/', '', $imagem->caminho);
-                        if (Storage::disk('public')->exists($oldPath)) {
-                            Storage::disk('public')->delete($oldPath);
+                if ($request->has('imagens') || $request->hasFile('imagens')) {
+                    // 🔹 1. Capturar arquivos novos
+                    $arquivosNovos = [];
+                    if ($request->hasFile('imagens')) {
+                        $arquivosNovos = Arr::wrap($request->file('imagens'));
+                    }
+
+                    // 🔹 2. Processar imagens mantidas
+                    $imagensMantidas = [];
+                    $imagensInput = $request->input('imagens', []);
+
+                    if (is_array($imagensInput)) {
+                        foreach ($imagensInput as $item) {
+                            // Se for string JSON, decodifica
+                            if (is_string($item)) {
+                                $decoded = json_decode($item, true);
+                                if ($decoded && isset($decoded['src'])) {
+                                    $imagensMantidas[] = basename(parse_url($decoded['src'], PHP_URL_PATH));
+                                }
+                            }
+                            // Se já vier como array com 'src'
+                            elseif (is_array($item) && isset($item['src'])) {
+                                $imagensMantidas[] = basename(parse_url($item['src'], PHP_URL_PATH));
+                            }
                         }
                     }
-                    $evento->imagens()->delete();
 
-                    // Salvar novas imagens
-                    foreach ($request->file('imagens') as $file) {
-                        $path = $file->store('eventos', 'public');
-                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
-                        ImagemEvento::create([
-                            'evento_id' => $evento->id,
-                            'caminho' => $path,
-                            'width' => $width,
-                            'height' => $height,
-                        ]);
+                    // 🔹 3. Buscar imagens atuais do banco
+                    $imagensAtuais = ImagemEvento::where('evento_id', $evento->id)->get();
+
+                    // 🔹 4. Excluir as removidas
+                    foreach ($imagensAtuais as $imagem) {
+                        $arquivoAtual = basename($imagem->caminho);
+
+                        if (!in_array($arquivoAtual, $imagensMantidas)) {
+                            if (Storage::disk('public')->exists($imagem->caminho)) {
+                                Storage::disk('public')->delete($imagem->caminho);
+                            }
+                            $imagem->delete();
+                        }
+                    }
+
+                    // 🔹 5. Salvar novas imagens
+                    foreach ($arquivosNovos as $file) {
+                        if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                            $path = $file->store('eventos', 'public');
+                            [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+
+                            ImagemEvento::create([
+                                'evento_id' => $evento->id,
+                                'caminho' => $path,
+                                'width' => $width,
+                                'height' => $height,
+                            ]);
+                        }
                     }
                 }
-
                 return response()->json($evento->fresh('imagens'), 200);
             });
         } catch (\Exception $e) {
@@ -214,7 +265,7 @@ class EventoController extends Controller
                 'request_data' => $request->except(['imagem_capa', 'imagens']),
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível atualizar o evento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -254,7 +305,7 @@ class EventoController extends Controller
                 'evento_id' => $id,
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível deletar o evento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
@@ -282,7 +333,7 @@ class EventoController extends Controller
                 'evento_id' => $id,
                 'exception' => $e
             ]);
-            
+
             return response()->json([
                 'error' => 'Não foi possível restaurar o evento',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'

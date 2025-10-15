@@ -1,10 +1,10 @@
-import { Create, ImageField, ImageInput, SimpleForm, TextInput, required } from 'react-admin';
+import { Edit, ImageField, ImageInput, SimpleForm, TextInput, required } from 'react-admin';
 import { FilePlaceholder } from '../FilePlaceHolder';
 import CustomDatePicker from '../datepicker/customDatePicker';
 
-const EventoCreate = () => (
-    <Create
-        title="Criar Novo Evento"
+const EventoEdit = () => (
+    <Edit
+        title="Editar Evento"
         sx={{ width: '100%', maxWidth: 600, margin: '0 auto', mb: 10 }}
         redirect="list"
     >
@@ -87,7 +87,7 @@ const EventoCreate = () => (
                 <ImageField source="src" title="title" />
             </ImageInput>
         </SimpleForm>
-    </Create>
+    </Edit>
 );
 
-export default EventoCreate;
+export default EventoEdit;

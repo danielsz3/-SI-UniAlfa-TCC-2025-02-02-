@@ -17,36 +17,15 @@ import {
 } from '@mui/material'
 import { Link } from 'react-router-dom'
 import { useCreatePath } from 'react-admin'
-import { formatarDiferencaData } from "../../utils/formatDate"
 
 const CARD_HEIGHT = 250;
 
 const filters = [
-    <TextInput label="Nome" source="nome" size="small" alwaysOn />,
-    <SelectInput
-        label="Situação"
-        source="situacao"
-        choices={[
-            { id: 'disponivel', name: 'Disponível' },
-            { id: 'adotado', name: 'Adotado' },
-            { id: 'em_adocao', name: 'Em Adoção' },
-            { id: 'em_aprovacao', name: 'Em Aprovação' },
-        ]}
-        alwaysOn
-    />,
+    <TextInput label="Título" source="titulo" size="small" alwaysOn />,
 ]
 
-const chipTipos = {
-    disponivel: { label: 'Disponível', bgCor: '#ffffff00', textCor: '#ffffff00' },
-    adotado: { label: 'Adotado', bgCor: '#9c27b0', textCor: '#fff' },
-    em_adocao: { label: 'Em Adoção', bgCor: '#ffe600', textCor: '#fff' },
-    em_aprovacao: { label: 'Em Aprovação', bgCor: '#4caf50', textCor: '#fff' },
-}
 
-type Situacao = keyof typeof chipTipos;
-
-
-const AnimalGrid = () => {
+const EventoGrid = () => {
     const { data, isLoading } = useListContext()
     const createPath = useCreatePath()
 
@@ -57,7 +36,7 @@ const AnimalGrid = () => {
             {data.map((record) => (
                 <Grid key={record.id} size={{ xs: 12, xl: 2, lg: 3, md: 4, sm: 6 }} >
                     <Link
-                        to={createPath({ resource: 'animais', id: record.id, type: 'edit' })}
+                        to={createPath({ resource: 'eventos', id: record.id, type: 'edit' })}
                         style={{ textDecoration: 'none' }}
                     >
                         <Card
@@ -75,8 +54,8 @@ const AnimalGrid = () => {
                                     left: 0,
                                     width: '100%',
                                     height: '100%',
-                                    backgroundImage: `url(${record.imagens.caminho ||
-                                        import.meta.env.VITE_API_URL + '/imagens/' + record.imagens[0]?.caminho})`,
+                                    backgroundImage: `url(${record.imagem?.src ||
+                                        import.meta.env.VITE_API_URL + '/imagens/' + record.imagem})`,
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
                                 }}
@@ -87,40 +66,31 @@ const AnimalGrid = () => {
                                     bottom: 0,
                                     width: '100%',
                                     color: 'white',
-                                    display: 'flex',
-                                    flexDirection: 'row',
-                                    alignItems: 'flex-start',
-                                    justifyContent: 'space-between',
                                     background:
                                         'linear-gradient(to top, rgba(0,0,0,0.7),rgba(0,0,0,0.7),rgba(0,0,0,0.7), rgba(255, 255, 255, 0))',
                                     padding: 2,
                                     pb: "1rem !important",
                                 }}
                             >
-                                <div>
                                 <Typography
                                     variant="body1"
                                     component="div"
                                     sx={{ fontWeight: 'bold' }}
                                 >
-                                    {record.nome}
+                                    {record.titulo}
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     component="div"
                                 >
-                                    {formatarDiferencaData(record.data_nascimento)}
+                                    {new Date(record.data_inicio).toLocaleDateString('pt-br')} - {new Date(record.data_fim).toLocaleDateString('pt-br')}
                                 </Typography>
-                                </div>
-                                <Chip
-                                    label={chipTipos[record.situacao as Situacao]?.label ?? 'Indefinido'}
-                                    sx={{
-                                        mt: 1,
-                                        bgcolor: chipTipos[record.situacao as Situacao]?.bgCor ?? '#9e9e9e',
-                                        color: chipTipos[record.situacao as Situacao]?.textCor ?? '#333',
-                                        fontWeight: 'bold',
-                                    }}
-                                />
+                                <Typography
+                                    variant="caption"
+                                    component="div"
+                                >
+                                    {record.local}
+                                </Typography>
                             </CardContent>
                         </Card>
                     </Link>
@@ -130,10 +100,7 @@ const AnimalGrid = () => {
     )
 }
 
-const AnimalList = () => {
-    const theme = useTheme()
-    const isSmall = useMediaQuery(theme.breakpoints.down('sm'))
-
+const EventoList = () => {
     return (
         <>
             <List
@@ -144,22 +111,12 @@ const AnimalList = () => {
                     },
                 }}
             >
-                {isSmall ? (
-                    <SimpleList
-                        leftAvatar={(record) =>
-                            record.imagens.caminho ||
-                            import.meta.env.VITE_API_URL + '/imagens/' + record.imagens[0]?.caminho
-                        }
-                        primaryText={(record) => record.nome}
-                        tertiaryText={(record) => record.tipo_animal}
-                        secondaryText={(record) => `${formatarDiferencaData(record.data_nascimento)}`}
-                    />
-                ) : (
-                    <AnimalGrid />
-                )}
+
+                <EventoGrid />
+
             </List>
         </>
     )
 }
 
-export default AnimalList
+export default EventoList

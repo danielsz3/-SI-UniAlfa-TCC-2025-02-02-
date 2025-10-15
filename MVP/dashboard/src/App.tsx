@@ -13,6 +13,7 @@ import NightShelterOutlinedIcon from '@mui/icons-material/NightShelterOutlined';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import WebhookOutlinedIcon from '@mui/icons-material/WebhookOutlined';
 import PetsIcon from '@mui/icons-material/Pets';
+import EventIcon from '@mui/icons-material/Event';
 
 import { i18nProvider, myTheme } from './theme';
 import UserCreate from './components/users/UsuarioCreate';
@@ -36,6 +37,9 @@ import { IntegracaoList } from './components/integracoes/IntegracoesList';
 import AnimalCreate from './components/animais/AnimalCreate';
 import AnimalList from './components/animais/AnimalList';
 import AnimalEdit from './components/animais/AnimalEdit';
+import EventoList from './components/eventos/EventoList';
+import EventoCreate from './components/eventos/EventoCreate';
+import EventoEdit from './components/eventos/EventoEdit';
 
 function App() {
   return (
@@ -77,6 +81,14 @@ function App() {
         list={ParceiroList}
         edit={ParceiroEdit}
         create={ParceiroCreate}
+      />
+      <Resource
+        options={{ label: "Eventos" }}
+        name="eventos"
+        icon={EventIcon}
+        list={EventoList}
+        edit={EventoEdit}
+        create={EventoCreate}
       />
       <Resource
         options={{ label: "Transações" }}
