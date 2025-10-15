@@ -26,7 +26,8 @@ use App\Http\Controllers\AdocaoController;
  * AUTENTICAÇÃO PÚBLICA
  */
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::get('/imagens/{folder}/{filename}', [ImageController::class, 'show']);
+Route::get('/imagens/{folder}/{filename}', [ImageController::class, 'show']->name('imagens.show'));
+Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
 /**
  * REDEFINIÇÃO DE SENHA 
@@ -102,7 +103,6 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('documentos', DocumentoController::class)->except(['index', 'show']);
         Route::post('documentos/{id}/restore', [DocumentoController::class, 'restore'])->name('documentos.restore');
-        Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
         Route::apiResource('transacoes', TransacaoController::class)->except(['index', 'show']);
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');
