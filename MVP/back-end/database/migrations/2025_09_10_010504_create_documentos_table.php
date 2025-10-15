@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('titulo');
             $table->string('categoria')->nullable();
             $table->text('descricao')->nullable();
-            $table->string('url_arquivo');
             $table->timestamps();
             $table->softDeletes();
         });
