@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('data_fim');
             $table->string('local');
             $table->text('descricao')->nullable();
-            $table->string('imagem_capa')->nullable();
+            $table->string('imagem')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

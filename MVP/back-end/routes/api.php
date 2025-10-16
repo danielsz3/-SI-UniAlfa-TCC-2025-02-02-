@@ -21,6 +21,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\IntegracaoController;
 
 use App\Http\Controllers\AdocaoController;
+use App\Http\Controllers\MatchAfinidadeController;
 
 /**
  * AUTENTICAÇÃO PÚBLICA
@@ -71,12 +72,9 @@ Route::middleware(['jwt.auth'])->group(function () {
      * ADOÇÕES (qualquer logado) - sem validações de user no controller
      * Observação: approve/restore ficam no bloco admin abaixo
      */
-    Route::get('/adocoes', [AdocaoController::class, 'index'])->name('adocoes.index');
-    Route::get('/adocoes/{id}', [AdocaoController::class, 'show'])->name('adocoes.show');
-    Route::post('/adocoes', [AdocaoController::class, 'store'])->name('adocoes.store');
-    Route::put('/adocoes/{id}', [AdocaoController::class, 'update'])->name('adocoes.update');
-    Route::delete('/adocoes/{id}', [AdocaoController::class, 'destroy'])->name('adocoes.destroy');
+    Route::apiResource('adocoes', AdocaoController::class)->only(['index', 'show', 'store']);
 
+    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['store']);
     /**
      * ADMIN-ONLY: CRUD completo (exceto index/show que são públicos) + restore
      */
@@ -120,7 +118,10 @@ Route::middleware(['jwt.auth'])->group(function () {
         /**
          * ADOÇÕES - ações administrativas
          */
+        Route::apiResource('adocoes', AdocaoController::class)->except(['index', 'show', 'store']);
         Route::post('/adocoes/{id}/restore', [AdocaoController::class, 'restore'])->name('adocoes.restore');
         Route::post('/adocoes/{id}/aprovar', [AdocaoController::class, 'approve'])->name('adocoes.approve');
+
+        Route::post('match-afinidades/{id}/restore', [MatchAfinidadeController::class, 'restore'])->name('match-afinidades.restore');
     });
 });
