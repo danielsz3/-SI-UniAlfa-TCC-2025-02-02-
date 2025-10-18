@@ -34,7 +34,7 @@ export default function PersonalForm({ onNext, defaultValues = {} }: any) {
 
       <TextField id="nome" name="nome" label="Nome" value={form.nome} onChange={handle} required minLength={2} error={errors.nome}/>
       <TextField id="email" name="email" label="E-mail" type="email" value={form.email} onChange={handle} required error={errors.email}/>
-      <TextField id="telefone" name="telefone" label="Telefone" value={form.telefone} onChange={handle} required placeholder="44997221511" error={errors.telefone}/>
+      <TextField id="telefone" name="telefone" label="Telefone" value={form.telefone} onChange={handle} required placeholder="(xx - 9 ****-****)" error={errors.telefone}/>
       <TextField id="cpf" name="cpf" label="CPF" value={form.cpf} onChange={handle} required placeholder="Somente números" error={errors.cpf}/>
       <TextField id="dataNascimento" name="dataNascimento" label="Data de Nascimento" type="date" value={form.dataNascimento} onChange={handle} required error={errors.dataNascimento}/>
       <PasswordField id="senha" name="senha" label="Senha" value={form.senha} onChange={handle} required error={errors.senha_len || errors.senha_strength}/>

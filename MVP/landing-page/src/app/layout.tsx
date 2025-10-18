@@ -1,7 +1,9 @@
 import "./globals.css"
-import { ThemeProvider } from "next-themes"
 import type { Metadata } from "next"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ThemeProvider } from "next-themes"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
+
 export const metadata: Metadata = {
   title: "PetAffinity",
   description: "Next + Tailwind + shadcn",
@@ -13,18 +15,27 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-    >
-      <html lang="pt-BR" suppressHydrationWarning
-        className="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white">
-        <body>
-          <ThemeToggle />
-          {children}
-        </body>
-      </html>
-    </ThemeProvider>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body className="bg-background text-foreground antialiased">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {/* Navbar fixa no topo */}
+          <Navbar />
+
+          {/* Espaço para não ficar sob a navbar (ajuste conforme altura da sua Navbar) */}
+          <main className="min-h-screen pt-20">
+            {children}
+          </main>
+
+          {/* Footer em todas as páginas */}
+          <Footer />
+
+          {/* Se quiser um ThemeToggle global adicional, reative abaixo:
+          <div className="fixed bottom-4 right-4">
+            <ThemeToggle />
+          </div>
+          */}
+        </ThemeProvider>
+      </body>
+    </html>
   )
 }

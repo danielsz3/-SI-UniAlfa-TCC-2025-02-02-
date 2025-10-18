@@ -19,23 +19,19 @@ use App\Http\Controllers\AnimalController;
 use App\Http\Controllers\EventoController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\IntegracaoController;
-
 use App\Http\Controllers\AdocaoController;
 use App\Http\Controllers\MatchAfinidadeController;
 
 /**
  * AUTENTICAÇÃO PÚBLICA
  */
-Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::get('/imagens/{folder}/{filename}', [ImageController::class, 'show'])->name('imagens.show');
+Route::post('login', [AuthController::class, 'login'])->name('login');
+Route::post('/forgot-password', [AuthController::class, 'forgetPassword'])->name('password.email');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.reset');
+Route::get('imagens/{folder}/{filename}', [ImageController::class, 'show'])->name('imagens.show');
 Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
-/**
- * REDEFINIÇÃO DE SENHA 
- */
-Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLink']);
-Route::post('reset-password', [ResetPasswordController::class, 'reset']);
-Route::post('validate-token', [ResetPasswordController::class, 'validateToken']);
+
 
 /**
  * RECURSOS PÚBLICOS (somente leitura: index, show)
@@ -49,38 +45,41 @@ Route::apiResource('documentos', DocumentoController::class)->only(['index', 'sh
 Route::apiResource('transacoes', TransacaoController::class)->only(['index', 'show']);
 Route::apiResource('animais', AnimalController::class)->only(['index', 'show']);
 Route::apiResource('eventos', EventoController::class)->only(['index', 'show']);
+Route::apiResource('usuarios', UsuarioController::class)->only(['show','store']);
+
+
 // Route::apiResource('posts', PostController::class)->only(['index', 'show']);
 
 /**
  * CADASTRO DE USUÁRIO (PÚBLICO)
  */
-Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store.public');
+Route::post('usuarios', [UsuarioController::class, 'store'])->name('usuarios.store.public');
 
 /**
  * ROTAS AUTENTICADAS (qualquer logado)
  */
 Route::middleware(['jwt.auth'])->group(function () {
     // sessão
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
-    Route::get('/me', [AuthController::class, 'me'])->name('me');
+    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh');
+    Route::get('me', [AuthController::class, 'me'])->name('me');
 
     // recomendações
-    Route::get('/usuarios/{id}/recomendar-animais', [AnimalController::class, 'recomendar']);
+    Route::get('usuarios/{id}/recomendar-animais', [AnimalController::class, 'recomendar']);
 
     /**
      * ADOÇÕES (qualquer logado) - sem validações de user no controller
      * Observação: approve/restore ficam no bloco admin abaixo
      */
-    Route::apiResource('adocoes', AdocaoController::class)->only(['index', 'show', 'store']);
+    Route::apiResource('adocoes', AdocaoController::class)->only(['index','show','store']);
 
-    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['store']);
+    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['show','store','index']);
     /**
      * ADMIN-ONLY: CRUD completo (exceto index/show que são públicos) + restore
      */
     Route::middleware(['role:admin'])->group(function () {
         // USUÁRIOS: admin gerencia, mas store já é pública
-        Route::apiResource('usuarios', UsuarioController::class)->except(['store']);
+        Route::apiResource('usuarios', UsuarioController::class)->except(['show','store']);
         Route::post('usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
 
         // DEMAIS RECURSOS: admin pode criar/editar/excluir/restaurar
@@ -106,22 +105,26 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');
 
         Route::apiResource('animais', AnimalController::class)->except(['index', 'show']);
-        Route::post('/animais/{id}/restore', [AnimalController::class, 'restore'])->name('animais.restore');
-        Route::get('/integracoes', [IntegracaoController::class, 'index'])->name('integracoes.index');
+        Route::post('animais/{id}/restore', [AnimalController::class, 'restore'])->name('animais.restore');
+        Route::get('integracoes', [IntegracaoController::class, 'index'])->name('integracoes.index');
 
         Route::apiResource('eventos', EventoController::class)->except(['index', 'show']);
-        Route::post('/eventos/{id}/restore', [EventoController::class, 'restore'])->name('eventos.restore');
+        Route::post('eventos/{id}/restore', [EventoController::class, 'restore'])->name('eventos.restore');
 
         Route::apiResource('posts', PostController::class)->except(['index', 'show']);
-        Route::post('/posts/{id}/restore', [PostController::class, 'restore'])->name('posts.restore');
+        Route::post('posts/{id}/restore', [PostController::class, 'restore'])->name('posts.restore');
 
         /**
          * ADOÇÕES - ações administrativas
          */
-        Route::apiResource('adocoes', AdocaoController::class)->except(['index', 'show', 'store']);
-        Route::post('/adocoes/{id}/restore', [AdocaoController::class, 'restore'])->name('adocoes.restore');
-        Route::post('/adocoes/{id}/aprovar', [AdocaoController::class, 'approve'])->name('adocoes.approve');
+        Route::apiResource('adocoes', AdocaoController::class)->except(['show', 'store']);
+        Route::post('adocoes/{id}/restore', [AdocaoController::class, 'restore'])->name('adocoes.restore');
+        Route::post('adocoes/{id}/aprovar', [AdocaoController::class, 'approve'])->name('adocoes.approve');
 
+        /**
+         * MATCH AFINIDADES - ações administrativas
+         */
+        Route::apiResource('match-afinidades', MatchAfinidadeController::class)->except(['show','store']);
         Route::post('match-afinidades/{id}/restore', [MatchAfinidadeController::class, 'restore'])->name('match-afinidades.restore');
     });
 });
