@@ -71,9 +71,9 @@ Route::middleware(['jwt.auth'])->group(function () {
      * ADOÇÕES (qualquer logado) - sem validações de user no controller
      * Observação: approve/restore ficam no bloco admin abaixo
      */
-    Route::apiResource('adocoes', AdocaoController::class)->only(['index','show']);
+    Route::apiResource('adocoes', AdocaoController::class)->only(['index','show','store']);
 
-    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['show','store']);
+    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['show','store','index']);
     /**
      * ADMIN-ONLY: CRUD completo (exceto index/show que são públicos) + restore
      */

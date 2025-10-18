@@ -10,7 +10,7 @@ class MatchAfinidade extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'match_afinidades'; // nome da tabela no plural snake_case
+    protected $table = 'matches'; // nome da tabela no plural snake_case
 
     protected $fillable = [
         'usuario_id',
