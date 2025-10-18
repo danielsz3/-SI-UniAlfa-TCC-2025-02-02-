@@ -7,12 +7,18 @@ return [
     | Third Party Services
     |--------------------------------------------------------------------------
     |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
+    | Este arquivo armazena as credenciais de serviços de terceiros como
+    | Mailgun, Postmark, AWS, etc. Ele atua como um local padrão para todas
+    | essas credenciais, permitindo centralizar e organizar o acesso.
     |
     */
+
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'scheme' => 'https',
+    ],
 
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
@@ -33,6 +39,23 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Configuração do Frontend
+    |--------------------------------------------------------------------------
+    |
+    | Aqui definimos a URL do seu aplicativo frontend, usada principalmente
+    | para o link de redefinição de senha nos e-mails. Essa configuração
+    | ajuda a manter a separação entre backend (Laravel) e frontend (SPA).
+    |
+    | Exemplo: http://localhost:3000 ou https://app.seusite.com
+    |
+    */
+
+    'frontend' => [
+        'url' => env('FRONTEND_URL', 'http://localhost:3000'),
     ],
 
 ];
