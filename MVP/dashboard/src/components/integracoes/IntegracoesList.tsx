@@ -5,7 +5,7 @@ import {
 } from 'react-admin';
 import { Link } from 'react-router-dom';
 import { Grid, Card, CardContent, Typography, Box, Button, Chip } from '@mui/material';
-import React from 'react';
+import React, { JSX } from 'react';
 import { FaWhatsapp, FaInstagram } from "react-icons/fa";
 
 // Filtros

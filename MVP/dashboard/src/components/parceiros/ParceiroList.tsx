@@ -36,7 +36,7 @@ const ParceiroGrid = () => {
             }}
         >
             {data.map((record) => (
-                <Grid key={record.id} size={{ xs: 12, xl: 2, lg: 3, md: 4, sm: 6 }} >
+                <Grid key={record.id} size={{ xs: 12, xl: 3, lg: 4, md: 6, sm: 6 }} >
                     <Link
                         to={createPath({ resource: 'parceiros', id: record.id, type: 'edit' })}
                         style={{ textDecoration: 'none' }}
