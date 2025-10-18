@@ -26,15 +26,12 @@ use App\Http\Controllers\MatchAfinidadeController;
  * AUTENTICAÇÃO PÚBLICA
  */
 Route::post('login', [AuthController::class, 'login'])->name('login');
+Route::post('/forgot-password', [AuthController::class, 'forgetPassword'])->name('password.email');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.reset');
 Route::get('imagens/{folder}/{filename}', [ImageController::class, 'show'])->name('imagens.show');
 Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
-/**
- * REDEFINIÇÃO DE SENHA 
- */
-Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLink']);
-Route::post('reset-password', [ResetPasswordController::class, 'reset']);
-Route::post('validate-token', [ResetPasswordController::class, 'validateToken']);
+
 
 /**
  * RECURSOS PÚBLICOS (somente leitura: index, show)
@@ -74,9 +71,9 @@ Route::middleware(['jwt.auth'])->group(function () {
      * ADOÇÕES (qualquer logado) - sem validações de user no controller
      * Observação: approve/restore ficam no bloco admin abaixo
      */
-    Route::apiResource('adocoes', AdocaoController::class)->only(['index','show']);
+    Route::apiResource('adocoes', AdocaoController::class)->only(['index','show','store']);
 
-    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['show','store']);
+    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['show','store','index']);
     /**
      * ADMIN-ONLY: CRUD completo (exceto index/show que são públicos) + restore
      */

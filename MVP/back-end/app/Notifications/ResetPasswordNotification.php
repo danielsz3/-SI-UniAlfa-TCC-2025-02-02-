@@ -2,19 +2,16 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class ResetPasswordNotification extends Notification
 {
-    use Queueable;
+    public $url;
 
-    public $token;
-
-    public function __construct($token)
+    public function __construct($url)
     {
-        $this->token = $token;
+        $this->url = $url;
     }
 
     public function via($notifiable)
@@ -24,12 +21,14 @@ class ResetPasswordNotification extends Notification
 
     public function toMail($notifiable)
     {
-        $url = url('/reset-password?token=' . $this->token . '&email=' . $notifiable->email);
-
         return (new MailMessage)
-            ->subject('Redefinição de Senha')
-            ->line('Você está recebendo este e-mail porque foi solicitada uma redefinição de senha.')
-            ->action('Redefinir Senha', $url)
-            ->line('Se não foi você, ignore este e-mail.');
+            ->subject('Redefinição de Senha - PetAffinity')
+            ->greeting('Olá, ' . $notifiable->nome . '!')
+            ->line('Você está recebendo este email porque recebemos uma solicitação de redefinição de senha para sua conta.')
+            ->action('Redefinir Senha', $this->url)
+            ->line('Este link de redefinição expira em **60 minutos**.')
+            ->line('Se você não solicitou a redefinição de senha, nenhuma ação é necessária e sua senha permanecerá segura.')
+            ->salutation('Atenciosamente,')
+            ->salutation('Equipe PetAffinity');
     }
 }
