@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class DocumentoController extends Controller
 {
@@ -38,25 +39,18 @@ class DocumentoController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        // Lista de mimetypes abrangente para evitar falsos negativos em CSV/XLS/XLSX e imagens
         $mimetypeRules = implode(',', [
-            // PDF
             'application/pdf',
-            // Word
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            // Imagens
-            'image/jpeg', // cobre .jpg e .jpeg
+            'image/jpeg',
             'image/png',
-            // Excel
-            'application/vnd.ms-excel', // xls e às vezes csv
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
-            'application/vnd.ms-excel.sheet.macroEnabled.12', // xlsm
-            // CSV (variações comuns)
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel.sheet.macroEnabled.12',
             'text/csv',
             'application/csv',
-            'text/plain', // alguns CSV vêm assim
-            // Fallback (opcional; remova se quiser ser mais rígido)
+            'text/plain',
             'application/octet-stream',
         ]);
 
@@ -64,10 +58,7 @@ class DocumentoController extends Controller
             'titulo'    => 'required|string|max:255',
             'categoria' => 'nullable|string|max:255',
             'descricao' => 'nullable|string|max:1000',
-            // Opção A (recomendada): mimetypes abrangente
             'arquivo'   => 'required|file|mimetypes:' . $mimetypeRules . '|max:10240',
-            // Opção B (por extensão; alternativa mais simples):
-            // 'arquivo'   => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx,csv|max:10240',
         ], [
             'titulo.required' => 'O título é obrigatório.',
             'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
@@ -77,7 +68,6 @@ class DocumentoController extends Controller
 
             'arquivo.required' => 'O arquivo é obrigatório.',
             'arquivo.file' => 'O arquivo deve ser um arquivo válido.',
-            'arquivo.mimes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, jpeg, png, xls, xlsx ou csv.',
             'arquivo.mimetypes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, jpeg, png, xls, xlsx ou csv.',
             'arquivo.max' => 'O arquivo deve ter no máximo 10MB.',
         ]);
@@ -88,7 +78,16 @@ class DocumentoController extends Controller
 
         try {
             $file = $request->file('arquivo');
-            $path = $file->store('documentos', 'public');
+            $originalName = $file->getClientOriginalName();
+            
+            // Gera um nome único mantendo o nome original
+            // Exemplo: documento.pdf -> documento_abc123.pdf
+            $fileName = pathinfo($originalName, PATHINFO_FILENAME);
+            $extension = $file->getClientOriginalExtension();
+            $uniqueName = $fileName . '_' . Str::random(10) . '.' . $extension;
+            
+            // Salva com o nome personalizado
+            $path = $file->storeAs('documentos', $uniqueName, 'public');
 
             $documento = Documento::create([
                 'titulo'         => $request->titulo,
@@ -97,7 +96,7 @@ class DocumentoController extends Controller
                 'arquivo'        => $path,
                 'tipo'           => $file->getClientMimeType(),
                 'tamanho'        => $file->getSize(),
-                'nome_original'  => $file->getClientOriginalName(),
+                'nome_original'  => $originalName,
             ]);
 
             return response()->json($documento, 201);
@@ -107,7 +106,6 @@ class DocumentoController extends Controller
                 'exception' => $e
             ]);
 
-            // Em caso de erro após upload, tenta remover o arquivo órfão
             if (isset($path) && Storage::disk('public')->exists($path)) {
                 Storage::disk('public')->delete($path);
             }
@@ -169,10 +167,7 @@ class DocumentoController extends Controller
                 'titulo'    => 'sometimes|required|string|max:255',
                 'categoria' => 'nullable|string|max:255',
                 'descricao' => 'nullable|string|max:1000',
-                // Opção A (mimetypes)
                 'arquivo'   => 'nullable|file|mimetypes:' . $mimetypeRules . '|max:10240',
-                // Opção B (mimes por extensão)
-                // 'arquivo'   => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx,csv|max:10240',
             ], [
                 'titulo.required' => 'O título é obrigatório.',
                 'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
@@ -181,7 +176,6 @@ class DocumentoController extends Controller
                 'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
 
                 'arquivo.file' => 'O arquivo deve ser um arquivo válido.',
-                'arquivo.mimes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, jpeg, png, xls, xlsx ou csv.',
                 'arquivo.mimetypes' => 'O arquivo deve ser do tipo: pdf, doc, docx, jpg, jpeg, png, xls, xlsx ou csv.',
                 'arquivo.max' => 'O arquivo deve ter no máximo 10MB.',
             ]);
@@ -197,10 +191,18 @@ class DocumentoController extends Controller
                 }
 
                 $file = $request->file('arquivo');
-                $documento->arquivo = $file->store('documentos', 'public');
+                $originalName = $file->getClientOriginalName();
+                
+                // Gera um nome único mantendo o nome original
+                $fileName = pathinfo($originalName, PATHINFO_FILENAME);
+                $extension = $file->getClientOriginalExtension();
+                $uniqueName = $fileName . '_' . Str::random(10) . '.' . $extension;
+                
+                // Salva com o nome personalizado
+                $documento->arquivo = $file->storeAs('documentos', $uniqueName, 'public');
                 $documento->tipo    = $file->getClientMimeType();
                 $documento->tamanho = $file->getSize();
-                $documento->nome_original = $file->getClientOriginalName();
+                $documento->nome_original = $originalName;
             }
 
             $documento->titulo    = $request->titulo    ?? $documento->titulo;
@@ -208,7 +210,6 @@ class DocumentoController extends Controller
             $documento->descricao = $request->descricao ?? $documento->descricao;
             $documento->save();
 
-            // Remove arquivo antigo após salvar com sucesso
             if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                 Storage::disk('public')->delete($oldPath);
             }
@@ -288,8 +289,6 @@ class DocumentoController extends Controller
 
     /**
      * Download do arquivo do documento
-     *
-     * @return \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\JsonResponse
      */
     public function download($id): StreamedResponse|JsonResponse
     {
@@ -306,13 +305,11 @@ class DocumentoController extends Controller
                 return response()->json(['error' => 'Arquivo não encontrado no armazenamento'], 404);
             }
 
-            // Nome do arquivo para download
-            $fileName = $documento->nome_original ??
-                (pathinfo($path, PATHINFO_BASENAME) ?: 'documento');
+            // Nome do arquivo para download (usa o nome original)
+            $fileName = $documento->nome_original ?? pathinfo($path, PATHINFO_BASENAME);
 
             // Content-Type
-            $mime = $documento->tipo ??
-                (Storage::disk('public')->mimeType($path) ?: 'application/octet-stream');
+            $mime = $documento->tipo ?? Storage::disk('public')->mimeType($path) ?? 'application/octet-stream';
 
             return Storage::disk('public')->download($path, $fileName, [
                 'Content-Type' => $mime,
