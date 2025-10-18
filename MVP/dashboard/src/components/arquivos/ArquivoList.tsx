@@ -91,7 +91,7 @@ const ArquivoGrid = () => {
                 const { icon, bgColor } = getIconAndBackgroundForFileType(record?.arquivo);
 
                 return (
-                    <Grid key={record.id} size={{ xs: 12, md: 4, sm: 6, lg: 3 }}>
+                    <Grid key={record.id} size={{ xs: 12, xl: 3, lg: 4, md: 6, sm: 6 }}>
                         <Card
                             raised
                             sx={{

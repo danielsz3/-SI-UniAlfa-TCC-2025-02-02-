@@ -55,7 +55,7 @@ const AnimalGrid = () => {
     return (
         <Grid container spacing={3} sx={{ p: 2, backgroundColor: (theme) => theme.palette.background.default }}>
             {data.map((record) => (
-                <Grid key={record.id} size={{ xs: 12, xl: 2, lg: 3, md: 4, sm: 6 }} >
+                <Grid key={record.id} size={{ xs: 12, xl: 3, lg: 4, md: 6, sm: 6 }} >
                     <Link
                         to={createPath({ resource: 'animais', id: record.id, type: 'edit' })}
                         style={{ textDecoration: 'none' }}
@@ -151,7 +151,7 @@ const AnimalList = () => {
                             import.meta.env.VITE_API_URL + '/imagens/' + record.imagens[0]?.caminho
                         }
                         primaryText={(record) => record.nome}
-                        tertiaryText={(record) => record.tipo_animal}
+                        tertiaryText={(record) => chipTipos[record.situacao as Situacao]?.label ?? 'Indefinido'}
                         secondaryText={(record) => `${formatarDiferencaData(record.data_nascimento)}`}
                     />
                 ) : (
