@@ -22,10 +22,13 @@ class ResetPasswordNotification extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Redefinir Senha')
-            ->line('Você está recebendo este email porque recebemos uma solicitação de redefinição de senha.')
+            ->subject('Redefinição de Senha - PetAffinity')
+            ->greeting('Olá, ' . $notifiable->nome . '!')
+            ->line('Você está recebendo este email porque recebemos uma solicitação de redefinição de senha para sua conta.')
             ->action('Redefinir Senha', $this->url)
-            ->line('Este link expira em 60 minutos.')
-            ->line('Se você não solicitou, ignore este email.');
+            ->line('Este link de redefinição expira em **60 minutos**.')
+            ->line('Se você não solicitou a redefinição de senha, nenhuma ação é necessária e sua senha permanecerá segura.')
+            ->salutation('Atenciosamente,')
+            ->salutation('Equipe PetAffinity');
     }
 }
