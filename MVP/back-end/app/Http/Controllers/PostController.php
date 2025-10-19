@@ -48,11 +48,13 @@ class PostController extends Controller
 
             if ($request->hasFile('imagens')) {
                 foreach ($request->file('imagens') as $file) {
+                    $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                     $path = $file->store('posts', 'public');
                     [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                     ImagemPost::create([
                         'post_id' => $post->id,
                         'caminho' => $path,
+                        'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
                         'width' => $width,
                         'height' => $height,
                     ]);
@@ -117,11 +119,13 @@ class PostController extends Controller
 
                 // Salvar novas imagens
                 foreach ($request->file('imagens') as $file) {
+                    $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                     $path = $file->store('posts', 'public');
                     [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                     ImagemPost::create([
                         'post_id' => $post->id,
                         'caminho' => $path,
+                        'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
                         'width' => $width,
                         'height' => $height,
                     ]);

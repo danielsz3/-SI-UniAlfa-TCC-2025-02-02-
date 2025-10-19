@@ -134,12 +134,14 @@ class LaresTemporarioController extends Controller
 
                 foreach ($files as $file) {
                     if ($file && $file->isValid()) {
+                        $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                         $path = $file->store('lares_temporarios', 'public');
                         [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
                         ImagemLarTemporario::create([
                             'id_lar_temporario' => $lar->id,
-                            'caminho'        => $path,
+                            'caminho'           => $path,
+                            'nome_original'     => $nomeOriginal, // 🔹 ADICIONADO
                             'width'             => $width,
                             'height'            => $height,
                         ]);
@@ -344,14 +346,16 @@ class LaresTemporarioController extends Controller
                     // 🔹 5. Salvar novas imagens
                     foreach ($arquivosNovos as $file) {
                         if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                            $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                             $path = $file->store('lares_temporarios', 'public');
                             [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
                             ImagemLarTemporario::create([
                                 'id_lar_temporario' => $lar->id,
-                                'caminho' => $path,
-                                'width' => $width,
-                                'height' => $height,
+                                'caminho'           => $path,
+                                'nome_original'     => $nomeOriginal, // 🔹 ADICIONADO
+                                'width'             => $width,
+                                'height'            => $height,
                             ]);
                         }
                     }

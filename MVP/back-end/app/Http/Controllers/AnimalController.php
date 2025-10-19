@@ -104,12 +104,14 @@ class AnimalController extends Controller
 
                 foreach ($files as $file) {
                     if ($file && $file->isValid()) {
+                        $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                         $path = $file->store('animais', 'public');
                         [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
                         ImagemAnimal::create([
                             'animal_id' => $animal->id,
                             'caminho' => $path,
+                            'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
                             'width' => $width,
                             'height' => $height,
                         ]);
@@ -260,12 +262,14 @@ class AnimalController extends Controller
                     // 🔹 5. Salvar novas imagens
                     foreach ($arquivosNovos as $file) {
                         if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                            $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                             $path = $file->store('animais', 'public');
                             [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
                             ImagemAnimal::create([
                                 'animal_id' => $animal->id,
                                 'caminho' => $path,
+                                'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
                                 'width' => $width,
                                 'height' => $height,
                             ]);
