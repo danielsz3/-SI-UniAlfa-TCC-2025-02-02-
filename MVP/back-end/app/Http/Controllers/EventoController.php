@@ -16,6 +16,7 @@ use Illuminate\Support\Arr;
 class EventoController extends Controller
 {
     use SearchIndex;
+    
     public function index(Request $request): JsonResponse
     {
         try {
@@ -89,11 +90,13 @@ class EventoController extends Controller
                 // Upload imagens adicionais
                 if ($request->hasFile('imagens')) {
                     foreach ($request->file('imagens') as $file) {
+                        $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                         $path = $file->store('eventos', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         ImagemEvento::create([
                             'evento_id' => $evento->id,
                             'caminho' => $path,
+                            'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
                             'width' => $width,
                             'height' => $height,
                         ]);
@@ -245,12 +248,14 @@ class EventoController extends Controller
                     // 🔹 5. Salvar novas imagens
                     foreach ($arquivosNovos as $file) {
                         if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                            $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                             $path = $file->store('eventos', 'public');
                             [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
                             ImagemEvento::create([
                                 'evento_id' => $evento->id,
                                 'caminho' => $path,
+                                'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
                                 'width' => $width,
                                 'height' => $height,
                             ]);

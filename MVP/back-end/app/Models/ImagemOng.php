@@ -20,6 +20,7 @@ class ImagemOng extends Model
         'caminho',
         'width',
         'height',
+        'nome_original'
     ];
 
     /**

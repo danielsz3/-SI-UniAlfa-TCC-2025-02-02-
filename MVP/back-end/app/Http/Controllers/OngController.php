@@ -166,10 +166,12 @@ class OngController extends Controller
                 // Upload e salvar imagens
                 if ($request->hasFile('imagens')) {
                     foreach ($request->file('imagens') as $file) {
+                        $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                         $path = $file->store('ongs', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         $ong->imagens()->create([
                             'caminho' => $path,
+                            'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
                             'width' => $width,
                             'height' => $height,
                         ]);
@@ -327,10 +329,12 @@ class OngController extends Controller
 
                     // Salvar novas imagens
                     foreach ($request->file('imagens') as $file) {
+                        $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                         $path = $file->store('ongs', 'public');
                         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
                         $ong->imagens()->create([
                             'caminho' => $path,
+                            'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
                             'width' => $width,
                             'height' => $height,
                         ]);

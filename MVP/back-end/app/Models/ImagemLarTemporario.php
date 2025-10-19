@@ -19,6 +19,7 @@ class ImagemLarTemporario extends Model
         'caminho',
         'width',
         'height',
+        'nome_original'
     ];
 
     public function larTemporario()
