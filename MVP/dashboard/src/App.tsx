@@ -40,6 +40,7 @@ import AnimalEdit from './components/animais/AnimalEdit';
 import EventoList from './components/eventos/EventoList';
 import EventoCreate from './components/eventos/EventoCreate';
 import EventoEdit from './components/eventos/EventoEdit';
+import PostCreate from './components/posts/PostCreate';
 
 function App() {
   return (
@@ -57,6 +58,8 @@ function App() {
           path="/configuracoes"
           element={<ConfiguracaoUsuario />}
         />
+        <Route path="/posts/create" element={<PostCreate />} />
+
       </CustomRoutes>
       <Resource
         options={{ label: "Usuários" }}
@@ -115,7 +118,7 @@ function App() {
         edit={LarTempEdit}
       />
 
-       <Resource
+      <Resource
         options={{ label: "Integrações" }}
         name="integracoes"
         icon={WebhookOutlinedIcon}
