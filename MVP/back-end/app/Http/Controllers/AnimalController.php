@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Arr;
 use Carbon\Carbon;
 
@@ -104,19 +105,22 @@ class AnimalController extends Controller
 
                 foreach ($files as $file) {
                     if ($file && $file->isValid()) {
-                        $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
+                        $nomeOriginal = $file->getClientOriginalName();
                         $path = $file->store('animais', 'public');
                         [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
                         ImagemAnimal::create([
                             'animal_id' => $animal->id,
                             'caminho' => $path,
-                            'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
+                            'nome_original' => $nomeOriginal,
                             'width' => $width,
                             'height' => $height,
                         ]);
                     }
                 }
+
+                // Limpar cache de animais
+                Cache::forget('animais_ativos');
 
                 return response()->json($animal->load('imagens'), 201);
             });
@@ -262,20 +266,23 @@ class AnimalController extends Controller
                     // 🔹 5. Salvar novas imagens
                     foreach ($arquivosNovos as $file) {
                         if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
-                            $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
+                            $nomeOriginal = $file->getClientOriginalName();
                             $path = $file->store('animais', 'public');
                             [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
                             ImagemAnimal::create([
                                 'animal_id' => $animal->id,
                                 'caminho' => $path,
-                                'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
+                                'nome_original' => $nomeOriginal,
                                 'width' => $width,
                                 'height' => $height,
                             ]);
                         }
                     }
                 }
+
+                // Limpar cache de animais
+                Cache::forget('animais_ativos');
 
                 return response()->json($animal->fresh('imagens'), 200);
             });
@@ -310,6 +317,10 @@ class AnimalController extends Controller
             }
 
             $animal->delete(); // soft delete
+
+            // Limpar cache de animais
+            Cache::forget('animais_ativos');
+
             return response()->json(null, 204);
         } catch (\Exception $e) {
             Log::error('Erro ao deletar animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
@@ -337,6 +348,10 @@ class AnimalController extends Controller
             }
 
             $animal->restore();
+
+            // Limpar cache de animais
+            Cache::forget('animais_ativos');
+
             return response()->json($animal->fresh('imagens'), 200);
         } catch (\Exception $e) {
             Log::error('Erro ao restaurar animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
@@ -364,8 +379,10 @@ class AnimalController extends Controller
                 return response()->json(['error' => 'Usuário não possui preferências definidas'], 400);
             }
 
-            // Considera apenas animais ativos (não deletados)
-            $animais = Animal::with('imagens')->get();
+            // Cache dos animais por 1 hora (3600 segundos)
+            $animais = Cache::remember('animais_ativos', 3600, function () {
+                return Animal::with('imagens')->get();
+            });
 
             $resultados = $animais->map(function ($animal) use ($pref) {
                 $score = 0;
