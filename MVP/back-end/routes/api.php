@@ -25,6 +25,9 @@ use App\Http\Controllers\MatchAfinidadeController;
 /**
  * AUTENTICAÇÃO PÚBLICA
  */
+Route::get('auth/google/redirect', [AuthController::class, 'redirectToGoogle']);
+Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+Route::post('auth/google/token', [AuthController::class, 'googleLoginToken']);
 Route::post('login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgetPassword'])->name('password.email');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.reset');

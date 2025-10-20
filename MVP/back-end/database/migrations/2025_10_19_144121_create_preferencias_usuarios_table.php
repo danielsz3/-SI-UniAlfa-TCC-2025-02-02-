@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('preferencias_usuarios', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('usuario_id');
-            $table->string('tamanho_pet');
-            $table->string('tempo_disponivel');
-            $table->string('estilo_vida');
-            $table->string('espaco_casa');
+            $table->string('tamanho_pet');// pequeno, medio, grande
+            $table->string('tempo_disponivel');// pouco_tempo, tempo_moderado, muito_tempo
+            $table->string('estilo_vida');// vida_tranquila, ritmo_equilibrado, sempre_em_acao
+            $table->string('espaco_casa');// area_pequena, area_media, area_externa
             $table->softDeletes();
             $table->timestamps();
 
