@@ -288,39 +288,46 @@ class DocumentoController extends Controller
     }
 
     /**
-     * Download do arquivo do documento
-     */
-    public function download($id): StreamedResponse|JsonResponse
-    {
-        try {
-            $documento = Documento::find($id);
+ * Download do arquivo do documento
+ */
+public function download($id): StreamedResponse|JsonResponse
+{
+    try {
+        $documento = Documento::find($id);
 
-            if (!$documento) {
-                return response()->json(['error' => 'Documento não encontrado'], 404);
-            }
-
-            $path = $documento->arquivo;
-
-            if (!$path || !Storage::disk('public')->exists($path)) {
-                return response()->json(['error' => 'Arquivo não encontrado no armazenamento'], 404);
-            }
-
-            // Nome do arquivo para download (usa o nome original)
-            $fileName = $documento->nome_original ?? pathinfo($path, PATHINFO_BASENAME);
-
-            // Content-Type
-            $mime = $documento->tipo ?? Storage::disk('public')->mimeType($path) ?? 'application/octet-stream';
-
-            return Storage::disk('public')->download($path, $fileName, [
-                'Content-Type' => $mime,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Erro ao fazer download do documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
-
-            return response()->json([
-                'error' => 'Não foi possível realizar o download',
-                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
-            ], 500);
+        if (!$documento) {
+            return response()->json(['error' => 'Documento não encontrado'], 404);
         }
+
+        $path = $documento->arquivo;
+
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            return response()->json(['error' => 'Arquivo não encontrado no armazenamento'], 404);
+        }
+
+        // Pega a extensão do arquivo original
+        $extension = pathinfo($documento->nome_original ?? $path, PATHINFO_EXTENSION);
+
+        // Sanitiza o título para uso seguro no nome do arquivo
+        $safeTitle = preg_replace('/[^A-Za-z0-9_\-]/', '_', Str::ascii($documento->titulo));
+
+        // Nome do arquivo para download (usa o título + extensão)
+        $fileName = $safeTitle . '.' . $extension;
+
+        // Content-Type
+        $mime = $documento->tipo ?? Storage::disk('public')->mimeType($path) ?? 'application/octet-stream';
+
+        return Storage::disk('public')->download($path, $fileName, [
+            'Content-Type' => $mime,
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Erro ao fazer download do documento: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
+
+        return response()->json([
+            'error' => 'Não foi possível realizar o download',
+            'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+        ], 500);
     }
+}
+
 }

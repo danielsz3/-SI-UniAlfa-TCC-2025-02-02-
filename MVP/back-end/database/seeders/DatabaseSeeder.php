@@ -37,5 +37,6 @@ class DatabaseSeeder extends Seeder
             'user_id' => '',
             'status' => 'inativo',
         ]);
+        
     }
 }
