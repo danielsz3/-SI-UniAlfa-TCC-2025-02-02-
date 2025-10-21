@@ -1,23 +1,23 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Navbar } from "@/components/navbar";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Navbar } from "@/components/navbar"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default function LoginPage() {
-  const router = useRouter();
+  const router = useRouter()
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
@@ -26,33 +26,31 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
-      });
+      })
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || data.error || "Erro ao fazer login");
+        const data = await res.json()
+        throw new Error(data.message || data.error || "Erro ao fazer login")
       }
 
-      const data = await res.json();
+      const data = await res.json()
 
-      // O token vem em data.access_token conforme seu AuthController
-      const token = data.access_token;
-      if (!token) throw new Error("Token não recebido");
+      const token = data.access_token
+      if (!token) throw new Error("Token não recebido")
 
-      // Armazena token no localStorage
-      localStorage.setItem("token", token);
+      localStorage.setItem("token", token)
       
-      // Opcional: armazenar dados do usuário
       if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("user", JSON.stringify(data.user))
       }
 
-      router.push("/");
+      router.push("/")
+      router.refresh()
 
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
@@ -126,5 +124,5 @@ export default function LoginPage() {
         </div>
       </main>
     </>
-  );
+  )
 }

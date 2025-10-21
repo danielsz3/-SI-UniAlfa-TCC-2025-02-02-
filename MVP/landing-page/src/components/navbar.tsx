@@ -109,8 +109,9 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 function CenterNav() {
   return (
     <nav className="hidden md:flex items-center gap-8">
-      <NavLink href="/adotar">ADOTAR</NavLink>
-      <NavLink href="/doar">DOAR</NavLink>
+      <NavLink href="/adotar">ADOTAR UM PET</NavLink>
+      <NavLink href="/doar-ong">DOAR PARA A ONG</NavLink>
+      <NavLink href="/doar-pet">DOAR UM PET</NavLink>
       <NavLink href="/sobre">SOBRE</NavLink>
     </nav>
   )
@@ -194,7 +195,7 @@ export function Navbar() {
     let active = true
     ;(async () => {
       const token = localStorage.getItem("token") || undefined
-      const res = await apiMe(/* token */)
+      const res = await apiMe(token)
       if (active) {
         setMe(res)
         setLoading(false)
@@ -207,7 +208,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     const token = localStorage.getItem("token") || undefined
-    const ok = await apiLogout(/* token */)
+    const ok = await apiLogout(token)
 
     localStorage.removeItem("token")
 
