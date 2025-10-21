@@ -19,13 +19,37 @@ interface Animal {
 
 async function fetchAnimais(): Promise<Animal[]> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/animais?limit=12`, {
+    // ✅ Fallback para evitar undefined
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api"
+    const url = `${apiUrl}/animais?limit=12`
+    
+    console.log("🔗 Fetching from:", url)
+    
+    const res = await fetch(url, {
       cache: "no-store",
+      headers: {
+        "Accept": "application/json",
+      }
     })
-    if (!res.ok) throw new Error("Falha ao buscar animais")
-    return await res.json()
+    
+    console.log("📡 Status:", res.status)
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error("❌ Error response:", errorText)
+      throw new Error(`API Error: ${res.status}`)
+    }
+    
+    const json = await res.json()
+    console.log("✅ Response structure:", json)
+    
+    // ✅ Ajustar baseado na estrutura da API
+    const animais = Array.isArray(json) ? json : (json.data || [])
+    console.log(`✅ Total animais: ${animais.length}`)
+    
+    return animais
   } catch (error) {
-    console.error(error)
+    console.error("💥 Fetch error:", error)
     return []
   }
 }
@@ -42,8 +66,9 @@ function calcularIdade(dataNascimento?: string): string {
 }
 
 function AnimalCard({ animal }: { animal: Animal }) {
+  const storageUrl = process.env.NEXT_PUBLIC_STORAGE_URL || "http://127.0.0.1:8000/storage"
   const imagemUrl = animal.imagens?.[0]?.caminho 
-    ? `${process.env.NEXT_PUBLIC_STORAGE_URL}/${animal.imagens[0].caminho}`
+    ? `${storageUrl}/${animal.imagens[0].caminho}`
     : null
 
   return (
@@ -102,6 +127,8 @@ function AnimalCard({ animal }: { animal: Animal }) {
 
 export default async function AdotarPage() {
   const animais = await fetchAnimais()
+  
+  console.log(`🐾 Renderizando ${animais.length} animais`)
 
   return (
     <>
@@ -117,9 +144,12 @@ export default async function AdotarPage() {
 
           {animais.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-muted-foreground text-lg">
+              <p className="text-muted-foreground text-lg mb-4">
                 Nenhum animal disponível para adoção no momento.
               </p>
+              <Button asChild>
+                <Link href="/doar-pet">Cadastrar Animal</Link>
+              </Button>
             </div>
           ) : (
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
