@@ -1,5 +1,5 @@
 import './App.css';
-import { Admin, CustomRoutes, ListGuesser, Resource, ShowGuesser } from 'react-admin';
+import { Admin, CustomRoutes, EditGuesser, ListGuesser, Resource, ShowGuesser } from 'react-admin';
 import { Route } from 'react-router-dom';
 
 import Layout from './layout/Layout';
@@ -14,6 +14,7 @@ import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import WebhookOutlinedIcon from '@mui/icons-material/WebhookOutlined';
 import PetsIcon from '@mui/icons-material/Pets';
 import EventIcon from '@mui/icons-material/Event';
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 
 import { i18nProvider, myTheme } from './theme';
 import UserCreate from './components/users/UsuarioCreate';
@@ -41,6 +42,9 @@ import EventoList from './components/eventos/EventoList';
 import EventoCreate from './components/eventos/EventoCreate';
 import EventoEdit from './components/eventos/EventoEdit';
 import PostCreate from './components/posts/PostCreate';
+import { AdocaoList } from './components/adocoes/AdocaoList';
+import { AdocaoEdit } from './components/adocoes/AdocaoEdit';
+
 
 function App() {
   return (
@@ -116,6 +120,13 @@ function App() {
         list={LarTempList}
         create={LarTempCreate}
         edit={LarTempEdit}
+      />
+      <Resource
+        options={{ label: "Adoções" }}
+        name="adocoes"
+        icon={VolunteerActivismIcon}
+        list={AdocaoList}
+        edit={AdocaoEdit}
       />
 
       <Resource
