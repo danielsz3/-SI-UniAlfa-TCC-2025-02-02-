@@ -76,7 +76,7 @@ class LaresTemporarioController extends Controller
             'endereco.uf'           => 'nullable|string|max:2',
 
             // Imagens (até 10MB cada)
-            'imagens.*' => 'file|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'imagens.*' => 'file|image|mimes:jpeg,png,jpg,webp|max:10240',
         ], [
             'nome.required' => 'O nome é obrigatório.',
             'nome.min' => 'O nome deve ter no mínimo 2 caracteres.',
@@ -105,7 +105,7 @@ class LaresTemporarioController extends Controller
             'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
 
             'imagens.*.image' => 'Cada arquivo enviado em imagens deve ser uma imagem válida.',
-            'imagens.*.mimes' => 'As imagens devem ser do tipo: jpeg, png, jpg ou gif.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo: jpeg, png, jpg ou webp.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
@@ -230,7 +230,7 @@ class LaresTemporarioController extends Controller
 
         // Só valida como file se houver arquivos enviados
         if ($request->hasFile('imagens')) {
-            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg,gif|max:10240';
+            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg,webp|max:10240';
         }
 
         $validator = Validator::make($request->all(), $rules, [
@@ -259,7 +259,7 @@ class LaresTemporarioController extends Controller
             'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
 
             'imagens.*.image' => 'Cada arquivo enviado em imagens deve ser uma imagem válida.',
-            'imagens.*.mimes' => 'As imagens devem ser do tipo: jpeg, png, jpg ou gif.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo: jpeg, png, jpg ou webp.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 

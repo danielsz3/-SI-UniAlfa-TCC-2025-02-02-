@@ -60,7 +60,7 @@ class AnimalController extends Controller
             'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
 
             'imagens' => 'nullable|array|max:10',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
         ], [
             'nome.required' => 'O nome do animal é obrigatório.',
             'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
@@ -180,11 +180,12 @@ class AnimalController extends Controller
             'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
 
             'imagens' => 'nullable|array|max:10',
+             'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
         ];
 
         // Só valida como file se houver arquivos enviados
         if ($request->hasFile('imagens')) {
-            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg,gif|max:10240';
+            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg|max:10240';
         }
 
         $validator = Validator::make($request->all(), $rules, [
@@ -198,6 +199,12 @@ class AnimalController extends Controller
             'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
 
             'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
+            'imagens.array' => 'As imagens devem ser enviadas como um array.',
+            'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
+            'imagens.*.image' => 'Cada arquivo enviado deve ser uma imagem válida.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
+
         ]);      
 
         if ($validator->fails()) {

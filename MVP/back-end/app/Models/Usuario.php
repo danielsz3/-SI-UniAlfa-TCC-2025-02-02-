@@ -25,6 +25,7 @@ class Usuario extends Authenticatable implements JWTSubject
         'data_nascimento',
         'telefone',
         'role',
+        'imagem',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -55,7 +56,7 @@ class Usuario extends Authenticatable implements JWTSubject
 
     public function preferencias()
     {
-        return $this->hasOne(PreferenciaUsuario::class, 'usuario_id');
+        return $this->hasOne(PreferenciaUsuario::class, 'usuario_id', 'id');
     }
 
     public function sendPasswordResetNotification($token): void
