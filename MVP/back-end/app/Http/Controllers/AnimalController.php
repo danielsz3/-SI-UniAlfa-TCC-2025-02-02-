@@ -2,147 +2,83 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Animal;
+use App\Models\ImagemAnimal;
 use App\Models\Usuario;
-use App\Models\Endereco;
-use App\Models\PreferenciaUsuario;
+use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
-use App\Traits\SearchIndex;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Arr;
 use Carbon\Carbon;
 
-class UsuarioController extends Controller
+class AnimalController extends Controller
 {
     use SearchIndex;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Listagem
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Listar animais (suporta paginação, filtros e ordenação)
+     */
     public function index(Request $request): JsonResponse
     {
-        return $this->SearchIndex(
-            $request,
-            Usuario::with(['endereco', 'preferencias']),
-            'usuarios',
-            ['nome', 'email', 'telefone']
-        );
+        try {
+            return $this->SearchIndex(
+                $request,
+                Animal::with('imagens'),
+                'animais',
+                ['nome', 'descricao']
+            );
+        } catch (\Exception $e) {
+            Log::error('Erro ao listar animais: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Não foi possível carregar os animais'], 500);
+        }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Criação
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Criar animal
+     */
     public function store(Request $request): JsonResponse
     {
-        // Decodifica campos JSON se vierem em formato string no FormData
-        if ($request->has('endereco') && is_string($request->input('endereco'))) {
-            $request->merge(['endereco' => json_decode($request->input('endereco'), true)]);
-        }
-        if ($request->has('preferencias') && is_string($request->input('preferencias'))) {
-            $request->merge(['preferencias' => json_decode($request->input('preferencias'), true)]);
-        }
-
-        // Normaliza data_nascimento para Y-m-d quando vier ISO
-        if ($request->filled('data_nascimento') && is_string($request->input('data_nascimento'))) {
-            try {
-                $dt = Carbon::parse($request->input('data_nascimento'))->startOfDay();
-                $request->merge(['data_nascimento' => $dt->toDateString()]);
-            } catch (\Throwable $e) {
-                // Deixa passar para o validator
-            }
-        }
-
-        // Validação
         $validator = Validator::make($request->all(), [
-            'nome' => 'required|string|min:2|max:150',
-            'email' => 'required|email|max:150|unique:usuarios,email',
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-                'confirmed',
-                'regex:/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/'
-            ],
-            'cpf' => 'required|string|size:11|regex:/^[0-9]+$/|unique:usuarios,cpf',
-            'data_nascimento' => 'required|date|before:today|after:1900-01-01',
-            'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
-            'role' => 'nullable|string|in:user,admin',
+            'nome' => 'required|string|max:100',
+            'sexo' => 'required|in:macho,femea',
 
-            // ✅ Validação de imagem idêntica ao AnimalController
-            'imagem' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'data_nascimento' => 'nullable|date|after:1900-01-01|before_or_equal:today',
 
-            'endereco' => 'nullable|array',
-            'endereco.cep' => 'nullable|string|max:9',
-            'endereco.logradouro' => 'nullable|string|max:255',
-            'endereco.numero' => 'nullable|string|max:10',
-            'endereco.complemento' => 'nullable|string|max:100',
-            'endereco.bairro' => 'nullable|string|max:100',
-            'endereco.cidade' => 'nullable|string|max:100',
-            'endereco.uf' => 'nullable|string|max:2',
+            'castrado' => 'nullable|boolean',
+            'vale_castracao' => 'nullable|boolean',
+            'descricao' => 'nullable|string|max:2000',
+            'tipo_animal' => 'required|in:cao,gato,outro',
 
-            'preferencias' => 'nullable|array',
-            'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
-            'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
-            'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
-            'preferencias.espaco_casa' => 'nullable|string|in:area_pequena,area_media,area_externa',
+            'nivel_energia' => 'nullable|in:baixa,moderada,alta',
+            'tamanho' => 'nullable|in:pequeno,medio,grande',
+            'tempo_necessario' => 'nullable|in:pouco_tempo,tempo_moderado,muito_tempo',
+            'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
+
+            'imagens' => 'nullable|array|max:10',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
         ], [
-            'nome.required' => 'O nome é obrigatório.',
-            'nome.min' => 'O nome deve ter pelo menos 2 caracteres.',
-            'nome.max' => 'O nome deve ter no máximo 150 caracteres.',
+            'nome.required' => 'O nome do animal é obrigatório.',
+            'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
 
-            'email.required' => 'O e-mail é obrigatório.',
-            'email.email' => 'O e-mail deve ser válido.',
-            'email.max' => 'O e-mail deve ter no máximo 150 caracteres.',
-            'email.unique' => 'Este e-mail já está em uso.',
+            'sexo.required' => 'O sexo é obrigatório.',
+            'sexo.in' => 'O sexo deve ser "macho" ou "femea".',
 
-            'password.required' => 'A senha é obrigatória.',
-            'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
-            'password.confirmed' => 'A confirmação da senha não confere.',
-            'password.regex' => 'A senha deve ter no mínimo 8 caracteres, incluir pelo menos 1 letra maiúscula, 1 número e 1 caractere especial.',
-
-            'cpf.required' => 'O CPF é obrigatório.',
-            'cpf.size' => 'O CPF deve ter exatamente 11 números.',
-            'cpf.regex' => 'O CPF deve conter apenas números.',
-            'cpf.unique' => 'Este CPF já está em uso.',
-
-            'data_nascimento.required' => 'A data de nascimento é obrigatória.',
             'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
-            'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje.',
             'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
 
-            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
-            'telefone.regex' => 'O telefone deve conter apenas números.',
+            'tipo_animal.required' => 'O tipo do animal é obrigatório.',
+            'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
 
-            'role.in' => 'O papel do usuário deve ser "user" ou "admin".',
-
-            // ✅ Mensagens de validação de imagem
-            'imagem.image' => 'O arquivo deve ser uma imagem válida.',
-            'imagem.mimes' => 'A imagem deve ser do tipo: jpeg, png, jpg ou webp.',
-            'imagem.max' => 'A imagem deve ter no máximo 10MB.',
-
-            'endereco.array' => 'O campo endereço deve ser um objeto.',
-            'endereco.cep.max' => 'O CEP deve ter no máximo 9 caracteres.',
-            'endereco.logradouro.max' => 'O logradouro deve ter no máximo 255 caracteres.',
-            'endereco.numero.max' => 'O número deve ter no máximo 10 caracteres.',
-            'endereco.complemento.max' => 'O complemento deve ter no máximo 100 caracteres.',
-            'endereco.bairro.max' => 'O bairro deve ter no máximo 100 caracteres.',
-            'endereco.cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
-            'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
-
-            'preferencias.array' => 'O campo preferências deve ser um objeto.',
-            'preferencias.tamanho_pet.in' => 'O tamanho do pet deve ser pequeno, medio ou grande.',
-            'preferencias.tempo_disponivel.in' => 'O tempo disponível deve ser pouco_tempo, tempo_moderado ou muito_tempo.',
-            'preferencias.estilo_vida.in' => 'O estilo de vida deve ser vida_tranquila, ritmo_equilibrado ou sempre_em_acao.',
-            'preferencias.espaco_casa.in' => 'O espaço da casa deve ser area_pequena, area_media ou area_externa.',
+            'imagens.array' => 'As imagens devem ser enviadas como um array.',
+            'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
+            'imagens.*.image' => 'Cada arquivo enviado deve ser uma imagem válida.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -151,316 +87,343 @@ class UsuarioController extends Controller
 
         try {
             return DB::transaction(function () use ($request) {
-                // Upload da imagem (mesmo padrão do AnimalController)
-                $pathImagem = null;
-                if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
-                    $file = $request->file('imagem');
-                    $nomeOriginal = $file->getClientOriginalName();
-                    $path = $file->store('usuarios', 'public');
-                    [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
-                    
-                    $pathImagem = $path;
+                $animal = Animal::create($request->only([
+                    'nome',
+                    'sexo',
+                    'data_nascimento',
+                    'castrado',
+                    'vale_castracao',
+                    'descricao',
+                    'tipo_animal',
+                    'nivel_energia',
+                    'tamanho',
+                    'tempo_necessario',
+                    'ambiente_ideal'
+                ]));
+
+                $files = Arr::wrap($request->file('imagens', []));
+
+                foreach ($files as $file) {
+                    if ($file && $file->isValid()) {
+                        $nomeOriginal = $file->getClientOriginalName();
+                        $path = $file->store('animais', 'public');
+                        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+
+                        ImagemAnimal::create([
+                            'animal_id' => $animal->id,
+                            'caminho' => $path,
+                            'nome_original' => $nomeOriginal,
+                            'width' => $width,
+                            'height' => $height,
+                        ]);
+                    }
                 }
 
-                $usuario = Usuario::create([
-                    'nome' => $request->nome,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password),
-                    'cpf' => $request->cpf,
-                    'data_nascimento' => $request->data_nascimento,
-                    'telefone' => $request->telefone,
-                    'role' => $request->role ?? 'user',
-                    'imagem' => $pathImagem,
-                ]);
+                // Limpar cache de animais
+                Cache::forget('animais_ativos');
 
-                // Endereço
-                if ($request->has('endereco') && is_array($request->endereco) && !empty(array_filter($request->endereco))) {
-                    $dadosEndereco = $request->endereco;
-                    $dadosEndereco['id_usuario'] = $usuario->id;
-                    Endereco::create($dadosEndereco);
-                }
-
-                // Preferências
-                if ($request->has('preferencias') && is_array($request->preferencias) && !empty(array_filter($request->preferencias))) {
-                    $dadosPref = $request->preferencias;
-                    $dadosPref['usuario_id'] = $usuario->id;
-                    PreferenciaUsuario::create($dadosPref);
-                }
-
-                return response()->json($usuario->load(['endereco', 'preferencias']), 201);
+                return response()->json($animal->load('imagens'), 201);
             });
         } catch (\Exception $e) {
-            Log::error('Erro ao criar usuário: ' . $e->getMessage(), [
-                'exception' => $e,
-                'payload' => $request->except('imagem')
-            ]);
+            Log::error('Erro ao criar animal: ' . $e->getMessage(), ['exception' => $e, 'payload' => $request->except('imagens')]);
             return response()->json([
-                'error' => 'Não foi possível criar o usuário',
+                'error' => 'Não foi possível criar o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Exibição
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Mostrar um animal
+     */
     public function show($id): JsonResponse
     {
         try {
-            $usuario = Usuario::with(['endereco', 'preferencias'])->find($id);
+            $animal = Animal::with('imagens')->find($id);
 
-            if (!$usuario) {
-                return response()->json(['error' => 'Usuário não encontrado'], 404);
+            if (!$animal) {
+                return response()->json(['error' => 'Animal não encontrado'], 404);
             }
 
-            return response()->json($usuario, 200);
+            return response()->json($animal, 200);
         } catch (\Exception $e) {
-            Log::error('Erro ao exibir usuário: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
-            return response()->json(['error' => 'Não foi possível carregar o usuário'], 500);
+            Log::error('Erro ao exibir animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
+            return response()->json(['error' => 'Não foi possível carregar o animal'], 500);
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Atualização (com troca segura de imagem)
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Atualizar animal
+     */
     public function update(Request $request, $id): JsonResponse
     {
-        $usuario = Usuario::find($id);
+        $animal = Animal::find($id);
 
-        if (!$usuario) {
-            return response()->json(['error' => 'Usuário não encontrado'], 404);
-        }
-
-        // Decodifica JSON
-        if ($request->has('endereco') && is_string($request->input('endereco'))) {
-            $request->merge(['endereco' => json_decode($request->input('endereco'), true)]);
-        }
-        if ($request->has('preferencias') && is_string($request->input('preferencias'))) {
-            $request->merge(['preferencias' => json_decode($request->input('preferencias'), true)]);
-        }
-
-        // Normaliza data_nascimento
-        if ($request->filled('data_nascimento') && is_string($request->input('data_nascimento'))) {
-            try {
-                $dt = Carbon::parse($request->input('data_nascimento'))->startOfDay();
-                $request->merge(['data_nascimento' => $dt->toDateString()]);
-            } catch (\Throwable $e) {
-                // Deixa passar para o validator
-            }
+        if (!$animal) {
+            return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
         $rules = [
-            'nome' => 'sometimes|required|string|min:2|max:150',
-            'email' => [
-                'sometimes',
-                'required',
-                'email',
-                'max:150',
-                Rule::unique('usuarios')->ignore($usuario->id)
-            ],
-            'password' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'min:8',
-                'confirmed',
-                'regex:/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/'
-            ],
-            'cpf' => [
-                'sometimes',
-                'required',
-                'string',
-                'size:11',
-                'regex:/^[0-9]+$/',
-                Rule::unique('usuarios')->ignore($usuario->id)
-            ],
-            'data_nascimento' => 'sometimes|required|date|before:today|after:1900-01-01',
-            'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
-            'role' => 'nullable|string|in:user,admin',
+            'nome' => 'sometimes|required|string|max:100',
+            'sexo' => 'sometimes|required|in:macho,femea',
 
-            'endereco' => 'nullable|array',
-            'endereco.cep' => 'nullable|string|max:9',
-            'endereco.logradouro' => 'nullable|string|max:255',
-            'endereco.numero' => 'nullable|string|max:10',
-            'endereco.complemento' => 'nullable|string|max:100',
-            'endereco.bairro' => 'nullable|string|max:100',
-            'endereco.cidade' => 'nullable|string|max:100',
-            'endereco.uf' => 'nullable|string|max:2',
+            'data_nascimento' => 'nullable|date|after:1900-01-01|before_or_equal:today',
 
-            'preferencias' => 'nullable|array',
-            'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
-            'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
-            'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
-            'preferencias.espaco_casa' => 'nullable|string|in:area_pequena,area_media,area_externa',
+            'castrado' => 'nullable|boolean',
+            'vale_castracao' => 'nullable|boolean',
+            'descricao' => 'nullable|string|max:2000',
+            'tipo_animal' => 'sometimes|required|in:cao,gato,outro',
+
+            'nivel_energia' => 'nullable|in:baixa,moderada,alta',
+            'tamanho' => 'nullable|in:pequeno,medio,grande',
+            'tempo_necessario' => 'nullable|in:pouco_tempo,tempo_moderado,muito_tempo',
+            'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
+
+            'imagens' => 'nullable|array|max:10',
+             'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
         ];
 
-        // ✅ Só valida como file se houver arquivo enviado (igual ao AnimalController)
-        if ($request->hasFile('imagem')) {
-            $rules['imagem'] = 'file|image|mimes:jpeg,png,jpg,webp|max:10240';
+        // Só valida como file se houver arquivos enviados
+        if ($request->hasFile('imagens')) {
+            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg|max:10240';
         }
 
         $validator = Validator::make($request->all(), $rules, [
-            'nome.required' => 'O nome é obrigatório.',
-            'nome.min' => 'O nome deve ter pelo menos 2 caracteres.',
-            'nome.max' => 'O nome deve ter no máximo 150 caracteres.',
+            'nome.required' => 'O nome do animal é obrigatório.',
+            'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
 
-            'email.required' => 'O e-mail é obrigatório.',
-            'email.email' => 'O e-mail deve ser válido.',
-            'email.max' => 'O e-mail deve ter no máximo 150 caracteres.',
-            'email.unique' => 'Este e-mail já está em uso.',
-
-            'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
-            'password.confirmed' => 'A confirmação da senha não confere.',
-            'password.regex' => 'A senha deve ter no mínimo 8 caracteres, incluir pelo menos 1 letra maiúscula, 1 número e 1 caractere especial.',
-
-            'cpf.required' => 'O CPF é obrigatório.',
-            'cpf.size' => 'O CPF deve ter exatamente 11 números.',
-            'cpf.regex' => 'O CPF deve conter apenas números.',
-            'cpf.unique' => 'Este CPF já está em uso.',
+            'sexo.in' => 'O sexo deve ser "macho" ou "femea".',
 
             'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
-            'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje.',
             'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
 
-            'telefone.size' => 'O telefone deve ter exatamente 11 números.',
-            'telefone.regex' => 'O telefone deve conter apenas números.',
+            'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
+            'imagens.array' => 'As imagens devem ser enviadas como um array.',
+            'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
+            'imagens.*.image' => 'Cada arquivo enviado deve ser uma imagem válida.',
+            'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
 
-            'role.in' => 'O papel do usuário deve ser "user" ou "admin".',
-
-            // ✅ Mensagens de validação de imagem
-            'imagem.image' => 'O arquivo deve ser uma imagem válida.',
-            'imagem.mimes' => 'A imagem deve ser do tipo: jpeg, png, jpg ou webp.',
-            'imagem.max' => 'A imagem deve ter no máximo 10MB.',
-        ]);
+        ]);      
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
-            return DB::transaction(function () use ($request, $usuario) {
-                $dados = $request->only([
+            return DB::transaction(function () use ($request, $animal) {
+                $animal->update($request->only([
                     'nome',
-                    'email',
-                    'cpf',
                     'data_nascimento',
-                    'telefone',
-                    'role'
-                ]);
+                    'sexo',
+                    'castrado',
+                    'vale_castracao',
+                    'descricao',
+                    'tipo_animal',
+                    'nivel_energia',
+                    'tamanho',
+                    'tempo_necessario',
+                    'ambiente_ideal'
+                ]));
 
-                if ($request->filled('password')) {
-                    $dados['password'] = Hash::make($request->password);
-                }
-
-                // ✅ Tratamento de imagem — remove antiga se existir
-                if ($request->hasFile('imagem')) {
-                    if ($usuario->imagem && Storage::disk('public')->exists($usuario->imagem)) {
-                        Storage::disk('public')->delete($usuario->imagem);
+                // === Tratamento de imagens ===
+                if ($request->has('imagens') || $request->hasFile('imagens')) {
+                    // 🔹 1. Capturar arquivos novos
+                    $arquivosNovos = [];
+                    if ($request->hasFile('imagens')) {
+                        $arquivosNovos = Arr::wrap($request->file('imagens'));
                     }
 
-                    $file = $request->file('imagem');
-                    $nomeOriginal = $file->getClientOriginalName();
-                    $path = $file->store('usuarios', 'public');
-                    [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
-                    
-                    $dados['imagem'] = $path;
-                }
+                    // 🔹 2. Processar imagens mantidas
+                    $imagensMantidas = [];
+                    $imagensInput = $request->input('imagens', []);
 
-                $usuario->update($dados);
+                    if (is_array($imagensInput)) {
+                        foreach ($imagensInput as $item) {
+                            // Se for string JSON, decodifica
+                            if (is_string($item)) {
+                                $decoded = json_decode($item, true);
+                                if ($decoded && isset($decoded['src'])) {
+                                    $imagensMantidas[] = basename(parse_url($decoded['src'], PHP_URL_PATH));
+                                }
+                            }
+                            // Se já vier como array com 'src'
+                            elseif (is_array($item) && isset($item['src'])) {
+                                $imagensMantidas[] = basename(parse_url($item['src'], PHP_URL_PATH));
+                            }
+                        }
+                    }
 
-                // Atualiza endereço
-                if ($request->has('endereco') && is_array($request->endereco) && !empty(array_filter($request->endereco))) {
-                    if ($usuario->endereco) {
-                        $usuario->endereco->update($request->endereco);
-                    } else {
-                        $request->endereco['id_usuario'] = $usuario->id;
-                        Endereco::create($request->endereco);
+                    // 🔹 3. Buscar imagens atuais do banco
+                    $imagensAtuais = ImagemAnimal::where('animal_id', $animal->id)->get();
+
+                    // 🔹 4. Excluir as removidas
+                    foreach ($imagensAtuais as $imagem) {
+                        $arquivoAtual = basename($imagem->caminho);
+
+                        if (!in_array($arquivoAtual, $imagensMantidas)) {
+                            if (Storage::disk('public')->exists($imagem->caminho)) {
+                                Storage::disk('public')->delete($imagem->caminho);
+                            }
+                            $imagem->delete();
+                        }
+                    }
+
+                    // 🔹 5. Salvar novas imagens
+                    foreach ($arquivosNovos as $file) {
+                        if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                            $nomeOriginal = $file->getClientOriginalName();
+                            $path = $file->store('animais', 'public');
+                            [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+
+                            ImagemAnimal::create([
+                                'animal_id' => $animal->id,
+                                'caminho' => $path,
+                                'nome_original' => $nomeOriginal,
+                                'width' => $width,
+                                'height' => $height,
+                            ]);
+                        }
                     }
                 }
 
-                // Atualiza preferências
-                if ($request->has('preferencias') && is_array($request->preferencias) && !empty(array_filter($request->preferencias))) {
-                    if ($usuario->preferencias) {
-                        $usuario->preferencias->update($request->preferencias);
-                    } else {
-                        $request->preferencias['usuario_id'] = $usuario->id;
-                        PreferenciaUsuario::create($request->preferencias);
-                    }
-                }
+                // Limpar cache de animais
+                Cache::forget('animais_ativos');
 
-                return response()->json($usuario->fresh(['endereco', 'preferencias']), 200);
+                return response()->json($animal->fresh('imagens'), 200);
             });
         } catch (\Exception $e) {
-            Log::error('Erro ao atualizar usuário: ' . $e->getMessage(), [
-                'id' => $id,
-                'exception' => $e,
-                'payload' => $request->except('imagem'),
-            ]);
+            Log::error('Erro ao atualizar animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e, 'payload' => $request->except('imagens')]);
             return response()->json([
-                'error' => 'Não foi possível atualizar o usuário',
+                'error' => 'Não foi possível atualizar o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Exclusão (remove imagem também)
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Deletar (soft delete)
+     */
     public function destroy($id): JsonResponse
     {
         try {
-            $usuario = Usuario::find($id);
-
-            if (!$usuario) {
-                return response()->json(['error' => 'Usuário não encontrado'], 404);
+            $animal = Animal::with('imagens')->find($id);
+            if (!$animal) {
+                return response()->json(['error' => 'Animal não encontrado'], 404);
             }
 
-            // ✅ Remove imagem do storage
-            if ($usuario->imagem && Storage::disk('public')->exists($usuario->imagem)) {
-                Storage::disk('public')->delete($usuario->imagem);
+            // Apagar arquivos do storage
+            foreach ($animal->imagens as $img) {
+                if ($img->caminho) {
+                    $oldPath = ltrim(str_replace('/storage/', '', $img->caminho), '/');
+                    if (Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                }
             }
 
-            $usuario->delete();
+            $animal->delete(); // soft delete
+
+            // Limpar cache de animais
+            Cache::forget('animais_ativos');
+
             return response()->json(null, 204);
         } catch (\Exception $e) {
-            Log::error('Erro ao deletar usuário: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
+            Log::error('Erro ao deletar animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
             return response()->json([
-                'error' => 'Não foi possível excluir o usuário',
+                'error' => 'Não foi possível excluir o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Restauração
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Restaurar animal deletado
+     */
     public function restore($id): JsonResponse
     {
         try {
-            $usuario = Usuario::withTrashed()->find($id);
+            $animal = Animal::withTrashed()->find($id);
+
+            if (!$animal) {
+                return response()->json(['error' => 'Animal não encontrado'], 404);
+            }
+
+            if (!$animal->trashed()) {
+                return response()->json(['error' => 'Animal já está ativo'], 400);
+            }
+
+            $animal->restore();
+
+            // Limpar cache de animais
+            Cache::forget('animais_ativos');
+
+            return response()->json($animal->fresh('imagens'), 200);
+        } catch (\Exception $e) {
+            Log::error('Erro ao restaurar animal: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
+            return response()->json([
+                'error' => 'Não foi possível restaurar o animal',
+                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+            ], 500);
+        }
+    }
+
+    /**
+     * Recomendar animais para um usuário de acordo com preferências
+     */
+    public function recomendar($usuarioId): JsonResponse
+    {
+        try {
+            $usuario = Usuario::with('preferencias')->find($usuarioId);
 
             if (!$usuario) {
                 return response()->json(['error' => 'Usuário não encontrado'], 404);
             }
 
-            if (!$usuario->trashed()) {
-                return response()->json(['error' => 'Usuário já está ativo'], 400);
+            $pref = $usuario->preferencias;
+            if (!$pref) {
+                return response()->json(['error' => 'Usuário não possui preferências definidas'], 400);
             }
 
-            $usuario->restore();
-            return response()->json($usuario->load(['endereco', 'preferencias']), 200);
+            // Cache dos animais por 1 hora (3600 segundos)
+            $animais = Cache::remember('animais_ativos', 3600, function () {
+                return Animal::with('imagens')->get();
+            });
+
+            $resultados = $animais->map(function ($animal) use ($pref) {
+                $score = 0;
+                $total = 4; // número de critérios ponderados
+
+                if (!empty($pref->tamanho_pet) && $pref->tamanho_pet === $animal->tamanho) {
+                    $score += 1;
+                }
+                if (!empty($pref->tempo_disponivel) && $pref->tempo_disponivel === $animal->tempo_necessario) {
+                    $score += 1;
+                }
+                if (!empty($pref->estilo_vida) && $pref->estilo_vida === $animal->nivel_energia) {
+                    $score += 1;
+                }
+                if (!empty($pref->espaco_casa) && $pref->espaco_casa === $animal->ambiente_ideal) {
+                    $score += 1;
+                }
+
+                $percent = $total > 0 ? intval(($score / $total) * 100) : 0;
+
+                return [
+                    'animal' => $animal,
+                    'afinidade' => $score,
+                    'afinidade_percent' => $percent,
+                ];
+            });
+
+            $ordenados = $resultados->sortByDesc('afinidade')->values();
+
+            return response()->json($ordenados, 200);
         } catch (\Exception $e) {
-            Log::error('Erro ao restaurar usuário: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
+            Log::error('Erro ao recomendar animais: ' . $e->getMessage(), ['usuario_id' => $usuarioId, 'exception' => $e]);
             return response()->json([
-                'error' => 'Não foi possível restaurar o usuário',
+                'error' => 'Não foi possível gerar recomendações',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }

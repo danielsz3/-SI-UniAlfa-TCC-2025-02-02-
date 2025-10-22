@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Evento;
-use App\Models\ImagemEvento;
+use App\Models\Animal;
+use App\Models\ImagemAnimal;
+use App\Models\Usuario;
 use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -11,58 +12,64 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Arr;
+use Carbon\Carbon;
 
-class EventoController extends Controller
+class AnimalController extends Controller
 {
     use SearchIndex;
-    
+
+    /**
+     * Listar animais (suporta paginação, filtros e ordenação)
+     */
     public function index(Request $request): JsonResponse
     {
         try {
             return $this->SearchIndex(
                 $request,
-                Evento::with('imagens'),
-                'eventos',
-                ['titulo']
+                Animal::with('imagens'),
+                'animais',
+                ['nome', 'descricao']
             );
         } catch (\Exception $e) {
-            Log::error('Erro ao listar documentos: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json(['error' => 'Não foi possível carregar os documentos'], 500);
+            Log::error('Erro ao listar animais: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Não foi possível carregar os animais'], 500);
         }
     }
 
+    /**
+     * Criar animal
+     */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'titulo' => 'required|string|max:255',
-            'data_inicio' => 'required|date|after:now',
-            'data_fim' => 'required|date|after_or_equal:data_inicio',
-            'local' => 'required|string|max:255',
-            'descricao' => 'nullable|string|max:1000',
-            'imagem_capa' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'nome' => 'required|string|max:100',
+            'sexo' => 'required|in:macho,femea',
+            'data_nascimento' => 'nullable|date|after:1900-01-01|before_or_equal:today',
+            'castrado' => 'nullable|boolean',
+            'vale_castracao' => 'nullable|boolean',
+            'descricao' => 'nullable|string|max:2000',
+            'tipo_animal' => 'required|in:cao,gato,outro',
+            'nivel_energia' => 'nullable|in:baixa,moderada,alta',
+            'tamanho' => 'nullable|in:pequeno,medio,grande',
+            'tempo_necessario' => 'nullable|in:pouco_tempo,tempo_moderado,muito_tempo',
+            'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
             'imagens' => 'nullable|array|max:10',
             'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
         ], [
-            'titulo.required' => 'O título do evento é obrigatório.',
-            'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
+            'nome.required' => 'O nome do animal é obrigatório.',
+            'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
 
-            'data_inicio.required' => 'A data de início é obrigatória.',
-            'data_inicio.date' => 'A data de início deve ser uma data válida.',
-            'data_inicio.after' => 'A data de início deve ser uma data futura.',
+            'sexo.required' => 'O sexo é obrigatório.',
+            'sexo.in' => 'O sexo deve ser "macho" ou "femea".',
 
-            'data_fim.required' => 'A data de fim é obrigatória.',
-            'data_fim.date' => 'A data de fim deve ser uma data válida.',
-            'data_fim.after_or_equal' => 'A data de fim deve ser igual ou posterior à data de início.',
+            'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
+            'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
 
-            'local.required' => 'O local do evento é obrigatório.',
-            'local.max' => 'O local deve ter no máximo 255 caracteres.',
-
-            'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-
-            'imagem_capa.image' => 'A imagem de capa deve ser uma imagem válida.',
-            'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg  ou webp.',
-            'imagem_capa.max' => 'A imagem de capa deve ter no máximo 10MB.',
+            'tipo_animal.required' => 'O tipo do animal é obrigatório.',
+            'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
 
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
@@ -77,73 +84,92 @@ class EventoController extends Controller
 
         try {
             return DB::transaction(function () use ($request) {
-                $data = $request->only(['titulo', 'data_inicio', 'data_fim', 'local', 'descricao']);
-
-                // Upload imagem capa
-                if ($request->hasFile('imagem')) {
-                    $path = $request->file('imagem')->store('eventos', 'public');
-                    $data['imagem'] = $path;
-                }
-
-                $evento = Evento::create($data);
+                $animal = Animal::create($request->only([
+                    'nome',
+                    'sexo',
+                    'data_nascimento',
+                    'castrado',
+                    'vale_castracao',
+                    'descricao',
+                    'tipo_animal',
+                    'nivel_energia',
+                    'tamanho',
+                    'tempo_necessario',
+                    'ambiente_ideal'
+                ]));
 
                 // Upload imagens adicionais
                 if ($request->hasFile('imagens')) {
                     foreach ($request->file('imagens') as $file) {
-                        $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
-                        $path = $file->store('eventos', 'public');
-                        [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
-                        ImagemEvento::create([
-                            'evento_id' => $evento->id,
+                        $nomeOriginal = $file->getClientOriginalName();
+                        $path = $file->store('animais', 'public');
+                        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+
+                        ImagemAnimal::create([
+                            'animal_id' => $animal->id,
                             'caminho' => $path,
-                            'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
+                            'nome_original' => $nomeOriginal,
                             'width' => $width,
                             'height' => $height,
                         ]);
                     }
                 }
 
-                return response()->json($evento->load('imagens'), 201);
+                // Limpar cache de animais
+                Cache::forget('animais_ativos');
+
+                return response()->json($animal->load('imagens'), 201);
             });
         } catch (\Exception $e) {
-            Log::error('Erro ao criar evento: ' . $e->getMessage(), [
-                'request_data' => $request->except(['imagem_capa', 'imagens']),
+            Log::error('Erro ao criar animal: ' . $e->getMessage(), [
+                'request_data' => $request->except('imagens'),
                 'exception' => $e
             ]);
 
             return response()->json([
-                'error' => 'Não foi possível criar o evento',
+                'error' => 'Não foi possível criar o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }
     }
 
+    /**
+     * Mostrar um animal
+     */
     public function show($id): JsonResponse
     {
-        $evento = Evento::with('imagens')->find($id);
+        $animal = Animal::with('imagens')->find($id);
 
-        if (!$evento) {
-            return response()->json(['error' => 'Evento não encontrado'], 404);
+        if (!$animal) {
+            return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
-        return response()->json($evento);
+        return response()->json($animal, 200);
     }
 
+    /**
+     * Atualizar animal
+     */
     public function update(Request $request, $id): JsonResponse
     {
-        $evento = Evento::find($id);
+        $animal = Animal::find($id);
 
-        if (!$evento) {
-            return response()->json(['error' => 'Evento não encontrado'], 404);
+        if (!$animal) {
+            return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
         $rules = [
-            'titulo' => 'sometimes|required|string|max:255',
-            'data_inicio' => 'sometimes|required|date|after:now',
-            'data_fim' => 'sometimes|required|date|after_or_equal:data_inicio',
-            'local' => 'sometimes|required|string|max:255',
-            'descricao' => 'nullable|string|max:1000',
-            'imagem_capa' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'nome' => 'sometimes|required|string|max:100',
+            'sexo' => 'sometimes|required|in:macho,femea',
+            'data_nascimento' => 'nullable|date|after:1900-01-01|before_or_equal:today',
+            'castrado' => 'nullable|boolean',
+            'vale_castracao' => 'nullable|boolean',
+            'descricao' => 'nullable|string|max:2000',
+            'tipo_animal' => 'sometimes|required|in:cao,gato,outro',
+            'nivel_energia' => 'nullable|in:baixa,moderada,alta',
+            'tamanho' => 'nullable|in:pequeno,medio,grande',
+            'tempo_necessario' => 'nullable|in:pouco_tempo,tempo_moderado,muito_tempo',
+            'ambiente_ideal' => 'nullable|in:area_pequena,area_media,area_externa',
             'imagens' => 'nullable|array|max:10',
         ];
 
@@ -153,25 +179,16 @@ class EventoController extends Controller
         }
 
         $validator = Validator::make($request->all(), $rules, [
-            'titulo.required' => 'O título do evento é obrigatório.',
-            'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
+            'nome.required' => 'O nome do animal é obrigatório.',
+            'nome.max' => 'O nome pode ter no máximo 100 caracteres.',
 
-            'data_inicio.required' => 'A data de início é obrigatória.',
-            'data_inicio.date' => 'A data de início deve ser uma data válida.',
-            'data_inicio.after' => 'A data de início deve ser uma data futura.',
+            'sexo.in' => 'O sexo deve ser "macho" ou "femea".',
 
-            'data_fim.required' => 'A data de fim é obrigatória.',
-            'data_fim.date' => 'A data de fim deve ser uma data válida.',
-            'data_fim.after_or_equal' => 'A data de fim deve ser igual ou posterior à data de início.',
+            'data_nascimento.date' => 'A data de nascimento deve ser uma data válida.',
+            'data_nascimento.after' => 'A data de nascimento deve ser posterior a 01/01/1900.',
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
 
-            'local.required' => 'O local do evento é obrigatório.',
-            'local.max' => 'O local deve ter no máximo 255 caracteres.',
-
-            'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
-
-            'imagem_capa.image' => 'A imagem de capa deve ser uma imagem válida.',
-            'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg, ou webp.',
-            'imagem_capa.max' => 'A imagem de capa deve ter no máximo 10MB.',
+            'tipo_animal.in' => 'O tipo do animal deve ser "cao", "gato" ou "outro".',
 
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
@@ -185,24 +202,22 @@ class EventoController extends Controller
         }
 
         try {
-            return DB::transaction(function () use ($request, $evento) {
-                $data = $request->only(['titulo', 'data_inicio', 'data_fim', 'local', 'descricao']);
+            return DB::transaction(function () use ($request, $animal) {
+                $animal->update($request->only([
+                    'nome',
+                    'data_nascimento',
+                    'sexo',
+                    'castrado',
+                    'vale_castracao',
+                    'descricao',
+                    'tipo_animal',
+                    'nivel_energia',
+                    'tamanho',
+                    'tempo_necessario',
+                    'ambiente_ideal'
+                ]));
 
-                // Atualizar imagem capa
-                if ($request->hasFile('imagem')) {
-                    // Deletar imagem capa antiga
-                    if ($evento->imagem_capa) {
-                        $oldPath = str_replace('/storage/', '', $evento->imagem);
-                        if (Storage::disk('public')->exists($oldPath)) {
-                            Storage::disk('public')->delete($oldPath);
-                        }
-                    }
-                    $path = $request->file('imagem')->store('eventos', 'public');
-                    $data['imagem'] = $path;
-                }
-
-                $evento->update($data);
-
+                // === Tratamento de imagens ===
                 if ($request->has('imagens') || $request->hasFile('imagens')) {
                     // 🔹 1. Capturar arquivos novos
                     $arquivosNovos = [];
@@ -231,7 +246,7 @@ class EventoController extends Controller
                     }
 
                     // 🔹 3. Buscar imagens atuais do banco
-                    $imagensAtuais = ImagemEvento::where('evento_id', $evento->id)->get();
+                    $imagensAtuais = ImagemAnimal::where('animal_id', $animal->id)->get();
 
                     // 🔹 4. Excluir as removidas
                     foreach ($imagensAtuais as $imagem) {
@@ -248,99 +263,173 @@ class EventoController extends Controller
                     // 🔹 5. Salvar novas imagens
                     foreach ($arquivosNovos as $file) {
                         if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
-                            $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
-                            $path = $file->store('eventos', 'public');
+                            $nomeOriginal = $file->getClientOriginalName();
+                            $path = $file->store('animais', 'public');
                             [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
 
-                            ImagemEvento::create([
-                                'evento_id' => $evento->id,
+                            ImagemAnimal::create([
+                                'animal_id' => $animal->id,
                                 'caminho' => $path,
-                                'nome_original' => $nomeOriginal, // 🔹 ADICIONADO
+                                'nome_original' => $nomeOriginal,
                                 'width' => $width,
                                 'height' => $height,
                             ]);
                         }
                     }
                 }
-                return response()->json($evento->fresh('imagens'), 200);
+
+                // Limpar cache de animais
+                Cache::forget('animais_ativos');
+
+                return response()->json($animal->fresh('imagens'), 200);
             });
         } catch (\Exception $e) {
-            Log::error('Erro ao atualizar evento: ' . $e->getMessage(), [
-                'evento_id' => $id,
-                'request_data' => $request->except(['imagem_capa', 'imagens']),
+            Log::error('Erro ao atualizar animal: ' . $e->getMessage(), [
+                'animal_id' => $id,
+                'request_data' => $request->except('imagens'),
                 'exception' => $e
             ]);
 
             return response()->json([
-                'error' => 'Não foi possível atualizar o evento',
+                'error' => 'Não foi possível atualizar o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }
     }
 
+    /**
+     * Deletar (soft delete)
+     */
     public function destroy($id): JsonResponse
     {
-        $evento = Evento::find($id);
+        $animal = Animal::find($id);
 
-        if (!$evento) {
-            return response()->json(['error' => 'Evento não encontrado'], 404);
+        if (!$animal) {
+            return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
         try {
-            // Deletar imagens do storage antes de deletar o evento
-            if ($evento->imagem_capa) {
-                $oldPath = str_replace('/storage/', '', $evento->imagem_capa);
-                if (Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
-                }
-            }
-
-            foreach ($evento->imagens as $imagem) {
+            // Deletar imagens do storage antes de deletar o animal
+            foreach ($animal->imagens as $imagem) {
                 $oldPath = str_replace('/storage/', '', $imagem->caminho);
                 if (Storage::disk('public')->exists($oldPath)) {
                     Storage::disk('public')->delete($oldPath);
                 }
             }
 
-            $evento->delete();
+            $animal->delete(); // soft delete
+
+            // Limpar cache de animais
+            Cache::forget('animais_ativos');
 
             return response()->json(null, 204);
         } catch (\Exception $e) {
-            Log::error('Erro ao deletar evento: ' . $e->getMessage(), [
-                'evento_id' => $id,
+            Log::error('Erro ao deletar animal: ' . $e->getMessage(), [
+                'animal_id' => $id,
                 'exception' => $e
             ]);
 
             return response()->json([
-                'error' => 'Não foi possível deletar o evento',
+                'error' => 'Não foi possível excluir o animal',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }
     }
 
+    /**
+     * Restaurar animal deletado
+     */
     public function restore($id): JsonResponse
     {
-        $evento = Evento::withTrashed()->find($id);
+        $animal = Animal::withTrashed()->find($id);
 
-        if (!$evento) {
-            return response()->json(['error' => 'Evento não encontrado'], 404);
+        if (!$animal) {
+            return response()->json(['error' => 'Animal não encontrado'], 404);
         }
 
-        if (!$evento->trashed()) {
-            return response()->json(['error' => 'Evento já está ativo'], 400);
+        if (!$animal->trashed()) {
+            return response()->json(['error' => 'Animal já está ativo'], 400);
         }
 
         try {
-            $evento->restore();
-            return response()->json($evento->load('imagens'), 200);
+            $animal->restore();
+
+            // Limpar cache de animais
+            Cache::forget('animais_ativos');
+
+            return response()->json($animal->fresh('imagens'), 200);
         } catch (\Exception $e) {
-            Log::error('Erro ao restaurar evento: ' . $e->getMessage(), [
-                'evento_id' => $id,
+            Log::error('Erro ao restaurar animal: ' . $e->getMessage(), [
+                'animal_id' => $id,
                 'exception' => $e
             ]);
 
             return response()->json([
-                'error' => 'Não foi possível restaurar o evento',
+                'error' => 'Não foi possível restaurar o animal',
+                'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
+            ], 500);
+        }
+    }
+
+    /**
+     * Recomendar animais para um usuário de acordo com preferências
+     */
+    public function recomendar($usuarioId): JsonResponse
+    {
+        try {
+            $usuario = Usuario::with('preferencias')->find($usuarioId);
+
+            if (!$usuario) {
+                return response()->json(['error' => 'Usuário não encontrado'], 404);
+            }
+
+            $pref = $usuario->preferencias;
+            if (!$pref) {
+                return response()->json(['error' => 'Usuário não possui preferências definidas'], 400);
+            }
+
+            // Cache dos animais por 1 hora (3600 segundos)
+            $animais = Cache::remember('animais_ativos', 3600, function () {
+                return Animal::with('imagens')->get();
+            });
+
+            $resultados = $animais->map(function ($animal) use ($pref) {
+                $score = 0;
+                $total = 4; // número de critérios ponderados
+
+                if (!empty($pref->tamanho_pet) && $pref->tamanho_pet === $animal->tamanho) {
+                    $score += 1;
+                }
+                if (!empty($pref->tempo_disponivel) && $pref->tempo_disponivel === $animal->tempo_necessario) {
+                    $score += 1;
+                }
+                if (!empty($pref->estilo_vida) && $pref->estilo_vida === $animal->nivel_energia) {
+                    $score += 1;
+                }
+                if (!empty($pref->espaco_casa) && $pref->espaco_casa === $animal->ambiente_ideal) {
+                    $score += 1;
+                }
+
+                $percent = $total > 0 ? intval(($score / $total) * 100) : 0;
+
+                return [
+                    'animal' => $animal,
+                    'afinidade' => $score,
+                    'afinidade_percent' => $percent,
+                ];
+            });
+
+            $ordenados = $resultados->sortByDesc('afinidade')->values();
+
+            return response()->json($ordenados, 200);
+        } catch (\Exception $e) {
+            Log::error('Erro ao recomendar animais: ' . $e->getMessage(), [
+                'usuario_id' => $usuarioId,
+                'exception' => $e
+            ]);
+
+            return response()->json([
+                'error' => 'Não foi possível gerar recomendações',
                 'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor'
             ], 500);
         }
