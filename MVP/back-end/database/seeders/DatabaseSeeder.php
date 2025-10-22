@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
         Usuario::create([
             'nome' => 'Admin',
             'email' => 'admin@admin.com',
-            'password' => Hash::make('senha4@A'),
+            'password' => Hash::make('12345678'),
             'role' => 'admin', // enum: 'user' | 'admin'
             'cpf' => '00000000000',
             'data_nascimento' => '2000-01-01',
