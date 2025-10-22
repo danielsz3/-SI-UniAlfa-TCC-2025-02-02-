@@ -3,7 +3,6 @@ import { notFound } from "next/navigation"
 import { Calendar, Heart, Ruler, Zap } from "lucide-react"
 
 import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -165,7 +164,6 @@ export default async function AnimalDetalhesPage({ params }: { params: { id: str
           </div>
         </div>
       </main>
-      <Footer />
     </>
   )
 }

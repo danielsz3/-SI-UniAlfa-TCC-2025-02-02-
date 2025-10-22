@@ -4,7 +4,6 @@ import { useState, ChangeEvent, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 
 import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -229,7 +228,6 @@ export default function DoarPage() {
           </Card>
         </div>
       </main>
-      <Footer />
     </>
   )
 }

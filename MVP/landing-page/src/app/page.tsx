@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
+
 
 // Types
 type Evento = {
@@ -251,7 +251,6 @@ export default function Home() {
         <EventosSection eventos={eventos} loading={loading} />
         <FeedbacksSection feedbacks={feedbacks} loading={loading} />
       </main>
-      <Footer />
     </>
   )
 }

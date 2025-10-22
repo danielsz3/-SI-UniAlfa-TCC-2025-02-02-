@@ -23,24 +23,24 @@ import {
   Menu as MenuIcon,
   X as CloseIcon,
   HeartHandshake,
-  HandHeart
+  HandHeart,
 } from "lucide-react"
 
 type MeResponse =
   | { authenticated: true; id?: number | string; name?: string; email?: string; avatarUrl?: string; role?: string }
   | { authenticated: false }
 
-// Helpers
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api"
 
-async function apiMe(token?: string): Promise<MeResponse> {
+// -------- API --------
+async function apiMe(token: string): Promise<MeResponse> {
   try {
     const res = await fetch(`${API_BASE}/me`, {
       method: "GET",
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Authorization: `Bearer ${token}`,
       },
     })
     if (!res.ok) return { authenticated: false }
@@ -48,10 +48,10 @@ async function apiMe(token?: string): Promise<MeResponse> {
     return {
       authenticated: true,
       id: data?.id,
-      name: data?.nome ?? data?.name ?? data?.username,
-      email: data?.email,
-      avatarUrl: data?.avatar,
-      role: data?.role ?? data?.perfil,
+      name: data?.nome ?? data?.name ?? data?.username ?? "",
+      email: data?.email ?? "",
+      avatarUrl: data?.avatar ?? data?.avatar_url ?? data?.foto ?? "",
+      role: data?.role ?? data?.perfil ?? "",
     }
   } catch {
     return { authenticated: false }
@@ -74,25 +74,7 @@ async function apiLogout(token?: string): Promise<boolean> {
   }
 }
 
-export async function apiLogin(email: string, password: string): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const res = await fetch(`${API_BASE}/login`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    })
-    if (!res.ok) {
-      const text = await res.text()
-      return { ok: false, error: text || "Falha no login" }
-    }
-    return { ok: true }
-  } catch (e: any) {
-    return { ok: false, error: e?.message ?? "Erro de rede" }
-  }
-}
-
-// Subcomponentes
+// -------- UI --------
 function Brand() {
   return (
     <Link href="/" className="flex items-center gap-2">
@@ -181,50 +163,57 @@ function CenterNav() {
 function RightActions({
   me,
   onLogoutClick,
+  loading,
 }: {
   me: MeResponse
   onLogoutClick: () => Promise<void>
+  loading: boolean
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <ThemeToggle />
-      {me.authenticated ? (
+
+      {loading ? (
+        <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
+      ) : me.authenticated ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={(me as any).avatarUrl} alt={(me as any).name ?? "Usuário"} />
+                <AvatarImage
+                  src={(me as any).avatarUrl || undefined}
+                  alt={(me as any).name ?? "Usuário"}
+                />
                 <AvatarFallback>
                   {(me as any).name ? (me as any).name[0]?.toUpperCase() : "U"}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent align="end" className="w-56">
+            {/* Cabeçalho com nome/email */}
             <DropdownMenuLabel>
               <div className="flex flex-col">
                 <span className="font-medium leading-tight truncate">{(me as any).name ?? "Usuário"}</span>
                 <span className="text-xs text-muted-foreground truncate">{(me as any).email ?? ""}</span>
               </div>
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator />
+
+            {/* Item Perfil */}
             <DropdownMenuItem asChild>
               <Link href="/perfil" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Perfil
               </Link>
             </DropdownMenuItem>
-            {(me as any).role === "admin" && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/admin" className="flex items-center gap-2">
-                    Painel Admin
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            )}
+
+            {/* Separador entre Perfil e Sair */}
             <DropdownMenuSeparator />
+
+            {/* Item Sair */}
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600"
               onClick={onLogoutClick}
@@ -255,7 +244,12 @@ export function Navbar() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") || undefined : undefined
+      // Chama /me apenas se houver token
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : ""
+      if (!token) {
+        if (active) setLoading(false)
+        return
+      }
       const res = await apiMe(token)
       if (active) {
         setMe(res)
@@ -295,7 +289,7 @@ export function Navbar() {
 
         <CenterNav />
 
-        <RightActions me={me} onLogoutClick={handleLogout} />
+        <RightActions me={me} onLogoutClick={handleLogout} loading={loading} />
       </div>
 
       {/* Mobile menu */}
