@@ -40,9 +40,9 @@ class EventoController extends Controller
             'data_fim' => 'required|date|after_or_equal:data_inicio',
             'local' => 'required|string|max:255',
             'descricao' => 'nullable|string|max:1000',
-            'imagem_capa' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'imagem_capa' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
             'imagens' => 'nullable|array|max:10',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
         ], [
             'titulo.required' => 'O título do evento é obrigatório.',
             'titulo.max' => 'O título deve ter no máximo 255 caracteres.',
@@ -61,13 +61,13 @@ class EventoController extends Controller
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
 
             'imagem_capa.image' => 'A imagem de capa deve ser uma imagem válida.',
-            'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg, gif ou webp.',
+            'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg  ou webp.',
             'imagem_capa.max' => 'A imagem de capa deve ter no máximo 10MB.',
 
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
             'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem válido.',
-            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg, gif ou webp.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou webp.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
@@ -143,13 +143,13 @@ class EventoController extends Controller
             'data_fim' => 'sometimes|required|date|after_or_equal:data_inicio',
             'local' => 'sometimes|required|string|max:255',
             'descricao' => 'nullable|string|max:1000',
-            'imagem_capa' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'imagem_capa' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
             'imagens' => 'nullable|array|max:10',
         ];
 
         // Só valida como file se houver arquivos enviados
         if ($request->hasFile('imagens')) {
-            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg,gif|max:10240';
+            $rules['imagens.*'] = 'file|image|mimes:jpeg,png,jpg,webp|max:10240';
         }
 
         $validator = Validator::make($request->all(), $rules, [
@@ -170,13 +170,13 @@ class EventoController extends Controller
             'descricao.max' => 'A descrição deve ter no máximo 1000 caracteres.',
 
             'imagem_capa.image' => 'A imagem de capa deve ser uma imagem válida.',
-            'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg, gif ou webp.',
+            'imagem_capa.mimes' => 'A imagem de capa deve ser do tipo jpeg, png, jpg, ou webp.',
             'imagem_capa.max' => 'A imagem de capa deve ter no máximo 10MB.',
 
             'imagens.array' => 'As imagens devem ser enviadas como um array.',
             'imagens.max' => 'Você pode enviar no máximo 10 imagens.',
             'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem válido.',
-            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg, gif ou webp.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou webp.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 

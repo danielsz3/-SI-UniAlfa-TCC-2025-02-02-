@@ -101,7 +101,7 @@ class OngController extends Controller
             'contatos.*.descricao' => 'nullable|string|max:1000',
 
             'imagens' => 'nullable|array',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
         ], [
             // Mensagens personalizadas para validações
             'nome_ong.required' => 'O nome da ONG é obrigatório.',
@@ -136,7 +136,7 @@ class OngController extends Controller
             'contatos.*.descricao.max' => 'A descrição do contato deve ter no máximo 1000 caracteres.',
 
             'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem.',
-            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou webp.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 
@@ -254,7 +254,7 @@ class OngController extends Controller
             'contatos.*.descricao' => 'nullable|string|max:1000',
 
             'imagens' => 'nullable|array',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
         ], [
             // Mensagens personalizadas para validações
             'nome_ong.required' => 'O nome da ONG é obrigatório.',
@@ -289,7 +289,7 @@ class OngController extends Controller
             'contatos.*.descricao.max' => 'A descrição do contato deve ter no máximo 1000 caracteres.',
 
             'imagens.*.image' => 'Cada imagem deve ser um arquivo de imagem.',
-            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou webp.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 10MB.',
         ]);
 

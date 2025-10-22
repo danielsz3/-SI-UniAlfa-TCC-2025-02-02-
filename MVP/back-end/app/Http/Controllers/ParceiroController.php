@@ -35,7 +35,7 @@ class ParceiroController extends Controller
             'nome'      => 'required|string|max:255',
             'url_site'  => 'nullable|url',
             'descricao' => 'nullable|string|max:500',
-            'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp|max:4096',
         ], [
             'nome.required' => 'O nome do parceiro é obrigatório.',
             'nome.max'      => 'O nome do parceiro deve ter no máximo 255 caracteres.',
@@ -110,7 +110,7 @@ class ParceiroController extends Controller
                 'nome'      => 'sometimes|required|string|max:255',
                 'url_site'  => 'nullable|url',
                 'descricao' => 'nullable|string|max:500',
-                'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:10240',
+                'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp|max:10240',
             ], [
                 'nome.required' => 'O nome do parceiro é obrigatório.',
                 'nome.max'      => 'O nome do parceiro deve ter no máximo 255 caracteres.',

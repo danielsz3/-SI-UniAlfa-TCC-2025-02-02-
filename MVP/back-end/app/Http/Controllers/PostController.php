@@ -23,10 +23,10 @@ class PostController extends Controller
         $validator = Validator::make($request->all(), [
             'legenda' => 'nullable|string|max:1000',
             'imagens' => 'nullable|array',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
         ], [
             'imagens.*.image' => 'Cada arquivo deve ser uma imagem válida.',
-            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou webp.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 2MB.',
             'legenda.max' => 'A legenda deve ter no máximo 1000 caracteres.',
         ]);
@@ -87,10 +87,10 @@ class PostController extends Controller
         $validator = Validator::make($request->all(), [
             'legenda' => 'nullable|string|max:1000',
             'imagens' => 'nullable|array',
-            'imagens.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'imagens.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
         ], [
             'imagens.*.image' => 'Cada arquivo deve ser uma imagem válida.',
-            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou gif.',
+            'imagens.*.mimes' => 'As imagens devem ser do tipo jpeg, png, jpg ou webp.',
             'imagens.*.max' => 'Cada imagem deve ter no máximo 2MB.',
             'legenda.max' => 'A legenda deve ter no máximo 1000 caracteres.',
         ]);
