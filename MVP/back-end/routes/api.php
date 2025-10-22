@@ -44,7 +44,7 @@ Route::apiResource('transacoes', TransacaoController::class)->only(['index', 'sh
 
 
 // Usuários públicos: ver 1 e criar cadastro
-Route::apiResource('usuarios', UsuarioController::class)->only(['show', 'store']);
+Route::apiResource('usuarios', UsuarioController::class)->only(['show', 'store', 'update']);
 
 /**
  * ROTAS AUTENTICADAS (qualquer logado)
@@ -69,7 +69,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::middleware(['role:admin'])->group(function () {
 
         // Usuários: admin tem CRUD completo (exceto ‘store’ se preferir manter público)
-        Route::apiResource('usuarios', UsuarioController::class)->except(['show','store']);
+        Route::apiResource('usuarios', UsuarioController::class)->except(['show','store','update']);
         Route::post('usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
 
         // Recursos com controle total do admin

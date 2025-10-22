@@ -41,8 +41,8 @@ class ParceiroController extends Controller
             'nome.max'      => 'O nome do parceiro deve ter no máximo 255 caracteres.',
             'url_site.url'  => 'A URL do site deve ser válida.',
             'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
-            'imagem.mimes'  => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
-            'imagem.max'    => 'A logo deve ter no máximo 4MB.',
+            'imagem.mimes'  => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp.',
+            'imagem.max'    => 'A logo deve ter no máximo 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -110,14 +110,14 @@ class ParceiroController extends Controller
                 'nome'      => 'sometimes|required|string|max:255',
                 'url_site'  => 'nullable|url',
                 'descricao' => 'nullable|string|max:500',
-                'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:4096',
+                'imagem'    => 'nullable|file|mimes:jpg,jpeg,png,webp,gif|max:10240',
             ], [
                 'nome.required' => 'O nome do parceiro é obrigatório.',
                 'nome.max'      => 'O nome do parceiro deve ter no máximo 255 caracteres.',
                 'url_site.url'  => 'A URL do site deve ser válida.',
                 'descricao.max' => 'A descrição deve ter no máximo 500 caracteres.',
-                'imagem.mimes'  => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp ou gif.',
-                'imagem.max'    => 'A logo deve ter no máximo 4MB.',
+                'imagem.mimes'  => 'A logo deve ser uma imagem do tipo jpg, jpeg, png, webp.',
+                'imagem.max'    => 'A logo deve ter no máximo 10MB.',
             ]);
 
             if ($validator->fails()) {
