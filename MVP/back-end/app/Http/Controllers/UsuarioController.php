@@ -32,10 +32,11 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Criar um novo usuário com endereço opcional
+     * Criar um novo usuário com endereço e preferências opcionais
      */
     public function store(Request $request): JsonResponse
     {
+        // Validação
         $validator = Validator::make($request->all(), [
             'nome' => 'required|string|min:2|max:150',
             'email' => 'required|email|max:150|unique:usuarios,email',
@@ -54,6 +55,8 @@ class UsuarioController extends Controller
             'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
             'role' => 'nullable|string|in:user,admin',
 
+            // Garanta que, se vier, seja array (evita null)
+            'endereco' => 'nullable|array',
             'endereco.cep' => 'nullable|string|max:9',
             'endereco.logradouro' => 'nullable|string|max:255',
             'endereco.numero' => 'nullable|string|max:10',
@@ -62,6 +65,7 @@ class UsuarioController extends Controller
             'endereco.cidade' => 'nullable|string|max:100',
             'endereco.uf' => 'nullable|string|max:2',
 
+            'preferencias' => 'nullable|array',
             'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
             'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
             'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
@@ -96,6 +100,7 @@ class UsuarioController extends Controller
 
             'role.in' => 'O papel do usuário deve ser "user" ou "admin".',
 
+            'endereco.array' => 'O campo endereço deve ser um objeto.',
             'endereco.cep.max' => 'O CEP deve ter no máximo 9 caracteres.',
             'endereco.logradouro.max' => 'O logradouro deve ter no máximo 255 caracteres.',
             'endereco.numero.max' => 'O número deve ter no máximo 10 caracteres.',
@@ -104,6 +109,7 @@ class UsuarioController extends Controller
             'endereco.cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
             'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
 
+            'preferencias.array' => 'O campo preferências deve ser um objeto.',
             'preferencias.tamanho_pet.in' => 'O tamanho do pet deve ser pequeno, medio ou grande.',
             'preferencias.tempo_disponivel.in' => 'O tempo disponível deve ser pouco_tempo, tempo_moderado ou muito_tempo.',
             'preferencias.estilo_vida.in' => 'O estilo de vida deve ser vida_tranquila, ritmo_equilibrado ou sempre_em_acao.',
@@ -114,8 +120,12 @@ class UsuarioController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Normaliza para arrays vazios (evita null)
+        $endereco = is_array($request->input('endereco')) ? $request->input('endereco') : [];
+        $preferencias = is_array($request->input('preferencias')) ? $request->input('preferencias') : [];
+
         try {
-            return DB::transaction(function () use ($request) {
+            return DB::transaction(function () use ($request, $endereco, $preferencias) {
                 $usuario = Usuario::create([
                     'nome' => $request->nome,
                     'email' => $request->email,
@@ -126,14 +136,16 @@ class UsuarioController extends Controller
                     'role' => $request->role ?? 'user',
                 ]);
 
-                if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
-                    $enderecoData = $request->endereco;
+                // Verifica se há dados válidos no endereço (ignora arrays vazios e nulls)
+                if (!empty($endereco) && is_array($endereco) && count(array_filter($endereco, fn($v) => $v !== null && $v !== '')) > 0) {
+                    $enderecoData = $endereco;
                     $enderecoData['id_usuario'] = $usuario->id;
                     Endereco::create($enderecoData);
                 }
 
-                if ($request->has('preferencias') && !empty(array_filter($request->preferencias))) {
-                    $prefsData = $request->preferencias;
+                // Verifica se há dados válidos nas preferências
+                if (!empty($preferencias) && is_array($preferencias) && count(array_filter($preferencias, fn($v) => $v !== null && $v !== '')) > 0) {
+                    $prefsData = $preferencias;
                     $prefsData['usuario_id'] = $usuario->id;
                     PreferenciaUsuario::create($prefsData);
                 }
@@ -151,7 +163,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Exibir um usuário específico com endereço
+     * Exibir um usuário específico com endereço e preferências
      */
     public function show($id): JsonResponse
     {
@@ -169,7 +181,7 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Atualizar um usuário e seu endereço
+     * Atualizar um usuário e seus relacionamentos
      */
     public function update(Request $request, $id): JsonResponse
     {
@@ -212,6 +224,7 @@ class UsuarioController extends Controller
                 'telefone' => 'nullable|string|size:11|regex:/^[0-9]+$/',
                 'role' => 'nullable|string|in:user,admin',
 
+                'endereco' => 'nullable|array',
                 'endereco.cep' => 'nullable|string|max:9',
                 'endereco.logradouro' => 'nullable|string|max:255',
                 'endereco.numero' => 'nullable|string|max:10',
@@ -220,6 +233,7 @@ class UsuarioController extends Controller
                 'endereco.cidade' => 'nullable|string|max:100',
                 'endereco.uf' => 'nullable|string|max:2',
 
+                'preferencias' => 'nullable|array',
                 'preferencias.tamanho_pet' => 'nullable|string|in:pequeno,medio,grande',
                 'preferencias.tempo_disponivel' => 'nullable|string|in:pouco_tempo,tempo_moderado,muito_tempo',
                 'preferencias.estilo_vida' => 'nullable|string|in:vida_tranquila,ritmo_equilibrado,sempre_em_acao',
@@ -254,6 +268,7 @@ class UsuarioController extends Controller
 
                 'role.in' => 'O papel do usuário deve ser "user" ou "admin".',
 
+                'endereco.array' => 'O campo endereço deve ser um objeto.',
                 'endereco.cep.max' => 'O CEP deve ter no máximo 9 caracteres.',
                 'endereco.logradouro.max' => 'O logradouro deve ter no máximo 255 caracteres.',
                 'endereco.numero.max' => 'O número deve ter no máximo 10 caracteres.',
@@ -262,6 +277,7 @@ class UsuarioController extends Controller
                 'endereco.cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
                 'endereco.uf.max' => 'A UF deve ter no máximo 2 caracteres.',
 
+                'preferencias.array' => 'O campo preferências deve ser um objeto.',
                 'preferencias.tamanho_pet.in' => 'O tamanho do pet deve ser pequeno, medio ou grande.',
                 'preferencias.tempo_disponivel.in' => 'O tempo disponível deve ser pouco_tempo, tempo_moderado ou muito_tempo.',
                 'preferencias.estilo_vida.in' => 'O estilo de vida deve ser vida_tranquila, ritmo_equilibrado ou sempre_em_acao.',
@@ -272,7 +288,11 @@ class UsuarioController extends Controller
                 return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            return DB::transaction(function () use ($request, $usuario) {
+            // Normaliza para arrays vazios (evita null) - CORREÇÃO PRINCIPAL
+            $endereco = is_array($request->input('endereco')) ? $request->input('endereco') : [];
+            $preferencias = is_array($request->input('preferencias')) ? $request->input('preferencias') : [];
+
+            return DB::transaction(function () use ($request, $usuario, $endereco, $preferencias) {
                 $userData = $request->only([
                     'nome',
                     'email',
@@ -288,8 +308,9 @@ class UsuarioController extends Controller
 
                 $usuario->update($userData);
 
-                if ($request->has('endereco') && !empty(array_filter($request->endereco))) {
-                    $enderecoData = $request->endereco;
+                // Verifica se há dados válidos no endereço (CORREÇÃO: usa callback no array_filter)
+                if (!empty($endereco) && is_array($endereco) && count(array_filter($endereco, fn($v) => $v !== null && $v !== '')) > 0) {
+                    $enderecoData = $endereco;
 
                     if ($usuario->endereco) {
                         $usuario->endereco->update($enderecoData);
@@ -299,8 +320,9 @@ class UsuarioController extends Controller
                     }
                 }
 
-                if ($request->has('preferencias') && !empty(array_filter($request->preferencias))) {
-                    $prefsData = $request->preferencias;
+                // Verifica se há dados válidos nas preferências (CORREÇÃO: usa callback no array_filter)
+                if (!empty($preferencias) && is_array($preferencias) && count(array_filter($preferencias, fn($v) => $v !== null && $v !== '')) > 0) {
+                    $prefsData = $preferencias;
 
                     if ($usuario->preferencias) {
                         $usuario->preferencias->update($prefsData);
