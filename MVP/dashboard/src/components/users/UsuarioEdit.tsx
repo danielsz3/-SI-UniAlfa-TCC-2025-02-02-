@@ -1,5 +1,6 @@
-import { SimpleForm, TextInput, required, PasswordInput, Edit } from 'react-admin';
+import { SimpleForm, TextInput, required, PasswordInput, Edit, ImageInput, ImageField } from 'react-admin';
 import CustomDatePicker from '../datepicker/customDatePicker';
+import { FilePlaceholder } from '../FilePlaceHolder';
 
 const UserEdit = () => (
     <Edit
@@ -51,6 +52,27 @@ const UserEdit = () => (
                 source="password_confirmation"
                 label="Confirmar Senha"
             />
+
+            <ImageInput
+                                source="imagem"
+                                label="Imagem"
+                                accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
+                                maxSize={10_500_000}
+                                validate={required('Pelo menos uma imagem é obrigatória')}
+                                placeholder={
+                                    <FilePlaceholder
+                                        maxSize={10_500_000}
+                                        accept={['.png', '.jpg', '.jpeg', '.gif']}
+                                    />
+                                }
+                                sx={{
+                                    '& .RaFileInput-dropZone': {
+                                        p: 0,
+                                    },
+                                }}
+                            > 
+                                <ImageField source="src" title="title" />
+                            </ImageInput>
 
         </SimpleForm>
     </Edit>

@@ -36,7 +36,6 @@ const ParceiroCreate = () => (
                     <FilePlaceholder
                         maxSize={10_500_000}
                         accept={['.png', '.jpg', '.jpeg', '.gif']}
-                        multiple
                     />
                 }
                 sx={{
