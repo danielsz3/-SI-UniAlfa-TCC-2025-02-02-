@@ -25,6 +25,11 @@ use App\Http\Controllers\MatchAfinidadeController;
 Route::post('login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgetPassword'])->name('password.email');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.reset');
+// Google OAuth (fluxo web)
+Route::get('auth/google/redirect', [AuthController::class, 'redirectToGoogle'])->name('google.redirect');
+Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('google.callback');
+// Google (fluxo SPA) — envia idToken do frontend
+Route::post('auth/google/token', [AuthController::class, 'googleLoginToken'])->name('google.token');
 
 Route::get('imagens/{folder}/{filename}', [ImageController::class, 'show'])->name('imagens.show');
 Route::get('documentos/{id}/download', [DocumentoController::class, 'download'])->name('documentos.download');

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('usuario_id');
             $table->unsignedBigInteger('animal_id');
-            $table->enum('status', ['em_aprovacao', 'aprovado'])->default('em_aprovacao');
+            $table->enum('status', ['em_aprovacao', 'aprovado', 'negado'])->default('em_aprovacao');
             $table->enum('qtd_pessoas_casa', ['sozinho', 'uma_pessoa', 'duas_pessoas', 'tres_pessoas', 'quatro_ou_mais'])->nullable();
             $table->boolean('possui_filhos')->nullable();
             $table->json('sobre_rotina')->nullable();

@@ -224,4 +224,50 @@ class MatchAfinidadeController extends Controller
             return response()->json(['error' => 'Não foi possível restaurar o match'], 500);
         }
     }
+
+    public function MudarStatus(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'usuario_id' => 'required|exists:usuarios,id',
+            'animal_id' => 'required|exists:animais,id',
+            'status' => ['required', Rule::in(['em_adocao', 'escolhido', 'rejeitado'])],
+        ], [
+            'usuario_id.required' => 'O usuário é obrigatório.',
+            'usuario_id.exists' => 'Usuário não encontrado.',
+            'animal_id.required' => 'O animal é obrigatório.',
+            'animal_id.exists' => 'Animal não encontrado.',
+            'status.required' => 'O status é obrigatório.',
+            'status.in' => 'Status inválido.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $match = MatchAfinidade::where('usuario_id', $request->usuario_id)
+                ->where('animal_id', $request->animal_id)
+                ->first();
+
+            if (!$match) {
+                return response()->json(['error' => 'Match não encontrado'], 404);
+            }
+
+            return DB::transaction(function () use ($match, $request) {
+                $match->status = $request->status;
+                $match->save();
+
+                return response()->json($match->fresh(['usuario', 'animal']), 200);
+            });
+        } catch (\Exception $e) {
+            Log::error('Erro ao alterar status do match: ' . $e->getMessage(), [
+                'payload' => $request->all(),
+                'exception' => $e
+            ]);
+            return response()->json([
+                'error' => 'Não foi possível alterar o status do match',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
