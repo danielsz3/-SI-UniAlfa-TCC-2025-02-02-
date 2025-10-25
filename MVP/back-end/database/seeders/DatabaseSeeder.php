@@ -37,6 +37,14 @@ class DatabaseSeeder extends Seeder
             'user_id' => '',
             'status' => 'inativo',
         ]);
-        
+
+        $this->call([
+            AnimalSeeder::class,
+            UsuarioSeeder::class,
+            AdocaoSeeder::class,
+            // Voce pode adicionar outros seeders aqui no array
+            // Ex: OutroSeeder::class,
+        ]);
+
     }
 }

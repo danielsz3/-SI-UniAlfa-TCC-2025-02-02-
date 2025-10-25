@@ -20,6 +20,8 @@ class AnimalSeeder extends Seeder
         $tempoNecessarioOptions = ['pouco_tempo', 'tempo_moderado', 'muito_tempo'];
         $ambienteIdealOptions = ['area_pequena', 'area_media', 'area_externa'];
 
+        $tipoImagemOptions = ['animais/animal-01.jpg', 'animais/animal-02.jpg'];
+
         for ($i = 0; $i < 50; $i++) {
             DB::table('animais')->insert([
                 'nome' => $faker->firstName(),
@@ -38,6 +40,15 @@ class AnimalSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            DB::table('imagens_animais')->insert([
+                'animal_id' => $i + 1,
+                'caminho' => $faker->randomElement($tipoImagemOptions),
+                'deleted_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
     }
 }
+

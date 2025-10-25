@@ -27,13 +27,15 @@ class AdocaoSeeder extends Seeder
         ];
         $rendaFamiliarOptions = ['acima_2_sm', 'abaixo_2_sm', 'outro'];
 
-        for ($i = 0; $i < 50; $i++) {  // Gera 50 registros
+        for ($i = 0; $i < 50; $i++) {
+            $animalId = $i + 1; // garante IDs únicos de 1 a 50
+
             DB::table('adocoes')->insert([
                 'usuario_id' => 1,
-                'animal_id' => $faker->numberBetween(1, 50),
+                'animal_id' => $animalId,
                 'status' => $faker->randomElement($statusOptions),
                 'qtd_pessoas_casa' => $faker->randomElement($qtdPessoasCasaOptions),
-                'possui_filhos' => $faker->boolean(40) ? 1 : 0, // 40% chance de ter filhos
+                'possui_filhos' => $faker->boolean(40) ? 1 : 0,
                 'sobre_rotina' => json_encode([
                     'atividade' => $faker->randomElement(['trabalho', 'estudo', 'lar']),
                     'horario' => $faker->randomElement(['manhã', 'tarde', 'noite'])
