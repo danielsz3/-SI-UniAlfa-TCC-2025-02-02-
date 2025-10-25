@@ -11,26 +11,32 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ongs_enderecos', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('id_ong');
-            $table->unsignedBigInteger('endereco_id');
+        Schema::create('ongs', function (Blueprint $table) {
+            $table->id('id_ong');
+            $table->string('nome');
+            $table->string('razao_social');
+            $table->text('descricao')->nullable();
+            $table->string('imagem')->nullable(); // Imagem de capa
+            
+            // Atributos de endereço
+            $table->string('cep')->nullable();
+            $table->string('logradouro')->nullable();
+            $table->string('numero')->nullable();
+            $table->string('complemento')->nullable();
+            $table->string('bairro')->nullable();
+            $table->string('cidade')->nullable();
+            $table->string('estado')->nullable();
+            $table->string('pais')->default('Brasil');
+            
+            // Dados bancários
+            $table->string('banco')->nullable();
+            $table->string('agencia')->nullable();
+            $table->string('numero_conta')->nullable();
+            $table->string('tipo_conta')->nullable();
+            $table->string('chave_pix')->nullable();
+            
             $table->softDeletes();
             $table->timestamps();
-
-            // Foreign keys
-            $table->foreign('id_ong')
-                  ->references('id_ong')
-                  ->on('ongs')
-                  ->onDelete('cascade');
-
-            $table->foreign('endereco_id')
-                  ->references('id')
-                  ->on('enderecos')
-                  ->onDelete('cascade');
-
-            // Evita duplicação
-            $table->unique(['id_ong', 'endereco_id']);
         });
     }
 
@@ -39,6 +45,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ongs_enderecos');
+        Schema::dropIfExists('ongs');
     }
 };
