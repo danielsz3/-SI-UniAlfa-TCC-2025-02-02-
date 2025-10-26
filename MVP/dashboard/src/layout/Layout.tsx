@@ -1,20 +1,27 @@
 import React from 'react';
 import {
-    Layout as LayoutRa, 
+    Layout as LayoutRa,
     AppBar,
     type AppBarProps,
     type LayoutProps,
     type MenuProps,
-    Menu
+    Menu,
+    MenuItemLink
 } from 'react-admin';
-import MenuUsuario from '../components/users/MenuUsuario'; 
-
+import MenuUsuario from '../components/users/MenuUsuario';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 const MinhaAppBar: React.FC<AppBarProps> = (props) => (
     <AppBar {...props} userMenu={<MenuUsuario />} />
 );
 
 const CustomMenu: React.FC<MenuProps> = (props) => (
     <Menu {...props}>
+        <MenuItemLink
+            to="/ongs/edit/1"
+            primaryText="ONG"
+            leftIcon={<AccountBalanceIcon />}
+        />
+
         <Menu.ResourceItems />
     </Menu>
 );

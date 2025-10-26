@@ -44,6 +44,7 @@ import EventoEdit from './components/eventos/EventoEdit';
 import PostCreate from './components/posts/PostCreate';
 import { AdocaoList } from './components/adocoes/AdocaoList';
 import { AdocaoEdit } from './components/adocoes/AdocaoEdit';
+import OngEdit from './components/ong/OngEdit';
 
 
 function App() {
@@ -63,7 +64,7 @@ function App() {
           element={<ConfiguracaoUsuario />}
         />
         <Route path="/posts/create" element={<PostCreate />} />
-
+        <Route path="/ongs/edit/:id" element={<OngEdit />} />
       </CustomRoutes>
       <Resource
         options={{ label: "Usuários" }}

@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Usuario;
 use App\Models\Integracao;
+use App\Models\Ong;
 
 class DatabaseSeeder extends Seeder
 {
@@ -38,12 +39,30 @@ class DatabaseSeeder extends Seeder
             'status' => 'inativo',
         ]);
 
+        Ong::create([
+            'nome' => 'ONG Exemplo',
+        'razao_social' => 'ONG Exemplo LTDA',
+        'descricao' => 'Descrição da ONG Exemplo',
+        'imagem' => 'ong_exemplo.jpg',
+        'cep' => '12345678',
+        'logradouro' => 'Rua Exemplo',
+        'numero' => '100',
+        'complemento' => 'Sala 1',
+        'bairro' => 'Bairro Exemplo',
+        'cidade' => 'Cidade Exemplo',
+        'estado' => 'EX',
+        'pais' => 'Brasil',
+        'banco' => 'Banco Exemplo',
+        'agencia' => '1234',
+        'numero_conta' => '123456789',
+        'tipo_conta' => 'corrente',
+        'chave_pix' => '123456789',
+        ]);
+
         $this->call([
             AnimalSeeder::class,
             UsuarioSeeder::class,
             AdocaoSeeder::class,
-            // Voce pode adicionar outros seeders aqui no array
-            // Ex: OutroSeeder::class,
         ]);
 
     }

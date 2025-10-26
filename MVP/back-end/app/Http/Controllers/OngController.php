@@ -3,49 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ong;
+use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Log;
 
 class OngController extends Controller
 {
+    use SearchIndex;
     /**
      * Lista de ONGs com paginação e filtros
      */
     public function index(Request $request): JsonResponse
     {
         try {
-            $perPage = $request->input('_limit', 10);
-            $page    = $request->input('_page', 1);
-            $sort    = $request->input('_sort', 'id_ong');
-            $order   = $request->input('_order', 'asc');
-            $filter  = json_decode($request->input('filter', '{}'), true);
-
-            $query = Ong::query();
-
-            if (!empty($filter)) {
-                foreach ($filter as $field => $value) {
-                    if ($value === null || $value === '') continue;
-
-                    if (in_array($field, ['nome', 'razao_social', 'descricao'])) {
-                        $query->where($field, 'like', "%{$value}%");
-                    } else {
-                        $query->where($field, $value);
-                    }
-                }
-            }
-
-            $query->orderBy($sort, $order);
-
-            $ongs = $query->paginate($perPage, ['*'], 'page', $page);
-
-            return response()->json($ongs->items())
-                ->header('X-Total-Count', $ongs->total())
-                ->header('Access-Control-Expose-Headers', 'X-Total-Count');
+            return $this->SearchIndex(
+                $request,
+                Ong::with('imagens'),
+                'ongs',
+                ['nome', 'descricao']
+            );
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Não foi possível carregar as ONGs'], 500);
+            Log::error('Erro ao listar ongs: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Não foi possível carregar os animais'], 500);
         }
     }
 
@@ -72,7 +55,7 @@ class OngController extends Controller
             'razao_social'  => 'required|string|min:3|max:255',
             'descricao'     => 'nullable|string|max:1000',
             'imagem'        => 'nullable|url',
-            
+
             // Endereço
             'cep'           => 'nullable|string|size:8|regex:/^[0-9]+$/',
             'logradouro'    => 'nullable|string|max:255',
@@ -82,7 +65,7 @@ class OngController extends Controller
             'cidade'        => 'nullable|string|max:100',
             'estado'        => 'nullable|string|size:2',
             'pais'          => 'nullable|string|max:100',
-            
+
             // Dados bancários
             'banco'         => 'nullable|string|max:100',
             'agencia'       => 'nullable|string|max:10',
@@ -183,7 +166,7 @@ class OngController extends Controller
             'razao_social'  => 'sometimes|required|string|min:3|max:255',
             'descricao'     => 'nullable|string|max:1000',
             'imagem'        => 'nullable|url',
-            
+
             // Endereço
             'cep'           => 'nullable|string|size:8|regex:/^[0-9]+$/',
             'logradouro'    => 'nullable|string|max:255',
@@ -193,7 +176,7 @@ class OngController extends Controller
             'cidade'        => 'nullable|string|max:100',
             'estado'        => 'nullable|string|size:2',
             'pais'          => 'nullable|string|max:100',
-            
+
             // Dados bancários
             'banco'         => 'nullable|string|max:100',
             'agencia'       => 'nullable|string|max:10',
