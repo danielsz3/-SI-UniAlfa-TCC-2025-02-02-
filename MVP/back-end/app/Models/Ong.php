@@ -15,6 +15,7 @@ class Ong extends Model
 
     protected $fillable = [
         'nome',
+        'cnpj',
         'razao_social',
         'descricao',
         'imagem',
@@ -24,8 +25,7 @@ class Ong extends Model
         'complemento',
         'bairro',
         'cidade',
-        'estado',
-        'pais',
+        'uf',
         'banco',
         'agencia',
         'numero_conta',

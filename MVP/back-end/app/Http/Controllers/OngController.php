@@ -7,13 +7,14 @@ use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Log;
 
 class OngController extends Controller
 {
     use SearchIndex;
+    
     /**
      * Lista de ONGs com paginação e filtros
      */
@@ -22,13 +23,13 @@ class OngController extends Controller
         try {
             return $this->SearchIndex(
                 $request,
-                Ong::with('imagens'),
+                Ong::query(),
                 'ongs',
                 ['nome', 'descricao']
             );
         } catch (\Exception $e) {
             Log::error('Erro ao listar ongs: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json(['error' => 'Não foi possível carregar os animais'], 500);
+            return response()->json(['error' => 'Não foi possível carregar as ONGs'], 500);
         }
     }
 
@@ -52,6 +53,7 @@ class OngController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nome'          => 'required|string|min:3|max:255',
+            'cnpj'          => 'nullable|string|size:14|regex:/^[0-9]+$/',
             'razao_social'  => 'required|string|min:3|max:255',
             'descricao'     => 'nullable|string|max:1000',
             'imagem'        => 'nullable|url',
@@ -63,8 +65,7 @@ class OngController extends Controller
             'complemento'   => 'nullable|string|max:100',
             'bairro'        => 'nullable|string|max:100',
             'cidade'        => 'nullable|string|max:100',
-            'estado'        => 'nullable|string|size:2',
-            'pais'          => 'nullable|string|max:100',
+            'uf'            => 'nullable|string|size:2',
 
             // Dados bancários
             'banco'         => 'nullable|string|max:100',
@@ -77,6 +78,9 @@ class OngController extends Controller
             'nome.required' => 'O nome da ONG é obrigatório.',
             'nome.min' => 'O nome da ONG deve ter no mínimo 3 caracteres.',
             'nome.max' => 'O nome da ONG deve ter no máximo 255 caracteres.',
+            
+            'cnpj.size' => 'O CNPJ deve ter exatamente 14 números.',
+            'cnpj.regex' => 'O CNPJ deve conter apenas números.',
 
             'razao_social.required' => 'A razão social da ONG é obrigatória.',
             'razao_social.min' => 'A razão social da ONG deve ter no mínimo 3 caracteres.',
@@ -92,8 +96,7 @@ class OngController extends Controller
             'complemento.max' => 'O complemento deve ter no máximo 100 caracteres.',
             'bairro.max' => 'O bairro deve ter no máximo 100 caracteres.',
             'cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
-            'estado.size' => 'O estado deve ter exatamente 2 caracteres.',
-            'pais.max' => 'O país deve ter no máximo 100 caracteres.',
+            'uf.size' => 'O estado deve ter exatamente 2 caracteres.',
 
             'banco.max' => 'O banco deve ter no máximo 100 caracteres.',
             'agencia.max' => 'A agência deve ter no máximo 10 caracteres.',
@@ -109,6 +112,7 @@ class OngController extends Controller
         try {
             $ong = Ong::create($request->only([
                 'nome',
+                'cnpj',
                 'razao_social',
                 'descricao',
                 'imagem',
@@ -118,8 +122,7 @@ class OngController extends Controller
                 'complemento',
                 'bairro',
                 'cidade',
-                'estado',
-                'pais',
+                'uf',
                 'banco',
                 'agencia',
                 'numero_conta',
@@ -163,6 +166,7 @@ class OngController extends Controller
 
         $validator = Validator::make($request->all(), [
             'nome'          => 'sometimes|required|string|min:3|max:255',
+            'cnpj'          => 'nullable|string|size:14|regex:/^[0-9]+$/',
             'razao_social'  => 'sometimes|required|string|min:3|max:255',
             'descricao'     => 'nullable|string|max:1000',
             'imagem'        => 'nullable|url',
@@ -174,8 +178,7 @@ class OngController extends Controller
             'complemento'   => 'nullable|string|max:100',
             'bairro'        => 'nullable|string|max:100',
             'cidade'        => 'nullable|string|max:100',
-            'estado'        => 'nullable|string|size:2',
-            'pais'          => 'nullable|string|max:100',
+            'uf'            => 'nullable|string|size:2',
 
             // Dados bancários
             'banco'         => 'nullable|string|max:100',
@@ -188,6 +191,9 @@ class OngController extends Controller
             'nome.required' => 'O nome da ONG é obrigatório.',
             'nome.min' => 'O nome da ONG deve ter no mínimo 3 caracteres.',
             'nome.max' => 'O nome da ONG deve ter no máximo 255 caracteres.',
+            
+            'cnpj.size' => 'O CNPJ deve ter exatamente 14 números.',
+            'cnpj.regex' => 'O CNPJ deve conter apenas números.',
 
             'razao_social.required' => 'A razão social da ONG é obrigatória.',
             'razao_social.min' => 'A razão social da ONG deve ter no mínimo 3 caracteres.',
@@ -203,8 +209,7 @@ class OngController extends Controller
             'complemento.max' => 'O complemento deve ter no máximo 100 caracteres.',
             'bairro.max' => 'O bairro deve ter no máximo 100 caracteres.',
             'cidade.max' => 'A cidade deve ter no máximo 100 caracteres.',
-            'estado.size' => 'O estado deve ter exatamente 2 caracteres.',
-            'pais.max' => 'O país deve ter no máximo 100 caracteres.',
+            'uf.size' => 'O estado deve ter exatamente 2 caracteres.',
 
             'banco.max' => 'O banco deve ter no máximo 100 caracteres.',
             'agencia.max' => 'A agência deve ter no máximo 10 caracteres.',
@@ -220,6 +225,7 @@ class OngController extends Controller
         try {
             $ong->update($request->only([
                 'nome',
+                'cnpj',
                 'razao_social',
                 'descricao',
                 'imagem',
@@ -229,8 +235,7 @@ class OngController extends Controller
                 'complemento',
                 'bairro',
                 'cidade',
-                'estado',
-                'pais',
+                'uf',
                 'banco',
                 'agencia',
                 'numero_conta',
