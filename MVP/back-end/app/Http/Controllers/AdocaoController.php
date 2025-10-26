@@ -100,13 +100,28 @@ class AdocaoController extends Controller
             }
 
             return DB::transaction(function () use ($request, $user) {
+                // Garantir que sobre_rotina seja array
+                $sobreRotina = $request->input('sobre_rotina', []);
+                if (is_string($sobreRotina)) {
+                    $decoded = json_decode($sobreRotina, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $sobreRotina = $decoded;
+                    } else {
+                        // caso venha como "a,b,c" -> transforma em array
+                        $sobreRotina = array_values(array_filter(array_map('trim', explode(',', $sobreRotina))));
+                    }
+                }
+                if (!is_array($sobreRotina)) {
+                    $sobreRotina = (array) $sobreRotina;
+                }
+
                 $adocao = Adocao::create([
                     'usuario_id' => $user->id,
                     'animal_id' => $request->animal_id,
                     'status' => 'em_aprovacao',
                     'qtd_pessoas_casa' => $request->qtd_pessoas_casa,
                     'possui_filhos' => $request->possui_filhos,
-                    'sobre_rotina' => $request->sobre_rotina,
+                    'sobre_rotina' => $sobreRotina,
                     'acesso_rua_janelas' => $request->acesso_rua_janelas,
                     'acesso_rua_portoes_muros' => $request->acesso_rua_portoes_muros,
                     'renda_familiar' => $request->renda_familiar,
@@ -202,6 +217,23 @@ class AdocaoController extends Controller
                     'renda_familiar',
                     'aceita_termos',
                 ]);
+
+                // Se sobre_rotina foi enviado, garantir que seja array
+                if (array_key_exists('sobre_rotina', $data)) {
+                    $sobreRotina = $data['sobre_rotina'];
+                    if (is_string($sobreRotina)) {
+                        $decoded = json_decode($sobreRotina, true);
+                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                            $sobreRotina = $decoded;
+                        } else {
+                            $sobreRotina = array_values(array_filter(array_map('trim', explode(',', $sobreRotina))));
+                        }
+                    }
+                    if (!is_array($sobreRotina)) {
+                        $sobreRotina = (array) $sobreRotina;
+                    }
+                    $data['sobre_rotina'] = $sobreRotina;
+                }
 
                 $adocao->update($data);
 
