@@ -64,7 +64,7 @@ function App() {
           element={<ConfiguracaoUsuario />}
         />
         <Route path="/posts/create" element={<PostCreate />} />
-        <Route path="/ongs/edit/:id" element={<OngEdit />} />
+        <Route path="/ongs/edit/:id/*" element={<OngEdit />} />
       </CustomRoutes>
       <Resource
         options={{ label: "Usuários" }}
