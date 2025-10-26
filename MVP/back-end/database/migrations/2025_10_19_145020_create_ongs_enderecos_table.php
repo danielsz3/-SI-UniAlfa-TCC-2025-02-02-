@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ongs', function (Blueprint $table) {
-            $table->id('id_ong');
+            $table->id('id');
             $table->string('nome');
             $table->string('razao_social');
             $table->text('descricao')->nullable();
             $table->string('imagem')->nullable(); // Imagem de capa
-            
+
             // Atributos de endereço
             $table->string('cep')->nullable();
             $table->string('logradouro')->nullable();
@@ -27,14 +27,14 @@ return new class extends Migration
             $table->string('cidade')->nullable();
             $table->string('estado')->nullable();
             $table->string('pais')->default('Brasil');
-            
+
             // Dados bancários
             $table->string('banco')->nullable();
             $table->string('agencia')->nullable();
             $table->string('numero_conta')->nullable();
             $table->string('tipo_conta')->nullable();
             $table->string('chave_pix')->nullable();
-            
+
             $table->softDeletes();
             $table->timestamps();
         });

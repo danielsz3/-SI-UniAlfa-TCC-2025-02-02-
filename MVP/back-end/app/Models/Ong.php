@@ -11,7 +11,7 @@ class Ong extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'ongs';
-    protected $primaryKey = 'id_ong';
+    protected $primaryKey = 'id';
 
     protected $fillable = [
         'nome',
