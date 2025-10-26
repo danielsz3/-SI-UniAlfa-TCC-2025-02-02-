@@ -44,7 +44,7 @@ Route::apiResource('parceiros', ParceiroController::class)->only(['index', 'show
 Route::apiResource('contato-ongs', ContatoOngController::class)->only(['index', 'show']);
 Route::apiResource('documentos', DocumentoController::class)->only(['index', 'show']);
 Route::apiResource('transacoes', TransacaoController::class)->only(['index', 'show']);
-
+route::apiResource('lares-temporarios', LaresTemporarioController::class)->only(['index', 'show']);
 
 
 
@@ -63,18 +63,19 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('usuarios/{id}/recomendar-animais', [AnimalController::class, 'recomendar']);
 
     // Fluxos que qualquer logado pode usar
-    Route::apiResource('adocoes', AdocaoController::class)->only(['index','show','store']);
-    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['index','show','store']);
+    Route::apiResource('adocoes', AdocaoController::class)->only(['index', 'show', 'store']);
+    Route::apiResource('match-afinidades', MatchAfinidadeController::class)->only(['index', 'show', 'store']);
+    Route::post('match-afinidades/mudar-status', [MatchAfinidadeController::class, 'MudarStatus']);
     Route::apiResource('lares-temporarios', LaresTemporarioController::class)->only(['index', 'show', 'store']);
     Route::apiResource('animais', AnimalController::class)->only(['store']);
-    
+
     /**
      * ADMIN: TODAS AS FUNCIONALIDADES
      */
     Route::middleware(['role:admin'])->group(function () {
 
         // Usuários: admin tem CRUD completo (exceto ‘store’ se preferir manter público)
-        Route::apiResource('usuarios', UsuarioController::class)->except(['show','store','update']);
+        Route::apiResource('usuarios', UsuarioController::class)->except(['show', 'store', 'update']);
         Route::post('usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
 
         // Recursos com controle total do admin
@@ -112,12 +113,12 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::post('posts/{id}/restore', [PostController::class, 'restore'])->name('posts.restore');
 
         // Adoções: admin ganha update/destroy + ações extras
-        Route::apiResource('adocoes', AdocaoController::class)->except(['index','show','store']);
+        Route::apiResource('adocoes', AdocaoController::class)->except(['index', 'show', 'store']);
         Route::post('adocoes/{id}/restore', [AdocaoController::class, 'restore'])->name('adocoes.restore');
         Route::post('adocoes/{id}/aprovar', [AdocaoController::class, 'approve'])->name('adocoes.approve');
 
         // Match Afinidades: admin com update/destroy
-        Route::apiResource('match-afinidades', MatchAfinidadeController::class)->except(['index','show','store']);
+        Route::apiResource('match-afinidades', MatchAfinidadeController::class)->except(['index', 'show', 'store']);
         Route::post('match-afinidades/{id}/restore', [MatchAfinidadeController::class, 'restore'])->name('match-afinidades.restore');
     });
 });
