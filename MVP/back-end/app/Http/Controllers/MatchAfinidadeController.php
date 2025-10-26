@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MatchAfinidade;
+use App\Models\Adocao;
 use App\Traits\SearchIndex;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -15,9 +16,6 @@ class MatchAfinidadeController extends Controller
 {
     use SearchIndex;
 
-    /**
-     * Lista os matches com filtros opcionais
-     */
     public function index(Request $request): JsonResponse
     {
         try {
@@ -40,9 +38,6 @@ class MatchAfinidadeController extends Controller
         }
     }
 
-    /**
-     * Cria um novo match
-     */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -96,9 +91,6 @@ class MatchAfinidadeController extends Controller
         }
     }
 
-    /**
-     * Exibe um match específico
-     */
     public function show($id): JsonResponse
     {
         try {
@@ -115,9 +107,6 @@ class MatchAfinidadeController extends Controller
         }
     }
 
-    /**
-     * Atualiza um match
-     */
     public function update(Request $request, $id): JsonResponse
     {
         try {
@@ -131,13 +120,6 @@ class MatchAfinidadeController extends Controller
                 'usuario_id' => 'sometimes|required|exists:usuarios,id',
                 'animal_id' => 'sometimes|required|exists:animais,id',
                 'status' => ['sometimes', 'required', Rule::in(['em_adocao', 'escolhido', 'rejeitado'])],
-            ], [
-                'usuario_id.required' => 'O usuário é obrigatório.',
-                'usuario_id.exists' => 'Usuário não encontrado.',
-                'animal_id.required' => 'O animal é obrigatório.',
-                'animal_id.exists' => 'Animal não encontrado.',
-                'status.required' => 'O status é obrigatório.',
-                'status.in' => 'Status inválido.',
             ]);
 
             if ($validator->fails()) {
@@ -146,7 +128,6 @@ class MatchAfinidadeController extends Controller
 
             $data = $request->only(['usuario_id', 'animal_id', 'status']);
 
-            // Verifica unicidade se usuario_id ou animal_id forem alterados
             if (isset($data['usuario_id']) || isset($data['animal_id'])) {
                 $usuarioId = $data['usuario_id'] ?? $match->usuario_id;
                 $animalId = $data['animal_id'] ?? $match->animal_id;
@@ -179,9 +160,6 @@ class MatchAfinidadeController extends Controller
         }
     }
 
-    /**
-     * Deleta um match (soft delete)
-     */
     public function destroy($id): JsonResponse
     {
         try {
@@ -200,9 +178,6 @@ class MatchAfinidadeController extends Controller
         }
     }
 
-    /**
-     * Restaura um match deletado (soft delete)
-     */
     public function restore($id): JsonResponse
     {
         try {
@@ -227,17 +202,15 @@ class MatchAfinidadeController extends Controller
 
     public function MudarStatus(Request $request): JsonResponse
     {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Usuário não autenticado'], 401);
+        }
+
         $validator = Validator::make($request->all(), [
             'usuario_id' => 'required|exists:usuarios,id',
             'animal_id' => 'required|exists:animais,id',
             'status' => ['required', Rule::in(['em_adocao', 'escolhido', 'rejeitado'])],
-        ], [
-            'usuario_id.required' => 'O usuário é obrigatório.',
-            'usuario_id.exists' => 'Usuário não encontrado.',
-            'animal_id.required' => 'O animal é obrigatório.',
-            'animal_id.exists' => 'Animal não encontrado.',
-            'status.required' => 'O status é obrigatório.',
-            'status.in' => 'Status inválido.',
         ]);
 
         if ($validator->fails()) {
@@ -253,9 +226,45 @@ class MatchAfinidadeController extends Controller
                 return response()->json(['error' => 'Match não encontrado'], 404);
             }
 
+            if ($user->id !== (int)$request->usuario_id && ($user->role ?? '') !== 'admin') {
+                return response()->json(['error' => 'Não autorizado a alterar este match'], 403);
+            }
+
             return DB::transaction(function () use ($match, $request) {
-                $match->status = $request->status;
+                $newStatus = $request->status;
+                $match->status = $newStatus;
                 $match->save();
+
+                if ($newStatus === 'escolhido') {
+                    $existeAprovada = Adocao::where('animal_id', $match->animal_id)
+                        ->where('status', 'aprovado')
+                        ->exists();
+
+                    if ($existeAprovada) {
+                        return response()->json(['error' => 'Este animal já possui uma adoção aprovada.'], 422);
+                    }
+
+                    $adocao = Adocao::firstOrCreate(
+                        ['usuario_id' => $match->usuario_id, 'animal_id' => $match->animal_id],
+                        ['status' => 'aprovado']
+                    );
+
+                    if ($adocao->status !== 'aprovado') {
+                        $adocao->status = 'aprovado';
+                        $adocao->save();
+                    }
+
+                    Adocao::where('animal_id', $match->animal_id)
+                        ->where('id', '!=', $adocao->id)
+                        ->where('status', '!=', 'negado')
+                        ->update(['status' => 'negado']);
+
+                    $animal = $match->animal;
+                    if ($animal) {
+                        $animal->situacao = 'adotado';
+                        $animal->save();
+                    }
+                }
 
                 return response()->json($match->fresh(['usuario', 'animal']), 200);
             });
