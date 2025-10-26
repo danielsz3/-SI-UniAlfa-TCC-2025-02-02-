@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('ongs', function (Blueprint $table) {
             $table->id('id');
             $table->string('nome');
+            $table->string('cnpj', 14)->unique();
             $table->string('razao_social');
             $table->text('descricao')->nullable();
             $table->string('imagem')->nullable(); // Imagem de capa
@@ -25,8 +26,7 @@ return new class extends Migration
             $table->string('complemento')->nullable();
             $table->string('bairro')->nullable();
             $table->string('cidade')->nullable();
-            $table->string('estado')->nullable();
-            $table->string('pais')->default('Brasil');
+            $table->string('uf', 2)->nullable();
 
             // Dados bancários
             $table->string('banco')->nullable();
