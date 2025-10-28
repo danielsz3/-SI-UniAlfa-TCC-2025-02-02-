@@ -41,22 +41,22 @@ class DatabaseSeeder extends Seeder
 
         Ong::create([
             'nome' => 'ONG Exemplo',
-        'razao_social' => 'ONG Exemplo LTDA',
-        'descricao' => 'Descrição da ONG Exemplo',
-        'imagem' => 'ong_exemplo.jpg',
-        'cep' => '12345678',
-        'logradouro' => 'Rua Exemplo',
-        'numero' => '100',
-        'complemento' => 'Sala 1',
-        'bairro' => 'Bairro Exemplo',
-        'cidade' => 'Cidade Exemplo',
-        'estado' => 'EX',
-        'pais' => 'Brasil',
-        'banco' => 'Banco Exemplo',
-        'agencia' => '1234',
-        'numero_conta' => '123456789',
-        'tipo_conta' => 'corrente',
-        'chave_pix' => '123456789',
+            'cnpj' => '00000000000000',
+            'razao_social' => 'ONG Exemplo LTDA',
+            'descricao' => 'Descrição da ONG Exemplo',
+            'imagem' => 'ong_exemplo.jpg',
+            'cep' => '12345678',
+            'logradouro' => 'Rua Exemplo',
+            'numero' => '100',
+            'complemento' => 'Sala 1',
+            'bairro' => 'Bairro Exemplo',
+            'cidade' => 'Cidade Exemplo',
+            'uf' => 'EX',
+            'banco' => 'Banco Exemplo',
+            'agencia' => '1234',
+            'numero_conta' => '123456789',
+            'tipo_conta' => 'corrente',
+            'chave_pix' => '123456789',
         ]);
 
         $this->call([
@@ -64,6 +64,5 @@ class DatabaseSeeder extends Seeder
             UsuarioSeeder::class,
             AdocaoSeeder::class,
         ]);
-
     }
 }
