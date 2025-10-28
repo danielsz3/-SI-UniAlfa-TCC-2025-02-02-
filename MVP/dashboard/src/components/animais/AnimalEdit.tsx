@@ -53,9 +53,7 @@ const AnimalEdit = () => (
             vale_castracao: data.vale_castracao === true ? 1 : 0
         })}
     >
-        <TabbedForm
-            toolbar={<CustomToolbar showBack={false} showSaveAndAdd={false} />}
-        >
+        <TabbedForm        >
             <FormTab label="Informações">
 
                 <TextInput
