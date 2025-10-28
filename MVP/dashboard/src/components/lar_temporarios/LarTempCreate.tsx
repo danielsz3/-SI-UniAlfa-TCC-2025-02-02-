@@ -9,11 +9,16 @@ import {
     useNotify,
     ImageInput,
     ImageField,
+    useRedirect,
+    SaveButton,
+    Button,
 } from 'react-admin';
 import CustomDatePicker from '../datepicker/customDatePicker';
 import { useFormContext } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { FilePlaceholder } from '../FilePlaceHolder';
+import { CustomToolbar } from '../CustomToolbar';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 
 const CepInput = () => {
     const { setValue, watch } = useFormContext();
@@ -58,15 +63,60 @@ const CepInput = () => {
     );
 };
 
+
+const LarTempToolbar = () => {
+    const redirect = useRedirect();
+    const notify = useNotify();
+    const form = useFormContext();
+
+    const handleBack = () => redirect('list', 'lares-temporarios');
+
+    return (
+        <CustomToolbar
+            leftButtons={[
+                <SaveButton
+                    type='button'
+                    mutationOptions={{
+                        onSuccess: () => {
+                            notify('Lar Temporário salvo com sucesso!', { type: 'success' });
+                            redirect('list', 'lares-temporarios');
+                        },
+                    }}
+                />,
+                <SaveButton
+                    type='button'
+                    sx={{fontSize: "0.8rem"}}
+                    label='Salvar e Novo'
+                    variant='outlined'
+                    mutationOptions={{
+                        onSuccess: () => {
+                            notify('Lar Temporário salvo com sucesso! Pronto para criar outro', { type: 'info' });
+                            redirect('create', 'lares-temporarios');
+                            form.reset();
+                        },
+                    }}
+                />,
+            ]}
+            rightButtons={[
+                <Button
+                    label="Voltar"
+                    startIcon={<ArrowBackIosNewIcon />}
+                    onClick={handleBack}
+                />
+            ]}
+        />
+    );
+};
 const LarTempCreate = (props: CreateProps) => {
     return (
         <Create
             {...props}
             title="Criar Novo Lar Temporário"
             sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
-            redirect="list"
         >
-            <TabbedForm>
+            <TabbedForm
+                toolbar={<LarTempToolbar />}
+            >
                 <FormTab label="Responsável">
                     <RadioButtonGroupInput
                         label="Situação"

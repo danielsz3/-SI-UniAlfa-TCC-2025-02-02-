@@ -1,5 +1,6 @@
 import { Edit, ImageField, ImageInput, SimpleForm, TextInput, required } from 'react-admin';
 import { FilePlaceholder } from '../FilePlaceHolder';
+import { CustomToolbar } from '../CustomToolbar';
 
 const ParceiroEdit = () => (
     <Edit
@@ -7,7 +8,9 @@ const ParceiroEdit = () => (
         sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
         redirect="list"
     >
-        <SimpleForm>
+        <SimpleForm
+            toolbar={<CustomToolbar showSaveAndAdd={false} />}
+        >
             <TextInput
                 source="nome"
                 label="Nome"

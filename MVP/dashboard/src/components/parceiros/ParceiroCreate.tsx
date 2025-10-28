@@ -1,13 +1,70 @@
-import { Create, ImageField, ImageInput, SimpleForm, TextInput, required } from 'react-admin';
+import {
+    Button,
+    Create,
+    ImageField,
+    ImageInput,
+    SaveButton,
+    SimpleForm,
+    TextInput,
+    required,
+    useNotify,
+    useRedirect,
+} from 'react-admin';
 import { FilePlaceholder } from '../FilePlaceHolder';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import { useFormContext } from 'react-hook-form';
+import { CustomToolbar } from '../CustomToolbar';
+
+const ParceiroToolbar = () => {
+    const redirect = useRedirect();
+    const notify = useNotify();
+    const form = useFormContext(); // agora funciona dentro do <SimpleForm>
+
+    const handleBack = () => redirect('list', 'parceiros');
+
+    return (
+        <CustomToolbar
+            leftButtons={[
+                <SaveButton
+                    type='button'
+                    mutationOptions={{
+                        onSuccess: () => {
+                            notify('Parceiro salvo com sucesso!', { type: 'success' });
+                            redirect('list', 'parceiros');
+                        },
+                    }}
+                />,
+                <SaveButton
+                    type='button'
+                    sx={{fontSize: "0.8rem"}}
+                    label='Salvar e Novo'
+                    variant='outlined'
+                    mutationOptions={{
+                        onSuccess: () => {
+                            notify('Parceiro salvo com sucesso! Pronto para criar outro', { type: 'info' });
+                            redirect('create', 'parceiros');
+                            form.reset();
+                        },
+                    }}
+                />,
+            ]}
+            rightButtons={[
+                <Button
+                    label="Voltar"
+                    startIcon={<ArrowBackIosNewIcon />}
+                    onClick={handleBack}
+                />
+            ]}
+        />
+    );
+};
 
 const ParceiroCreate = () => (
     <Create
         title="Criar Novo Parceiro"
         sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
-        redirect="list"
     >
-        <SimpleForm>
+        <SimpleForm toolbar={<ParceiroToolbar />}>
             <TextInput
                 source="nome"
                 label="Nome"
@@ -39,14 +96,11 @@ const ParceiroCreate = () => (
                     />
                 }
                 sx={{
-                    '& .RaFileInput-dropZone': {
-                        p: 0,
-                    },
+                    '& .RaFileInput-dropZone': { p: 0 },
                 }}
             >
                 <ImageField source="src" title="title" />
             </ImageInput>
-
         </SimpleForm>
     </Create>
 );

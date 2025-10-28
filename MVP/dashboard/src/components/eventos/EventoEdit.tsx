@@ -1,6 +1,7 @@
 import { Edit, ImageField, ImageInput, SimpleForm, TextInput, required } from 'react-admin';
 import { FilePlaceholder } from '../FilePlaceHolder';
 import CustomDatePicker from '../datepicker/customDatePicker';
+import { CustomToolbar } from '../CustomToolbar';
 
 const EventoEdit = () => (
     <Edit

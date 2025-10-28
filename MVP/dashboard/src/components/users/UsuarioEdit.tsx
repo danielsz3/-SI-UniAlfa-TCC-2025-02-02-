@@ -1,6 +1,7 @@
 import { SimpleForm, TextInput, required, PasswordInput, Edit, ImageInput, ImageField } from 'react-admin';
 import CustomDatePicker from '../datepicker/customDatePicker';
 import { FilePlaceholder } from '../FilePlaceHolder';
+import { CustomToolbar } from '../CustomToolbar';
 
 const UserEdit = () => (
     <Edit
@@ -8,7 +9,9 @@ const UserEdit = () => (
         sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
         redirect="list"
     >
-        <SimpleForm>
+        <SimpleForm
+            toolbar={<CustomToolbar showSaveAndAdd={false} />}
+        >
             <TextInput
                 source="nome"
                 label="Nome"
@@ -54,25 +57,25 @@ const UserEdit = () => (
             />
 
             <ImageInput
-                                source="imagem"
-                                label="Imagem"
-                                accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
-                                maxSize={10_500_000}
-                                validate={required('Pelo menos uma imagem é obrigatória')}
-                                placeholder={
-                                    <FilePlaceholder
-                                        maxSize={10_500_000}
-                                        accept={['.png', '.jpg', '.jpeg', '.gif']}
-                                    />
-                                }
-                                sx={{
-                                    '& .RaFileInput-dropZone': {
-                                        p: 0,
-                                    },
-                                }}
-                            > 
-                                <ImageField source="src" title="title" />
-                            </ImageInput>
+                source="imagem"
+                label="Imagem"
+                accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] }}
+                maxSize={10_500_000}
+                validate={required('Pelo menos uma imagem é obrigatória')}
+                placeholder={
+                    <FilePlaceholder
+                        maxSize={10_500_000}
+                        accept={['.png', '.jpg', '.jpeg', '.gif']}
+                    />
+                }
+                sx={{
+                    '& .RaFileInput-dropZone': {
+                        p: 0,
+                    },
+                }}
+            >
+                <ImageField source="src" title="title" />
+            </ImageInput>
 
         </SimpleForm>
     </Edit>
