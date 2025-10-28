@@ -147,7 +147,7 @@ const OngEdit = (props: EditProps) => {
                         </FormTab>
 
                         <FormTab label="Contatos">
-                            <ArrayInput source="contatos_ongs" label="Todos os Contatos">
+                            <ArrayInput source="contatos" label="Todos os Contatos">
                                 <SimpleFormIterator
                                     disableReordering
                                     disableClear
