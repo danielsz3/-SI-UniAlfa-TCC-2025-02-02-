@@ -3,6 +3,7 @@ import { FilePlaceholder } from "../FilePlaceHolder";
 import CustomDatePicker from "../datepicker/customDatePicker";
 import { useFormContext } from "react-hook-form";
 import { useEffect } from "react";
+import { CustomToolbar } from "../CustomToolbar";
 
 const CastracaoInputs = () => {
     const { watch, setValue } = useFormContext();
@@ -29,13 +30,13 @@ const CastracaoInputs = () => {
             <BooleanInput
                 label="O Animal é castrado?"
                 source="castrado"
-                readOnly={vale_castracao === true}
+                readOnly={vale_castracao === true || vale_castracao == 1}
             />
 
             <BooleanInput
                 label="Tem Vale castração?"
                 source="vale_castracao"
-                readOnly={castrado === true}
+                readOnly={castrado === true || castrado == 1}
             />
         </>
     );
@@ -52,7 +53,9 @@ const AnimalEdit = () => (
             vale_castracao: data.vale_castracao === true ? 1 : 0
         })}
     >
-        <TabbedForm>
+        <TabbedForm
+            toolbar={<CustomToolbar showBack={false} showSaveAndAdd={false} />}
+        >
             <FormTab label="Informações">
 
                 <TextInput
@@ -89,7 +92,7 @@ const AnimalEdit = () => (
                     defaultValue={'ativo'}
                     validate={required('A situação é obrigatório')}
                 />
-                
+
                 <CastracaoInputs />
 
                 <TextInput

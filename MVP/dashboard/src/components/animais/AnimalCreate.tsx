@@ -1,9 +1,11 @@
-import { BooleanInput, Button, Create, FormDataConsumer, FormTab, ImageField, ImageInput, RadioButtonGroupInput, required, SelectInput, TabbedForm, TextInput, useNotify } from "react-admin";
+import { BooleanInput, Button, Create, DeleteWithConfirmButton, FormDataConsumer, FormTab, ImageField, ImageInput, RadioButtonGroupInput, required, SaveButton, SelectInput, TabbedForm, TextInput, useNotify, useRedirect } from "react-admin";
 import { FilePlaceholder } from "../FilePlaceHolder";
 import CustomDatePicker from "../datepicker/customDatePicker";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogActions, DialogTitle } from "@mui/material";
+import { CustomToolbar } from "../CustomToolbar";
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 
 interface Animal {
     id: number;
@@ -106,6 +108,7 @@ Entre em contato para saber mais e fazer parte dessa história de amor e adoçã
         setShowDialog(false);
         navigate('/animais');
     };
+
 
     return (
         <>

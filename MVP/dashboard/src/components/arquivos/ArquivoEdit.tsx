@@ -1,5 +1,56 @@
-import { Edit, FileField, FileInput, SimpleForm, TextInput, required } from 'react-admin';
+import { Button, DeleteWithConfirmButton, Edit, FileField, FileInput, SaveButton, SimpleForm, TextInput, required, useNotify, useRedirect } from 'react-admin';
 import { FilePlaceholder } from '../FilePlaceHolder';
+import { CustomToolbar } from '../CustomToolbar';
+import { useFormContext } from 'react-hook-form';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+
+const ArquivoToolbar = () => {
+    const redirect = useRedirect();
+    const notify = useNotify();
+    const form = useFormContext();
+
+    const handleBack = () => redirect('list', 'documentos');
+
+    return (
+        <CustomToolbar
+            leftButtons={[
+                <SaveButton
+                    type='button'
+                    mutationOptions={{
+                        onSuccess: () => {
+                            notify('Documento salvo com sucesso!', { type: 'success' });
+                            redirect('list', 'documentos');
+                        },
+                    }}
+                />,
+                <SaveButton
+                    type='button'
+                    sx={{fontSize: "0.8rem"}}
+                    label='Salvar e Novo'
+                    variant='outlined'
+                    mutationOptions={{
+                        onSuccess: () => {
+                            notify('Documento salvo com sucesso! Pronto para criar outro', { type: 'info' });
+                            redirect('create', 'documentos');
+                            form.reset();
+                        },
+                    }}
+                />,
+            ]}
+            rightButtons={[
+                <Button
+                    label="Voltar"
+                    startIcon={<ArrowBackIosNewIcon />}
+                    onClick={handleBack}
+                />,
+                <DeleteWithConfirmButton
+                    confirmTitle="Tem certeza?"
+                    confirmContent="Deseja realmente excluir o documento?"
+                />,
+            ]}
+        />
+    );
+};
 
 const ArquivoEdit = () => (
     <Edit
@@ -7,7 +58,9 @@ const ArquivoEdit = () => (
         sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
         redirect="list"
     >
-        <SimpleForm>
+        <SimpleForm
+            toolbar={<ArquivoToolbar />}
+        >
             <TextInput
                 source="titulo"
                 label="Título"
@@ -46,7 +99,7 @@ const ArquivoEdit = () => (
                     },
                 }}
             >
-                <FileField source="src" title="title" target='_blank'/>
+                <FileField source="src" title="title" target='_blank' />
             </FileInput>
 
         </SimpleForm>

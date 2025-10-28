@@ -13,7 +13,7 @@ const messages: { [key: string]: TranslationMessages } = {
     'pt-br': ptBrMessages,
 };
 
-export const i18nProvider = polyglotI18nProvider(locale => messages[locale], 'pt-br');
+export const i18nProvider = polyglotI18nProvider(locale => messages[locale], 'pt-br',  { allowMissing: true, warn: () => {} });
 
 
 // --- Configuração do Tema ---
