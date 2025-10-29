@@ -8,7 +8,7 @@ import { AvatarUpload } from "@/components/forms/inputs/AvatarUpload"
 import { validatePersonal } from "@/components/forms/validators/personal"
 
 interface PersonalFormProps {
-  onNext: (data: FormData) => void
+  onNext: (data: any) => void
   defaultValues?: {
     nome?: string
     telefone?: string
@@ -37,31 +37,27 @@ export default function PersonalForm({ onNext, defaultValues = {} }: PersonalFor
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
+const handleSubmit = (e: FormEvent) => {
+  e.preventDefault()
 
-    // Validação
-    const validationErrors = validatePersonal(form)
-    setErrors(validationErrors)
-    if (Object.keys(validationErrors).length > 0) return
+  const validationErrors = validatePersonal(form)
+  setErrors(validationErrors)
+  if (Object.keys(validationErrors).length > 0) return
 
-    // Monta FormData
-    const formData = new FormData()
-    formData.append("nome", form.nome)
-    formData.append("telefone", form.telefone)
-    formData.append("email", form.email)
-    formData.append("cpf", form.cpf)
-    formData.append("data_nascimento", form.dataNascimento)
-    formData.append("password", form.senha)
-    formData.append("password_confirmation", form.confirmarSenha)
-
-    // Adiciona imagem se existir
-    if (imagem) {
-      formData.append("imagem", imagem)
-    }
-
-    onNext(formData)
+  const payload = {
+    nome: form.nome,
+    telefone: form.telefone,
+    email: form.email,
+    cpf: form.cpf,
+    dataNascimento: form.dataNascimento,
+    senha: form.senha,
+    confirmarSenha: form.confirmarSenha,
+    imagem
   }
+
+  console.log("PersonalForm payload ->", payload)
+  onNext(payload)
+}
 
   return (
     <form

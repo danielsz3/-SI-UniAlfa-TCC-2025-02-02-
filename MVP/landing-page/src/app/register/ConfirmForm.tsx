@@ -104,49 +104,7 @@ function validateClient(data: any) {
   return errors;
 }
 
-function buildApiPayload(data: any) {
-  const telefone = onlyDigits(data.telefone);
-  const cpf = onlyDigits(data.cpf);
-
-  const payload: any = {
-    nome: data.nome,
-    email: data.email,
-    password: data.senha,
-    password_confirmation: data.confirmarSenha,
-    cpf,
-    data_nascimento: data.dataNascimento, // "YYYY-MM-DD"
-    telefone,
-    role: "user",
-    endereco: {
-      cep: onlyDigits(data.cep),
-      logradouro: data.logradouro,
-      numero: data.numero,
-      complemento: data.complemento,
-      bairro: data.bairro,
-      cidade: data.cidade,
-      uf: data.estado, // 2 letras
-    },
-    preferencias: {
-      tamanho_pet: (data.tamanhoPet || "").toLowerCase(), // pequeno|medio|grande
-      tempo_disponivel: mapTempo(data.tempoCuidar),
-      estilo_vida: mapEstilo(data.estiloVida),
-      espaco_casa: mapEspaco(data.espaco),
-    },
-  };
-
-  // Limpar campos vazios opcionais
-  for (const k of Object.keys(payload.endereco)) {
-    if (payload.endereco[k] === undefined || payload.endereco[k] === "") delete payload.endereco[k];
-  }
-  for (const k of Object.keys(payload.preferencias)) {
-    if (payload.preferencias[k] === undefined || payload.preferencias[k] === "") delete payload.preferencias[k];
-  }
-
-  return payload;
-}
-
 function humanizePreferencias(data: any) {
-  // Mostra labels “bonitas” para revisão visual
   const tempoMap: Record<string, string> = {
     pouco: "Pouco tempo",
     moderado: "Tempo moderado",
@@ -182,6 +140,74 @@ export default function ConfirmForm({ data, onBack }: { data: any; onBack: () =>
   const clientErrors = useMemo(() => validateClient(data), [data]);
   const pref = useMemo(() => humanizePreferencias(data), [data]);
 
+  // monta o body para envio; retorna { body, isFormData }
+  function buildRequestBody(data: any) {
+    const topLevel = {
+      nome: data.nome,
+      email: data.email,
+      password: data.senha,
+      password_confirmation: data.confirmarSenha,
+      cpf: onlyDigits(data.cpf),
+      data_nascimento: data.dataNascimento, // YYYY-MM-DD
+      telefone: onlyDigits(data.telefone),
+      role: data.role || "user",
+    };
+
+    const endereco = {
+      cep: onlyDigits(data.cep),
+      logradouro: data.logradouro,
+      numero: data.numero,
+      complemento: data.complemento,
+      bairro: data.bairro,
+      cidade: data.cidade,
+      uf: data.estado,
+    };
+
+    const preferencias = {
+      tamanho_pet: (data.tamanhoPet || "").toLowerCase(),
+      tempo_disponivel: mapTempo(data.tempoCuidar),
+      estilo_vida: mapEstilo(data.estiloVida),
+      espaco_casa: mapEspaco(data.espaco),
+    };
+
+    // Se houver arquivo -> FormData (usa endereco[<k>] e preferencias[<k>])
+    if (data.imagem instanceof File) {
+      const fd = new FormData();
+
+      Object.entries(topLevel).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== "") fd.append(k, String(v));
+      });
+
+      Object.entries(endereco).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== "") fd.append(`endereco[${k}]`, String(v));
+      });
+
+      Object.entries(preferencias).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== "") fd.append(`preferencias[${k}]`, String(v));
+      });
+
+      fd.append("imagem", data.imagem);
+
+      return { body: fd, isFormData: true };
+    }
+
+    // sem imagem -> JSON payload
+    const payload: any = {
+      ...topLevel,
+      endereco: {},
+      preferencias: {},
+    };
+
+    Object.entries(endereco).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") payload.endereco[k] = v;
+    });
+    Object.entries(preferencias).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") payload.preferencias[k] = v;
+    });
+
+    return { body: payload, isFormData: false };
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setGlobalError(null);
@@ -196,18 +222,23 @@ export default function ConfirmForm({ data, onBack }: { data: any; onBack: () =>
     }
 
     try {
-      const body = buildApiPayload(data);
+      const { body, isFormData } = buildRequestBody(data);
+
+      // Opcional: debug
+      // console.log("Enviar como FormData?", isFormData);
+      // if (isFormData) for (const pair of (body as FormData).entries()) console.log(pair);
+
+      if (!apiUrl) throw new Error("API URL não configurada (NEXT_PUBLIC_API_URL).");
 
       const res = await fetch(`${apiUrl}/usuarios`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        headers: isFormData ? {} : { "Content-Type": "application/json" },
+        body: isFormData ? (body as FormData) : JSON.stringify(body),
       });
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => null);
         if (errJson?.errors) {
-          // Erros por campo vindos do backend (422)
           const serverFieldErrors: Record<string, string> = {};
           Object.entries(errJson.errors).forEach(([k, v]) => {
             const msgs = Array.isArray(v) ? v : [String(v)];
