@@ -341,4 +341,50 @@ class AdocaoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Negar uma adoção — marca como 'negado' e, se não houver outra aprovada,
+     * libera o animal (situacao = 'disponivel').
+     */
+    public function deny($id): JsonResponse
+    {
+        try {
+            $adocao = Adocao::find($id);
+
+            if (!$adocao) {
+                return response()->json(['error' => 'Adoção não encontrada'], 404);
+            }
+
+            if ($adocao->status === 'negado') {
+                return response()->json(['error' => 'Adoção já está negada.'], 422);
+            }
+
+            return DB::transaction(function () use ($adocao) {
+                // marcar como negado
+                $adocao->status = 'negado';
+                $adocao->save();
+
+                // se não existir outra adoção aprovada para o mesmo animal, liberar o animal
+                $existeAprovada = Adocao::where('animal_id', $adocao->animal_id)
+                    ->where('status', 'aprovado')
+                    ->exists();
+
+                if (!$existeAprovada) {
+                    $animal = $adocao->animal;
+                    if ($animal) {
+                        $animal->situacao = 'disponivel';
+                        $animal->save();
+                    }
+                }
+
+                return response()->json($adocao->fresh(['usuario', 'animal.imagens']), 200);
+            });
+        } catch (\Exception $e) {
+            Log::error('Erro ao negar adoção: ' . $e->getMessage(), ['id' => $id, 'exception' => $e]);
+            return response()->json([
+                'error' => 'Não foi possível negar a adoção',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

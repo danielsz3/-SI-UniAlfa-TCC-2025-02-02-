@@ -264,6 +264,29 @@ class MatchAfinidadeController extends Controller
                         $animal->situacao = 'adotado';
                         $animal->save();
                     }
+                } elseif ($newStatus === 'rejeitado') {
+                    // Ao rejeitar o match, marcar a adoção vinculada como negada (se existir)
+                    $adocao = Adocao::where('usuario_id', $match->usuario_id)
+                        ->where('animal_id', $match->animal_id)
+                        ->first();
+
+                    if ($adocao && $adocao->status !== 'negado') {
+                        $adocao->status = 'negado';
+                        $adocao->save();
+                    }
+
+                    // Se não existir nenhuma adoção aprovada para o animal, liberar a situacao do animal
+                    $existeAprovada = Adocao::where('animal_id', $match->animal_id)
+                        ->where('status', 'aprovado')
+                        ->exists();
+
+                    if (!$existeAprovada) {
+                        $animal = $match->animal;
+                        if ($animal) {
+                            $animal->situacao = 'disponivel';
+                            $animal->save();
+                        }
+                    }
                 }
 
                 return response()->json($match->fresh(['usuario', 'animal']), 200);
