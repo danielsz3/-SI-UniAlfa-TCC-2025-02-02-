@@ -109,8 +109,6 @@ const httpClient = (url: string, options: fetchUtils.Options = {}) => {
         });
 };
 
-// --- O RESTO DO SEU CÓDIGO PERMANECE IGUAL ---
-
 const baseDataProvider = simpleRestProvider(apiUrl, httpClient);
 
 const convertDataRequestToHTTP = (

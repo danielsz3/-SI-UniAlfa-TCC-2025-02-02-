@@ -44,7 +44,7 @@ interface ImageData {
 
 const PostCreate = () => {
     const [legenda, setLegenda] = useState('');
-    const [create, ] = useCreate();
+    const [create,] = useCreate();
     const [imagens, setImagens] = useState<ImageData[]>([]);
     const [invalidHelper, setInvalidHelper] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -228,18 +228,17 @@ const PostCreate = () => {
             return;
         }
 
-        const postData = {
-            legenda: legenda,
-            
-            imagens: imagens.map(img => ({
-                src: img.src,     
-                title: img.title, 
-                rawFile: img.file
-            }))
-        };
+        const formData = new FormData();
+        formData.append('legenda', legenda);
+
+        imagens.forEach((img, index) => {
+            if (img.file instanceof File) {
+                formData.append(`imagens[${index}]`, img.file, img.title || img.file.name);
+            }
+        });
         create(
-            'posts', 
-            { data: postData },
+            'posts',
+            { data: formData },
             {
                 onSuccess: () => {
                     notify('Post criado com sucesso!', { type: 'success' });

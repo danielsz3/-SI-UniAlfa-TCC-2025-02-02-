@@ -23,6 +23,9 @@ class PostController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        Log::info('Upload debug', ['request' => $request->all()]);
+
+        // 🔹 Validação inicial
         $validator = Validator::make($request->all(), [
             'legenda' => 'nullable|string|max:1000',
             'imagens' => 'nullable|array',
@@ -34,54 +37,54 @@ class PostController extends Controller
             'legenda.max' => 'A legenda deve ter no máximo 1000 caracteres.',
         ]);
 
-        // 🔸 Validação customizada
-        $validator->after(function ($validator) use ($request) {
-            if (empty($request->legenda) && !$request->hasFile('imagens')) {
-                $validator->errors()->add('legenda', 'Você deve enviar uma legenda ou pelo menos uma imagem.');
-                $validator->errors()->add('imagens', 'Você deve enviar uma legenda ou pelo menos uma imagem.');
-            }
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
+        // 🔹 Transação principal
+        return DB::transaction(function () use ($request) {
+            $post = Post::create($request->only('legenda'));
+
+            $imagens = [];
+
+            // 🔹 Upload e validação das imagens
             if ($request->hasFile('imagens')) {
                 foreach ($request->file('imagens') as $index => $file) {
-                    [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
-                    if (!$width || !$height) {
-                        $validator->errors()->add("imagens.$index", "Não foi possível ler as dimensões da imagem.");
-                        continue;
+                    $path = $file->store('posts', 'public');
+                    $nomeOriginal = $file->getClientOriginalName();
+
+                    try {
+                        [$width, $height] = getimagesize(storage_path("app/public/{$path}")) ?: [null, null];
+                    } catch (\Throwable $e) {
+                        return response()->json([
+                            'errors' => ["imagens.$index" => "Não foi possível ler a imagem {$nomeOriginal}."]
+                        ], 422);
                     }
 
-                    $ratio = $width / $height;
-                    $ratioRounded = round($ratio, 2);
-                    $portraitRatio = 4 / 5; // 0.8
-                    $landscapeRatio = 1.91 / 1; // 1.91
+                    if (!$width || !$height) {
+                        Storage::disk('public')->delete($path);
+                        return response()->json([
+                            'errors' => ["imagens.$index" => "A imagem {$nomeOriginal} está corrompida ou ilegível."]
+                        ], 422);
+                    }
+
+                    $ratio = round($width / $height, 2);
+                    $portraitRatio = 0.8;  // 4:5
+                    $landscapeRatio = 1.91; // 1.91:1
                     $tolerance = 0.02;
 
                     $isPortrait = abs($ratio - $portraitRatio) <= $tolerance;
                     $isLandscape = abs($ratio - $landscapeRatio) <= $tolerance;
 
                     if (!$isPortrait && !$isLandscape) {
-                        $validator->errors()->add(
-                            "imagens.$index",
-                            "A imagem {$file->getClientOriginalName()} tem proporção inválida ({$ratioRounded}:1). Use 4:5 (retrato) ou 1.91:1 (paisagem)."
-                        );
+                        Storage::disk('public')->delete($path);
+                        return response()->json([
+                            'errors' => [
+                                "imagens.$index" =>
+                                "A imagem {$nomeOriginal} tem proporção inválida ({$ratio}:1). Use 4:5 (retrato) ou 1.91:1 (paisagem)."
+                            ]
+                        ], 422);
                     }
-                }
-            }
-        });
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        return DB::transaction(function () use ($request) {
-            $post = Post::create($request->only('legenda'));
-
-            $imagens = [];
-
-            if ($request->hasFile('imagens')) {
-                foreach ($request->file('imagens') as $file) {
-                    [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
-                    $nomeOriginal = $file->getClientOriginalName();
-                    $path = $file->store('posts', 'public');
 
                     $imagem = ImagemPost::create([
                         'post_id' => $post->id,
@@ -93,14 +96,13 @@ class PostController extends Controller
 
                     $imagens[] = [
                         'path' => $path,
-                        'file' => $file,
                         'nome_original' => $nomeOriginal,
                     ];
                 }
             }
 
-            // 🔹 Busca integração para o serviço "instagram"
-            $integracao = Integracao::where('servico', 'instagram')->first();
+            // 🔹 Integração com Instagram
+            $integracao = Integracao::where('service', 'instagram')->first();
 
             if (!$integracao) {
                 return response()->json([
@@ -108,7 +110,7 @@ class PostController extends Controller
                 ], 500);
             }
 
-            // 🔹 Montar requisição multipart
+            // 🔹 Montagem do multipart
             $multipart = [
                 [
                     'name' => 'legenda',
@@ -116,16 +118,19 @@ class PostController extends Controller
                 ],
             ];
 
-            // Envia em ordem ASC (primeiras imagens primeiro)
             foreach ($imagens as $index => $img) {
-                $multipart[] = [
-                    'name' => "imagens[$index]",
-                    'contents' => fopen($img['file']->getRealPath(), 'r'),
-                    'filename' => $img['nome_original'],
-                ];
+                $filePath = storage_path("app/public/{$img['path']}");
+                if (file_exists($filePath)) {
+                    $multipart[] = [
+                        'name' => "imagens[$index]",
+                        'contents' => fopen($filePath, 'r'),
+                        'filename' => $img['nome_original'],
+                    ];
+                } else {
+                    Log::warning("Arquivo não encontrado para envio ao n8n: {$filePath}");
+                }
             }
 
-            // Adiciona atributos da integração
             foreach ($integracao->getAttributes() as $key => $value) {
                 $multipart[] = [
                     'name' => "integracao[$key]",
@@ -133,23 +138,30 @@ class PostController extends Controller
                 ];
             }
 
-            // 🔸 Envia para o n8n
+            // 🔹 Envio ao n8n
             try {
                 $response = Http::asMultipart()
-                    ->timeout(30)
+                    ->withOptions(['verify' => false]) // ⚠️ apenas para dev
                     ->post('https://n8n.chatfacil.cloud/webhook-test/postar-instagram', $multipart);
 
                 if (!$response->successful()) {
+                    Log::error("Erro n8n: " . $response->body());
                     throw new \Exception("Erro ao enviar para n8n: " . $response->body());
                 }
+
+                Log::info('Envio ao n8n bem-sucedido', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
             } catch (\Throwable $e) {
-                // Logar erro, mas não quebrar transação
                 Log::error('Erro ao enviar post para n8n: ' . $e->getMessage());
             }
 
             return response()->json($post->load('imagens'), 201);
         });
     }
+
+
 
     public function show($id): JsonResponse
     {
@@ -207,7 +219,7 @@ class PostController extends Controller
                 foreach ($request->file('imagens') as $file) {
                     $nomeOriginal = $file->getClientOriginalName(); // 🔹 ADICIONADO
                     $path = $file->store('posts', 'public');
-                    [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
+                    [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
                     ImagemPost::create([
                         'post_id' => $post->id,
                         'caminho' => $path,
