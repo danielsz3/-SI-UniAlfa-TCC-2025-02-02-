@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Usuario;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -181,6 +182,9 @@ class AuthController extends Controller
 
     /**
      * Enviar link de redefinição de senha
+     *
+     * Agora cria apenas o token e dispara a Notification custom (ResetPasswordNotification)
+     * que monta a URL do frontend (/new-password?token=...&email=...).
      */
     public function forgetPassword(Request $request): JsonResponse
     {
@@ -192,13 +196,23 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $status = Password::broker('usuarios')->sendResetLink($request->only('email'));
+        $email = $request->input('email');
+        $user = Usuario::where('email', $email)->first();
 
-        if ($status === Password::RESET_LINK_SENT) {
-            return response()->json(['message' => 'Link de redefinição de senha enviado']);
+        try {
+            if ($user) {
+                // cria somente o token (não a URL)
+                $token = Password::broker('usuarios')->createToken($user);
+
+                // notifica o usuário — a Notification monta a URL /new-password com token+email
+                $user->notify(new ResetPasswordNotification($token));
+            }
+
+            // retorno genérico para não vazar existência do e-mail
+            return response()->json(['message' => 'Se o e‑mail existir, um link de redefinição foi enviado.']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erro ao enviar link de redefinição', 'message' => $e->getMessage()], 500);
         }
-
-        throw ValidationException::withMessages(['email' => [__($status)]]);
     }
 
     /**
@@ -238,5 +252,23 @@ class AuthController extends Controller
         }
 
         return response()->json(['error' => 'Falha ao redefinir a senha', 'message' => __($status)], 400);
+    }
+
+    /**
+     * Rota de debug (opcional) — gera token/link para teste manual.
+     * Use apenas em ambiente de desenvolvimento.
+     */
+    public function debugResetLink(string $email): JsonResponse
+    {
+        $user = Usuario::where('email', $email)->first();
+        if (!$user) {
+            return response()->json(['error' => 'Usuário não encontrado'], 404);
+        }
+
+        $token = Password::broker('usuarios')->createToken($user);
+        $frontend = config('app.frontend_url', env('FRONTEND_URL', env('APP_URL')));
+        $link = rtrim($frontend, '/') . '/new-password?token=' . $token . '&email=' . urlencode($user->email);
+
+        return response()->json(['token' => $token, 'link' => $link]);
     }
 }

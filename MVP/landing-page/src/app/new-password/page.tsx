@@ -9,7 +9,12 @@ import Link from "next/link";
 export default function NewPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || ""; // ou use o param da rota
+
+  // pegar params (decode por segurança)
+  const rawToken = searchParams?.get("token") || "";
+  const rawEmail = searchParams?.get("email") || "";
+  const token = rawToken ? decodeURIComponent(rawToken) : "";
+  const emailFromQuery = rawEmail ? decodeURIComponent(rawEmail) : "";
 
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -17,55 +22,99 @@ export default function NewPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [validToken, setValidToken] = useState(false);
+  const [email, setEmail] = useState(emailFromQuery);
 
-  // Validar token ao carregar a página
   useEffect(() => {
-    async function validateToken() {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/validate-token`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
-
-        if (!res.ok) throw new Error("Token inválido ou expirado");
-
-        setValidToken(true);
-      } catch (err: any) {
-        setError(err.message);
-      }
+    // Se não houver token ou e-mail, mostra erro imediatamente
+    if (!token) {
+      setError("Token não fornecido na URL.");
+      setValidToken(false);
+      return;
+    }
+    if (!emailFromQuery) {
+      // é possível permitir que usuário preencha o email manualmente,
+      // aqui assumimos que o email vem na URL; se preferir, permita digitar
+      setError("E-mail não fornecido na URL.");
+      setValidToken(false);
+      return;
     }
 
-    if (token) validateToken();
-    else setError("Token não fornecido");
-  }, [token]);
+    // se token e email existem, assumimos válido (o backend vai validar de fato ao submeter)
+    setError(null);
+    setValidToken(true);
+  }, [token, emailFromQuery]);
+
+  function validatePasswordClientSide(pw: string) {
+    // Replicar regras mínimas do backend:
+    // mínimo 8, ao menos 1 letra maiúscula, 1 dígito e 1 caractere especial
+    if (pw.length < 8) return "A senha deve ter ao menos 8 caracteres.";
+    if (!/[A-Z]/.test(pw)) return "A senha deve conter ao menos uma letra maiúscula.";
+    if (!/\d/.test(pw)) return "A senha deve conter ao menos um número.";
+    if (!/[^A-Za-z0-9]/.test(pw)) return "A senha deve conter ao menos um caractere especial.";
+    return null;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
+    if (!token) {
+      setError("Token ausente.");
+      return;
+    }
+    if (!email) {
+      setError("E-mail ausente.");
+      return;
+    }
     if (password !== passwordConfirm) {
-      setError("As senhas não coincidem");
+      setError("As senhas não coincidem.");
+      return;
+    }
+
+    const pwError = validatePasswordClientSide(password);
+    if (pwError) {
+      setError(pwError);
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reset-password`, {
+      // garantir que NEXT_PUBLIC_API_URL aponta para algo como "http://localhost:8000/api"
+      const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000/api";
+
+      const res = await fetch(`${apiBase}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({
+          token,
+          email,
+          password,
+          password_confirmation: passwordConfirm,
+        }),
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || "Erro ao redefinir senha");
+        // backend pode retornar erros de validação detalhados
+        if (data?.errors) {
+          // se for array/object de erros do Validator, mostrar a primeira mensagem útil
+          const first = Object.values(data.errors)[0];
+          setError(Array.isArray(first) ? first[0] : String(first));
+        } else if (data?.message) {
+          setError(data.message);
+        } else {
+          setError("Erro ao redefinir senha.");
+        }
+        return;
       }
 
       setSuccess(true);
+      // opcional: redirecionar depois
+      setTimeout(() => router.push("/login"), 1500);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Erro de rede");
     } finally {
       setLoading(false);
     }
@@ -103,17 +152,27 @@ export default function NewPasswordPage() {
           {validToken ? (
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-slate-700 dark:text-slate-200"
-                >
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Seu e-mail"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                   Nova senha
                 </label>
                 <input
                   id="password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="mt-1 w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
@@ -121,17 +180,14 @@ export default function NewPasswordPage() {
                 />
               </div>
               <div>
-                <label
-                  htmlFor="passwordConfirm"
-                  className="block text-sm font-medium text-slate-700 dark:text-slate-200"
-                >
+                <label htmlFor="passwordConfirm" className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                   Confirme a nova senha
                 </label>
                 <input
                   id="passwordConfirm"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={passwordConfirm}
                   onChange={(e) => setPasswordConfirm(e.target.value)}
                   className="mt-1 w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
