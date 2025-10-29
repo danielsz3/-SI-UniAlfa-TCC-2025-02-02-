@@ -13,10 +13,10 @@ export default function RegisterPage() {
 
     function nextStep(data: any) {
         setFormData(prev => ({ ...prev, ...data }))
-        setStep(step + 1)
+        setStep(s => s + 1)
     }
     function prevStep() {
-        setStep(step - 1)
+        setStep(s => s - 1)
     }
 
     return (
