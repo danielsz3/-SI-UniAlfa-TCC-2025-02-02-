@@ -9,9 +9,7 @@ const UserEdit = () => (
         sx={{ width: '100%', maxWidth: 600, margin: '0 auto' }}
         redirect="list"
     >
-        <SimpleForm
-            toolbar={<CustomToolbar showSaveAndAdd={false} />}
-        >
+        <SimpleForm>
             <TextInput
                 source="nome"
                 label="Nome"
