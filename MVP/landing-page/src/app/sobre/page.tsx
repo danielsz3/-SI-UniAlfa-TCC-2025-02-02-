@@ -2,6 +2,7 @@ import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/c
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
 
 interface LarTemporario {
   id: number;
