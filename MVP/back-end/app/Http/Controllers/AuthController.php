@@ -181,39 +181,40 @@ class AuthController extends Controller
     }
 
     /**
-     * Enviar link de redefinição de senha
-     *
-     * Agora cria apenas o token e dispara a Notification custom (ResetPasswordNotification)
-     * que monta a URL do frontend (/new-password?token=...&email=...).
-     */
-    public function forgetPassword(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-        ]);
+ * Enviar link de redefinição de senha — valida se email e CPF estão vinculados
+ */
+public function forgetPassword(Request $request): JsonResponse
+{
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email',
+        'cpf' => 'required|string',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
 
-        $email = $request->input('email');
+    $email = $request->input('email');
+    $cpfInput = $request->input('cpf');
+
+    // Normaliza CPF (apenas dígitos)
+    $cpfClean = preg_replace('/\D/', '', $cpfInput);
+
+    try {
         $user = Usuario::where('email', $email)->first();
 
-        try {
-            if ($user) {
-                // cria somente o token (não a URL)
+        if ($user) {
+            $userCpfClean = preg_replace('/\D/', '', $user->cpf ?? '');
+            if (!empty($userCpfClean) && $userCpfClean === $cpfClean) {
                 $token = Password::broker('usuarios')->createToken($user);
-
-                // notifica o usuário — a Notification monta a URL /new-password com token+email
                 $user->notify(new ResetPasswordNotification($token));
             }
-
-            // retorno genérico para não vazar existência do e-mail
-            return response()->json(['message' => 'Se o e‑mail existir, um link de redefinição foi enviado.']);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Erro ao enviar link de redefinição', 'message' => $e->getMessage()], 500);
         }
+        return response()->json(['message' => 'Se o e‑mail e CPF existirem, um link de redefinição foi enviado.']);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Erro ao enviar link de redefinição', 'message' => $e->getMessage()], 500);
     }
+}
 
     /**
      * Resetar senha

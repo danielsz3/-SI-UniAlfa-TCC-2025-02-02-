@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('castrado')->default(false);
             $table->boolean('vale_castracao')->default(false);
             $table->text('descricao')->nullable();
-            $table->enum('situacao', ['disponivel', 'adotado', 'em_adocao', 'em_aprovacao'])->default('disponivel');
+            $table->enum('situacao', ['disponivel', 'adotado', 'em_adocao', 'em_aprovacao'])->default('em_aprovacao');
             $table->enum('tipo_animal', ['cao', 'gato', 'outro']);
             $table->enum('nivel_energia', ['baixa', 'moderada', 'alta'])->nullable();
             $table->enum('tamanho', ['pequeno', 'medio', 'grande'])->nullable();
