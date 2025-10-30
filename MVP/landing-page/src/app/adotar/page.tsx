@@ -135,7 +135,11 @@ export default function AdotarPageClient() {
   const abortedRef = useRef(false)
 
   const buildBaseUrl = useCallback(() => {
-    const params: Record<string, string> = { situacao: "disponivel" }
+    const params: Record<string, string> = {
+      situacao: "disponivel",
+      page: "1",             // garante que pedimos a página 1
+      limit: String(perPage) // garante page size consistente com perPage
+    }
     if (tipoAnimal && tipoAnimal !== "all") params.tipo_animal = tipoAnimal
     if (sexo && sexo !== "all") params.sexo = sexo
     if (ageRange !== "any") {
@@ -145,7 +149,7 @@ export default function AdotarPageClient() {
     }
     const q = new URLSearchParams(params).toString()
     return `${apiUrl}/animais?${q}`
-  }, [apiUrl, tipoAnimal, sexo, ageRange])
+  }, [apiUrl, tipoAnimal, sexo, ageRange, perPage])
 
   const buildPageUrl = useCallback((page: number) => {
     const params: Record<string, string> = {
@@ -162,7 +166,7 @@ export default function AdotarPageClient() {
     }
     const q = new URLSearchParams(params).toString()
     return `${apiUrl}/animais?${q}`
-  }, [apiUrl, tipoAnimal, sexo, ageRange])
+  }, [apiUrl, tipoAnimal, sexo, ageRange, perPage])
 
   // parseResponse é puro: retorna items + meta info, sem side-effects
   const parseResponse = useCallback(async (res: Response) => {
@@ -204,6 +208,9 @@ export default function AdotarPageClient() {
       const url = buildBaseUrl()
       const res = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } })
       const parsed = await parseResponse(res)
+
+      // debug log para inspecionar o que a API retornou inicialmente
+      console.debug("initial parsed response:", parsed)
 
       setAnimais(parsed.items || [])
 
@@ -332,7 +339,7 @@ export default function AdotarPageClient() {
     } finally {
       setLoading(false)
     }
-  }, [buildPageUrl, currentPage, hasMore, loading, parseResponse])
+  }, [buildPageUrl, currentPage, hasMore, loading, parseResponse, perPage])
 
   // chama loadInitial quando filtros mudarem; cancela background fetch anterior
   useEffect(() => {
