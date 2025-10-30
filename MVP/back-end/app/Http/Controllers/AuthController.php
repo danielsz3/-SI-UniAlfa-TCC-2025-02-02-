@@ -209,7 +209,7 @@ class AuthController extends Controller
             }
 
             // retorno genérico para não vazar existência do e-mail
-            return response()->json(['message' => 'Se o e‑mail existir, um link de redefinição foi enviado.']);
+            return response()->json(['message' => 'Um link de redefinição foi enviado.']);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Erro ao enviar link de redefinição', 'message' => $e->getMessage()], 500);
         }
