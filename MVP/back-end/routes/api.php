@@ -100,7 +100,7 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::apiResource('transacoes', TransacaoController::class)->except(['index', 'show']);
         Route::post('transacoes/{id}/restore', [TransacaoController::class, 'restore'])->name('transacoes.restore');
 
-        Route::apiResource('animais', AnimalController::class)->except(['index', 'show']);
+        Route::apiResource('animais', AnimalController::class)->except(['index', 'show', 'store']);
         Route::post('animais/{id}/restore', [AnimalController::class, 'restore'])->name('animais.restore');
 
         Route::get('integracoes', [IntegracaoController::class, 'index'])->name('integracoes.index');
