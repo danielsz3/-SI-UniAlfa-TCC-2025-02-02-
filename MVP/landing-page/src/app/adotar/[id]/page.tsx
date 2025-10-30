@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 
+import { ImageCarousel } from "@/components/ImageCarousel" // ajuste o caminho se necessário
+
 async function fetchAnimal(id: string) {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/animais/${id}`, {
@@ -38,9 +40,10 @@ export default async function AnimalDetalhesPage({ params }: { params: { id: str
     notFound()
   }
 
-  const imagemPrincipal = animal.imagens?.[0]?.caminho
-    ? `${process.env.NEXT_PUBLIC_STORAGE_URL}/${animal.imagens[0].caminho}`
-    : null
+  // monta array de URLs completas das imagens
+  const imagens: string[] = (animal.imagens || []).map((img: any) =>
+    img?.caminho ? `${process.env.NEXT_PUBLIC_STORAGE_URL}/${img.caminho}` : ""
+  ).filter(Boolean)
 
   return (
     <>
@@ -48,35 +51,9 @@ export default async function AnimalDetalhesPage({ params }: { params: { id: str
       <main className="min-h-screen pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Imagem */}
+            {/* Imagem / Carrossel */}
             <div className="space-y-4">
-              <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                {imagemPrincipal ? (
-                  <img
-                    src={imagemPrincipal}
-                    alt={animal.nome}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    Sem imagem
-                  </div>
-                )}
-              </div>
-
-              {animal.imagens && animal.imagens.length > 1 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {animal.imagens.slice(1, 5).map((img: any, idx: number) => (
-                    <div key={idx} className="aspect-square bg-muted rounded overflow-hidden">
-                      <img
-                        src={`${process.env.NEXT_PUBLIC_STORAGE_URL}/${img.caminho}`}
-                        alt={`${animal.nome} ${idx + 2}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ImageCarousel images={imagens} alt={animal.nome} />
             </div>
 
             {/* Informações */}
